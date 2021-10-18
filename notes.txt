@@ -1,0 +1,30 @@
+Cheerio = Fast, flexible, and lean implementation of core jQuery designed specifically for the server. (Used for web scraping) 
+express = server framework
+nodemon = live reload/restart
+axios = Promise based HTTP client for the browser. (makes life easier with http requests)
+
+---
+    $('.fc-item__title', html).each(function () {
+            const title = $(this).text();
+            const url = $(this).find('a').attr('href');
+---
+// When using arrow functions, 'this' cannot be used as arrow functions don't create their 
+own execution context but instead inherit from the parent
+https://www.codementor.io/@dariogarciamoya/understanding-this-in-javascript-with-arrow-functions-gcpjwfyuc
+
+
+---
+// const url = 'https://www.theguardian.com/uk';
+
+// $('.fc-item__title').each((index, element) => {
+//     const title = $(element).text();
+//     const url = $(element).find('a').attr('href');
+
+//     console.log(element.children)
+
+//     articles.push({
+//         index,
+//         title,
+//         url,
+//     });
+// });
