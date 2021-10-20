@@ -2,9 +2,9 @@ const express = require('express');
 const cheerio = require('cheerio'); // JQuery under the hood
 const axios = require('axios');
 
-const urls = require('./urls');
-const filterData = require('./filterData');
-const telegram = require('./telegram');
+const urls = require('./logic/urls');
+const filterData = require('./logic/filterData');
+const telegram = require('./logic/telegram');
 
 const app = express();
 
