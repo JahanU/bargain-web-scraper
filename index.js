@@ -1,6 +1,7 @@
 const express = require('express');
 const cheerio = require('cheerio'); // JQuery under the hood
 const axios = require('axios');
+require('dotenv').config()
 
 const urls = require('./logic/urls');
 const filterData = require('./logic/filterData');
@@ -8,40 +9,42 @@ const telegram = require('./logic/telegram');
 
 const app = express();
 
-axios(urls.urlAll)
-    .then(response => {
-        let allItems = [];
-        const html = response.data;
-        const $ = cheerio.load(html); // can now access all html elements via cheerio api
+// telegram.pingBot();
 
-        $('.productListItem').each((index, element) => {
+// axios(urls.urlAll)
+//     .then(response => {
+//         let allItems = [];
+//         const html = response.data;
+//         const $ = cheerio.load(html); // can now access all html elements via cheerio api
 
-            let url = $(element).find('a').attr('href');
-            let itemName = $(element).find('.itemTitle').text().trim().toLowerCase();
-            let wasPrice = $(element).find('.was').text().substring(3).trim();
-            let nowPrice = $(element).find('.now').text().substring(3).trim();
-            let discount = $(element).find('.sav').text().trim().substring(5, 7);
+//         $('.productListItem').each((index, element) => {
 
-            if (filterData.removeUnnecessaryItem(itemName)) return; // Don't like item, continue searching
+//             let url = $(element).find('a').attr('href');
+//             let itemName = $(element).find('.itemTitle').text().trim().toLowerCase();
+//             let wasPrice = $(element).find('.was').text().substring(3).trim();
+//             let nowPrice = $(element).find('.now').text().substring(3).trim();
+//             let discount = $(element).find('.sav').text().trim().substring(5, 7);
 
-            allItems.push({
-                itemName,
-                wasPrice,
-                nowPrice,
-                discount,
-                url,
-            });
-        });
+//             if (filterData.removeUnnecessaryItem(itemName)) return; // Don't like item, continue searching
 
-        filterData.sortByDiscount(allItems); // personal use, logging
+//             allItems.push({
+//                 itemName,
+//                 wasPrice,
+//                 nowPrice,
+//                 discount,
+//                 url,
+//             });
+//         });
 
-        console.log(allItems);
-        console.log('All items length: ', allItems.length);
+//         filterData.sortByDiscount(allItems); // personal use, logging
 
-        telegram.pingBot(allItems);
+//         console.log(allItems);
+//         console.log('All items length: ', allItems.length);
+
+//         // telegram.pingBot(allItems);
 
 
-    }).catch(err => console.log(err));
+//     }).catch(err => console.log(err));
 
 
 const PORT = 8000;
