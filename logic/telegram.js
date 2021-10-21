@@ -7,16 +7,19 @@ const api = new TG({
 })
 
 // https://core.telegram.org/bots/api#sendphoto
-async function sendPhoto() {
 
-    await api.sendPhoto({
-        chat_id: process.env.CHAT_ID,
-        caption: 'Price: x \nReduction: y \nLink: x',
-        photo: 'https://i8.amplience.net/t/jpl/jd_product_list?plu=jd_381398_al&qlt=92&w=363&h=363&v=1&fmt=auto.png'
-    }).catch((err) => console.log(err))
-
+async function sendPhotosToBot(items) {
+    for (let i = 0; i < items.length; i++) {
+        await sendPhoto(items[i]);
+    }
 }
 
-sendPhoto();
+async function sendPhoto(i) { // .itemName, .wasPrice, .nowPrice, .discount, .url, .imageUrl
+    await api.sendPhoto({
+        chat_id: process.env.CHAT_ID,
+        caption: `Price: ${i.nowPrice} \nDiscount: ${i.discount}% \nLink: ${i.url}`,
+        photo: i.imageUrl
+    }).catch((err) => console.log(err))
+}
 
-// module.exports = { pingBot }
+module.exports = { sendPhotosToBot }

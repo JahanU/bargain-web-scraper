@@ -9,43 +9,51 @@ const telegram = require('./logic/telegram');
 
 const app = express();
 
-// telegram.pingBot();
+setInterval(() => getItems(urls.all), 10 * 1000);
 
-// axios(urls.urlAll)
-//     .then(response => {
-//         let allItems = [];
-//         const html = response.data;
-//         const $ = cheerio.load(html); // can now access all html elements via cheerio api
+function getItems(url) {
+    console.log(new Date().getTime().toLocaleString());
+    axios(url)
+        .then(response => {
+            let allItems = [];
+            const html = response.data;
+            const $ = cheerio.load(html); // can now access all html elements via cheerio api
 
-//         $('.productListItem').each((index, element) => {
+            $('.productListItem').each((index, element) => {
 
-//             let url = $(element).find('a').attr('href');
-//             let itemName = $(element).find('.itemTitle').text().trim().toLowerCase();
-//             let wasPrice = $(element).find('.was').text().substring(3).trim();
-//             let nowPrice = $(element).find('.now').text().substring(3).trim();
-//             let discount = $(element).find('.sav').text().trim().substring(5, 7);
+                let url = urls.JD + $(element).find('a').attr('href');
+                let imageUrl = $(element).find('source').attr('data-srcset').split(' ')[2]; // => [smallImgUrl, 1x, largeImgUrl, 2x];
+                let itemName = $(element).find('.itemTitle').text().trim().toLowerCase();
+                let wasPrice = $(element).find('.was').text().substring(3).trim();
+                let nowPrice = $(element).find('.now').text().substring(3).trim();
+                let discount = $(element).find('.sav').text().trim().substring(5, 7);
 
-//             if (filterData.removeUnnecessaryItem(itemName)) return; // Don't like item, continue searching
+                if (filterData.removeUnnecessaryItem(itemName)) return; // Don't like item, continue searching
 
-//             allItems.push({
-//                 itemName,
-//                 wasPrice,
-//                 nowPrice,
-//                 discount,
-//                 url,
-//             });
-//         });
+                allItems.push({
+                    itemName,
+                    wasPrice,
+                    nowPrice,
+                    discount,
+                    url,
+                    imageUrl
+                });
+            });
 
-//         filterData.sortByDiscount(allItems); // personal use, logging
+            // console.log(filterData.sortByDiscount(allItems)); // personal use, logging
+            // if (!foundNewItems()) return; 
 
-//         console.log(allItems);
-//         console.log('All items length: ', allItems.length);
+            sendBestDeals(allItems);
 
-//         // telegram.pingBot(allItems);
+        }).catch(err => console.log(err));
+}
 
-
-//     }).catch(err => console.log(err));
-
+// Items with a discount >= 75%
+function sendBestDeals(allItems) {
+    const bestDeals = allItems.filter((item) => item.discount > 70).sort((a, b) => a.discount - b.discount)
+    console.log('best deals are: ', bestDeals, 'total: ', bestDeals.length);
+    telegram.sendPhotosToBot(bestDeals);
+}
 
 const PORT = 8000;
 app.listen(PORT, () => console.log(`listening on port: ${PORT}`));
