@@ -9,13 +9,15 @@ const telegram = require('./logic/telegram');
 
 const app = express();
 
-setInterval(() => getItems(urls.all), 10 * 1000);
+var allBestItems = new Map();
+
+getItems(urls.all);
+setInterval(() => getItems(urls.all), 60 * 1000);
 
 function getItems(url) {
-    console.log(new Date().getTime().toLocaleString());
     axios(url)
         .then(response => {
-            let allItems = [];
+            let items = [];
             const html = response.data;
             const $ = cheerio.load(html); // can now access all html elements via cheerio api
 
@@ -30,7 +32,7 @@ function getItems(url) {
 
                 if (filterData.removeUnnecessaryItem(itemName)) return; // Don't like item, continue searching
 
-                allItems.push({
+                items.push({
                     itemName,
                     wasPrice,
                     nowPrice,
@@ -43,17 +45,34 @@ function getItems(url) {
             // console.log(filterData.sortByDiscount(allItems)); // personal use, logging
             // if (!foundNewItems()) return; 
 
-            sendBestDeals(allItems);
+            const bestDeals = getBestDeals(items);
+            console.log('current best deals: ', bestDeals);
+            sendNewBestDeals(bestDeals);
 
         }).catch(err => console.log(err));
 }
 
-// Items with a discount >= 75%
-function sendBestDeals(allItems) {
-    const bestDeals = allItems.filter((item) => item.discount > 70).sort((a, b) => a.discount - b.discount)
-    console.log('best deals are: ', bestDeals, 'total: ', bestDeals.length);
-    telegram.sendPhotosToBot(bestDeals);
+
+getBestDeals = (items) => items.filter((item) => item.discount > 70).sort((a, b) => a.discount - b.discount);
+
+
+function sendNewBestDeals(newBestDeals) {
+
+    let newItems = [];
+    newBestDeals.forEach((item) => {
+        if (!allBestItems.has(item.url)) { // new item!
+            newItems.push(item);
+        }
+        allBestItems.set(item.url, item);
+    });
+
+    console.log(new Date().toLocaleString());
+    if (newItems.length == 0) console.log('no new items');
+    else console.log('got new items!: ', newItems);
+
+    telegram.sendPhotosToBot(newItems);
 }
+
 
 const PORT = 8000;
 app.listen(PORT, () => console.log(`listening on port: ${PORT}`));
