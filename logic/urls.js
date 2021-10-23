@@ -1,9 +1,13 @@
-// All items, (T Shirts + Shoes)
-const all = 'https://www.jdsports.co.uk/men/brand/adidas-originals,adidas,nike,under-armour,the-north-face,new-balance,lacoste,tommy-hilfiger,calvin-klein-underwear,columbia,jordan,emporio-armani-ea7,berghaus,polo-ralph-lauren,boss,levis,fred-perry,asics,champion/sale/?sort=price-low-high'
+// enum
+const URLS = {
+    // All items, (T Shirts + Shoes)
+    all: 'https://www.jdsports.co.uk/men/brand/adidas-originals,adidas,nike,under-armour,the-north-face,new-balance,lacoste,vans,tommy-hilfiger,calvin-klein-underwear,levis,columbia,jordan,emporio-armani-ea7,berghaus,polo-ralph-lauren,boss,champion,fred-perry,asics/sale/?sort=price-low-high&max=200',
 
-// TODO Shoe filter only
-const shoes = 'https://www.jdsports.co.uk/men/mens-footwear/brand/adidas-originals,adidas,nike,under-armour,converse,the-north-face,lacoste,new-balance,emporio-armani-ea7,tommy-hilfiger,vans,calvin-klein-underwear,columbia,fila,puma,berghaus,polo-ralph-lauren,boss,levis,fred-perry,asics,champion,reebok/sale/?sort=price-low-high'
+    // Shoe filter only
+    shoes: 'https://www.jdsports.co.uk/men/mens-footwear/brand/adidas-originals,adidas,nike,under-armour,the-north-face,new-balance,lacoste,vans,tommy-hilfiger,calvin-klein-underwear,levis,columbia,reebok,jordan,fila,emporio-armani-ea7,puma,berghaus,polo-ralph-lauren,boss,champion,fred-perry,asics,converse/sale/?max=100&sort=price-low-high&max=200',
 
-const JD = 'https://www.jdsports.co.uk';
+    jd: 'https://www.jdsports.co.uk'
+};
 
-module.exports = { all, shoes, JD }
+
+module.exports = { URLS }

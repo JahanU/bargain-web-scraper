@@ -11,66 +11,73 @@ const app = express();
 
 var allBestItems = new Map();
 
-getItems(urls.all);
-setInterval(() => getItems(urls.all), 60 * 1000);
+getItems(); // first init 
 
-function getItems(url) {
-    axios(url)
-        .then(response => {
-            let items = [];
-            const html = response.data;
-            const $ = cheerio.load(html); // can now access all html elements via cheerio api
+setInterval(getItems, 60 * 1000);
 
-            $('.productListItem').each((index, element) => {
+function getItems() {
+    let links = Object.values(urls.URLS);
+    links.forEach((url) => {
+        axios(url)
+            .then(response => {
+                let items = [];
+                const html = response.data;
+                const $ = cheerio.load(html); // can now access all html elements via cheerio api
 
-                let url = urls.JD + $(element).find('a').attr('href');
-                let imageUrl = $(element).find('source').attr('data-srcset').split(' ')[2]; // => [smallImgUrl, 1x, largeImgUrl, 2x];
-                let itemName = $(element).find('.itemTitle').text().trim().toLowerCase();
-                let wasPrice = $(element).find('.was').text().substring(3).trim();
-                let nowPrice = $(element).find('.now').text().substring(3).trim();
-                let discount = $(element).find('.sav').text().trim().substring(5, 7);
+                $('.productListItem').each((index, element) => {
 
-                if (filterData.removeUnnecessaryItem(itemName)) return; // Don't like item, continue searching
+                    let url = urls.URLS.jd + $(element).find('a').attr('href');
+                    let imageUrl = $(element).find('source').attr('data-srcset').split(' ')[2]; // => [smallImgUrl, 1x, largeImgUrl, 2x];
+                    let itemName = $(element).find('.itemTitle').text().trim().toLowerCase();
+                    let wasPrice = $(element).find('.was').text().substring(3).trim();
+                    let nowPrice = $(element).find('.now').text().substring(3).trim();
+                    let discount = $(element).find('.sav').text().trim().substring(5, 7);
 
-                items.push({
-                    itemName,
-                    wasPrice,
-                    nowPrice,
-                    discount,
-                    url,
-                    imageUrl
+                    if (filterData.removeUnnecessaryItem(itemName)) return; // Don't like item, continue searching
+
+                    items.push({
+                        itemName,
+                        wasPrice,
+                        nowPrice,
+                        discount,
+                        url,
+                        imageUrl
+                    });
                 });
-            });
 
-            // console.log(filterData.sortByDiscount(allItems)); // personal use, logging
-            // if (!foundNewItems()) return; 
-
-            const bestDeals = getBestDeals(items);
-            console.log('current best deals: ', bestDeals);
-            sendNewBestDeals(bestDeals);
-
-        }).catch(err => console.log(err));
+                const newItems = cacheDeals(getBestDeals(items));
+                sendDeals(newItems);
+            }).catch(err => console.log(err));
+    });
 }
 
 
-getBestDeals = (items) => items.filter((item) => item.discount > 70).sort((a, b) => a.discount - b.discount);
+getBestDeals = (items) => items.filter((item) => item.discount > 65).sort((a, b) => a.discount - b.discount);
 
-
-function sendNewBestDeals(newBestDeals) {
-
+function cacheDeals(newBestDeals) { // don't send items we have already seen
     let newItems = [];
     newBestDeals.forEach((item) => {
-        if (!allBestItems.has(item.url)) { // new item!
+        if (!allBestItems.has(item.url)) { // found new item!
             newItems.push(item);
         }
         allBestItems.set(item.url, item);
     });
+    console.log('all best deals: ', allBestItems);
 
+    return newItems;
+}
+
+function sendDeals(newDeals) {
     console.log(new Date().toLocaleString());
-    if (newItems.length == 0) console.log('no new items');
-    else console.log('got new items!: ', newItems);
+    if (newDeals.length == 0) {
+        console.log('no new items');
+        return;
+    }
+    else {
+        console.log('got new items!: ', newDeals);
+        telegram.sendPhotosToBot(newDeals);
+    }
 
-    telegram.sendPhotosToBot(newItems);
 }
 
 

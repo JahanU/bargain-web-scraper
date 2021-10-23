@@ -15,9 +15,10 @@ async function sendPhotosToBot(items) {
 }
 
 async function sendPhoto(i) { // .itemName, .wasPrice, .nowPrice, .discount, .url, .imageUrl
+    console.log(i)
     await api.sendPhoto({
         chat_id: process.env.CHAT_ID,
-        caption: `Price: ${i.nowPrice} \nDiscount: ${i.discount}% \nLink: ${i.url}`,
+        caption: `Name: ${i.itemName} \nPrice: ${i.nowPrice} \nDiscount: ${i.discount}% \nLink: ${i.url}`,
         photo: i.imageUrl
     }).catch((err) => console.log(err))
 }
