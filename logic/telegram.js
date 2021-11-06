@@ -8,19 +8,24 @@ const api = new TG({
 
 // https://core.telegram.org/bots/api#sendphoto
 
-async function sendPhotosToBot(items) {
+function sendPhotosToBot(items) {
     for (let i = 0; i < items.length; i++) {
-        await sendPhoto(items[i]);
+        sendPhoto(items[i]);
     }
 }
 
-async function sendPhoto(i) { // .itemName, .wasPrice, .nowPrice, .discount, .url, .imageUrl
+function sendPhoto(i) { // .itemName, .wasPrice, .nowPrice, .discount, .url, .imageUrl
     console.log(i)
-    await api.sendPhoto({
-        chat_id: process.env.CHAT_ID,
-        caption: `Name: ${i.itemName} \nPrice: ${i.nowPrice} \nDiscount: ${i.discount}% \nLink: ${i.url}`,
-        photo: i.imageUrl
-    }).catch((err) => console.log(err))
+
+    let arr = [process.env.CHAT_ID_SHIRAZ, process.env.CHAT_ID];
+    arr.forEach((chatId) => {
+        api.sendPhoto({
+            chat_id: chatId,
+            caption: `Name: ${i.itemName} \nPrice: ${i.nowPrice} \nDiscount: ${i.discount}% \nLink: ${i.url}`,
+            photo: i.imageUrl
+        }).catch((err) => console.log(err))
+    });
+
 }
 
 module.exports = { sendPhotosToBot }

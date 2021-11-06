@@ -1,6 +1,7 @@
 // remove unneeded elements (football t shirts, caps etc)
-function removeUnnecessaryItem(itemName) {
-    let dislikedItems = ['fc', 'nba', 'home', 'hip', 'gloves', 'cap', 'training', 'away', 'team', 'gb', 'england', 'scotland', 'wales'];
+function removeUnneededItem(itemName) {
+    let dislikedItems = ['fc', 'nba', 'home', 'hip', 'gloves', 'cap', 'training', 'away',
+        'team', 'gb', 'england', 'scotland', 'wales', 'ireland', 'basketball', 'football'];
     return dislikedItems.find(badWord => itemName.includes(badWord));
 }
 
@@ -13,4 +14,4 @@ function removeUnnecessaryItem(itemName) {
 // }
 
 
-module.exports = { removeUnnecessaryItem }
+module.exports = { removeUnneededItem }

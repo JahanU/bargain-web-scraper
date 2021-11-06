@@ -11,29 +11,37 @@ const app = express();
 
 var allBestItems = new Map();
 
-getItems(); // first init 
+// Testing this out
+// getInStock('https://www.jdsports.co.uk/product/blue-columbia-assent-t-shirt/16088262/');
+// getInStock('https://www.jdsports.co.uk/product/blue-nike-just-do-it-swoosh-t-shirt/16169321/');
 
-setInterval(getItems, 60 * 1000);
+getItems();
 
+setInterval(getItems, 45 * 1000);
+setInterval(resetCache, 18000 * 1000) // reset cache every 5h
+
+// Check if in stock?
 function getItems() {
     let links = Object.values(urls.URLS);
     links.forEach((url) => {
         axios(url)
-            .then(response => {
+            .then((response) => {
                 let items = [];
                 const html = response.data;
                 const $ = cheerio.load(html); // can now access all html elements via cheerio api
 
                 $('.productListItem').each((index, element) => {
 
-                    let url = urls.URLS.jd + $(element).find('a').attr('href');
-                    let imageUrl = $(element).find('source').attr('data-srcset').split(' ')[2]; // => [smallImgUrl, 1x, largeImgUrl, 2x];
                     let itemName = $(element).find('.itemTitle').text().trim().toLowerCase();
+                    if (filterData.removeUnneededItem(itemName)) return; // Don't like item, continue searching
+
+                    let url = urls.JD + $(element).find('a').attr('href');
+                    // if (!getInStock(url)) return;
+
+                    let imageUrl = $(element).find('source').attr('data-srcset').split(' ')[2]; // => [smallImgUrl, 1x, largeImgUrl, 2x];
                     let wasPrice = $(element).find('.was').text().substring(3).trim();
                     let nowPrice = $(element).find('.now').text().substring(3).trim();
                     let discount = $(element).find('.sav').text().trim().substring(5, 7);
-
-                    if (filterData.removeUnnecessaryItem(itemName)) return; // Don't like item, continue searching
 
                     items.push({
                         itemName,
@@ -51,8 +59,30 @@ function getItems() {
     });
 }
 
+function getInStock(itemUrl) {
 
-getBestDeals = (items) => items.filter((item) => item.discount > 65).sort((a, b) => a.discount - b.discount);
+    axios(itemUrl).
+        then((response) => {
+            const html = response.data;
+            const $ = cheerio.load(html);
+
+            $('h3').each((index, element) => {
+
+                console.log($(element).text().trim());
+            });
+
+            // $('#itemOptions').each((index, element) => {
+
+            //     let x = $(element).attr('data-stock');
+            //     let y = $(element).find('div').attr('data-stock');
+
+            //     console.log(index, x, y);
+            // });
+        });
+
+}
+
+getBestDeals = (items) => items.filter((item) => item.discount >= 60).sort((a, b) => a.discount - b.discount);
 
 function cacheDeals(newBestDeals) { // don't send items we have already seen
     let newItems = [];
@@ -77,9 +107,11 @@ function sendDeals(newDeals) {
         console.log('got new items!: ', newDeals);
         telegram.sendPhotosToBot(newDeals);
     }
-
 }
 
+function resetCache() {
+    allBestItems = new Map();
+}
 
 const PORT = 8000;
 app.listen(PORT, () => console.log(`listening on port: ${PORT}`));
