@@ -7,7 +7,6 @@ const api = new TG({
 })
 
 // https://core.telegram.org/bots/api#sendphoto
-
 function sendPhotosToBot(items) {
     for (let i = 0; i < items.length; i++) {
         sendPhoto(items[i]);

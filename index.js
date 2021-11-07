@@ -20,7 +20,6 @@ getItems();
 setInterval(getItems, 45 * 1000);
 setInterval(resetCache, 18000 * 1000) // reset cache every 5h
 
-// Check if in stock?
 function getItems() {
     let links = Object.values(urls.URLS);
     links.forEach((url) => {
