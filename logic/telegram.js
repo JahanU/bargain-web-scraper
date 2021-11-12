@@ -13,14 +13,17 @@ function sendPhotosToBot(items) {
     }
 }
 
-function sendPhoto(i) { // .itemName, .wasPrice, .nowPrice, .discount, .url, .imageUrl
-    console.log(i)
+function sendPhoto(i) { // .itemName, .wasPrice, .nowPrice, .discount, .url, .imageUrl, .size
+    console.log(i);
 
-    let arr = [process.env.CHAT_ID_SHIRAZ, process.env.CHAT_ID];
+    // let arr = [process.env.CHAT_ID];
+    let arr = [];
     arr.forEach((chatId) => {
         api.sendPhoto({
             chat_id: chatId,
+            // caption: `Name: ${i.itemName} \nPrice: ${i.nowPrice} \nDiscount: ${i.discount}% \nLink: ${i.url} \nSize: ${i.size}`,
             caption: `Name: ${i.itemName} \nPrice: ${i.nowPrice} \nDiscount: ${i.discount}% \nLink: ${i.url}`,
+
             photo: i.imageUrl
         }).catch((err) => console.log(err))
     });
