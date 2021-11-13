@@ -28,3 +28,27 @@ https://www.codementor.io/@dariogarciamoya/understanding-this-in-javascript-with
 //         url,
 //     });
 // });
+
+
+---
+getInStock:
+WebDevSimplied had a good video on JS DOM
+
+Element vs Nodes.
+Element: Only HTML types
+Node: "Text", <!-- comments -->, <span></span>
+-
+Element: Method Properties, all of nodes properties++
+Node: basic methods/Properties
+
+best to use element
+
+HTMLCollection vs NodeList:
+HTMLCollection: Only HTML elements 
+NodeList: Everything ("Text", <!-- comments -->, <span></span>)
+-
+HTML has no array methods
+NodeList has array methods (forEach)
+-
+HTML has live updates, difficult to debug
+Thus for this reason, best to use querySelectorAll instead of getElementsByClassName, as this is suspectable to live updates
