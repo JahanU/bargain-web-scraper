@@ -10,14 +10,17 @@ const { children } = require('cheerio/lib/api/traversing');
 
 const app = express();
 
+console.log('---------------')
+console.log('---------------')
+console.log('---------------\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n')
+
+
+// let d = parsedHTML('script')[2].children[0].data;
+// const regex = /name:("\w{1,3}")/g;
+// const sizes = [...d.matchAll(regex)];
+// console.log(sizes);
+
 var allBestItems = new Map();
-
-console.log('---------------')
-console.log('---------------')
-console.log('---------------')
-
-
-checkInStock([]);
 
 // getItems();
 
@@ -58,11 +61,13 @@ function getItems() {
     }).catch(err => console.log(err));
 }
 
+checkInStock([]);
 async function checkInStock(items) { // get size and if in stock, remove those not in stock
 
     const test = {
-        url: 'https://www.jdsports.co.uk/product/blue-nike-academy-shield-t-shirt/16189460/',
-        // url: 'https://www.jdsports.co.uk/product/grey-fred-perry-taped-ringer-t-shirt/16136437/'
+        url: 'https://www.jdsports.co.uk/product/white-nike-2-pack-lounge-t-shirts/16033100/'
+        // url: 'https://www.jdsports.co.uk/product/adidas-wales-2020-home-goalkeeper-shorts/15963545/',
+        // url: 'https://www.jdsports.co.uk/product/black-nike-futura-short-sleeve-t-shirt/1314199/'
     }
     items.push(test);
 
@@ -72,15 +77,19 @@ async function checkInStock(items) { // get size and if in stock, remove those n
             const html = response.data;
             const $ = cheerio.load(html);
 
-            console.log('product:...', item.url);
-            let product = $('#productSizeStock')?.children()[1]?.attribs;
+            // console.log('product:...', item.url);
+            // let product = $('#productSizeStock')?.children()[0].attribs;
+            // // let product = $('#productSizeStock').find('button').text();
+            // // let product2 = $('#productSizeStock').find('button').next().text();
+            // // console.log('product: ', product)
+            // // console.log('product2: ', product2)
 
-            console.log('product: ', product);
-            console.log('product children: ', $('#productSizeStock')?.children().length);
+            const objectStr = $('script')[3].children[0].data;
+            console.log(objectStr);
+            const regex = /name:("\w{1,3}")/g;
+            const sizes = [...objectStr.matchAll(regex)].map(item => item[1]);
+            console.log(sizes);
 
-            if (!product) return;
-
-            console.log(product['title'], product['data-stock']);
 
             stockedItems.push({
                 itemName: item.itemName,
@@ -89,13 +98,13 @@ async function checkInStock(items) { // get size and if in stock, remove those n
                 discount: item.discount,
                 url: item.url,
                 imageUrl: item.imageUrl,
-                // size: product['title'].split(' ')[2] // => e.g. "Select Size M"
+                // size: product['title']
             });
         });
-    };
 
-    console.log('new Items: ', stockedItems);
-    return stockedItems;
+        console.log('new Items: ', stockedItems);
+        return stockedItems;
+    }
 }
 
 getBestDeals = (items) => items.sort((a, b) => a.discount - b.discount);
