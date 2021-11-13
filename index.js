@@ -1,31 +1,21 @@
+// libs
 const express = require('express');
 const cheerio = require('cheerio'); // JQuery under the hood
 const axios = require('axios');
+const app = express();
 require('dotenv').config()
 
+// classes
 const urls = require('./logic/urls');
 const filterData = require('./logic/filterData');
 const telegram = require('./logic/telegram');
-const { children } = require('cheerio/lib/api/traversing');
 
-const app = express();
-
-console.log('---------------')
-console.log('---------------')
-console.log('---------------\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n')
-
-
-// let d = parsedHTML('script')[2].children[0].data;
-// const regex = /name:("\w{1,3}")/g;
-// const sizes = [...d.matchAll(regex)];
-// console.log(sizes);
 
 var allBestItems = new Map();
+getItems();
 
-// getItems();
-
-// setInterval(getItems, 45 * 1000);
-// setInterval(resetCache, 18000 * 1000) // reset cache every 5h
+setInterval(getItems, 45 * 1000);
+setInterval(resetCache, 18000 * 1000) // reset cache every 5h
 
 function getItems() {
     let links = Object.values(urls.URLS);
@@ -35,8 +25,7 @@ function getItems() {
         const html = response.data;
         const $ = cheerio.load(html); // can now access all html elements via cheerio api
 
-        $('.productListItem').each(async (index, element) => {
-
+        $('.productListItem').each((index, element) => {
             let discount = $(element).find('.sav').text().trim().substring(5, 7);
             if (discount < 65) return; // don't care about items with less than 65% discount
 
@@ -53,43 +42,28 @@ function getItems() {
         return items;
 
     }).then(async (items) => {
-
-        const stockedItems = await checkInStock(items);
-        const newItems = cacheDeals(stockedItems);
+        const detailedItems = await getItemDetails(items);
+        const newItems = cacheDeals(sortByDiscount(detailedItems));
         sendDeals(newItems);
-
     }).catch(err => console.log(err));
 }
 
-checkInStock([]);
-async function checkInStock(items) { // get size and if in stock, remove those not in stock
-
-    const test = {
-        url: 'https://www.jdsports.co.uk/product/white-nike-2-pack-lounge-t-shirts/16033100/'
-        // url: 'https://www.jdsports.co.uk/product/adidas-wales-2020-home-goalkeeper-shorts/15963545/',
-        // url: 'https://www.jdsports.co.uk/product/black-nike-futura-short-sleeve-t-shirt/1314199/'
-    }
-    items.push(test);
+async function getItemDetails(items) { // get size and if in stock, remove those not in stock
 
     let stockedItems = [];
-    for await (const item of items) {
+    for (const item of items) {
         await axios.get(item.url).then((response) => {
             const html = response.data;
             const $ = cheerio.load(html);
 
-            // console.log('product:...', item.url);
-            // let product = $('#productSizeStock')?.children()[0].attribs;
-            // // let product = $('#productSizeStock').find('button').text();
-            // // let product2 = $('#productSizeStock').find('button').next().text();
-            // // console.log('product: ', product)
-            // // console.log('product2: ', product2)
+            // get stock
+            const inStock = $('meta')[28].attribs.content;
+            if (inStock.length === 3) return;
 
+            // get sizes
             const objectStr = $('script')[3].children[0].data;
-            console.log(objectStr);
             const regex = /name:("\w{1,3}")/g;
-            const sizes = [...objectStr.matchAll(regex)].map(item => item[1]);
-            console.log(sizes);
-
+            const sizes = [...objectStr.matchAll(regex)].map(item => item[1].substring(1, item[1].length - 1));
 
             stockedItems.push({
                 itemName: item.itemName,
@@ -98,7 +72,7 @@ async function checkInStock(items) { // get size and if in stock, remove those n
                 discount: item.discount,
                 url: item.url,
                 imageUrl: item.imageUrl,
-                // size: product['title']
+                size: sizes,
             });
         });
 
@@ -107,7 +81,7 @@ async function checkInStock(items) { // get size and if in stock, remove those n
     }
 }
 
-getBestDeals = (items) => items.sort((a, b) => a.discount - b.discount);
+sortByDiscount = (items) => items.sort((a, b) => a.discount - b.discount);
 
 function cacheDeals(newBestDeals) { // don't send items we have already seen
     let newItems = [];
