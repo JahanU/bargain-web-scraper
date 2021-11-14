@@ -1,5 +1,5 @@
 # Bargain Web Scraper
-Express Node.js application to find highly discounted JD sale items and notify me.
+Express Node.js application to find highly discounted JD sale items and notify me via a Telegram Bot.
 
 ## Overview
 Bargain Web Scraper is a Node.js application that polls the JD website every 45 seconds, checking items that meet my criteria, with a subsequent asynchronous call to check if that item is in stock and the available sizes.
