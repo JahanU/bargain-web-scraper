@@ -14,40 +14,42 @@ const telegram = require('./logic/telegram');
 var allBestItems = new Map();
 getItems();
 
-setInterval(getItems, 45 * 1000);
-setInterval(resetCache, 18000 * 1000) // reset cache every 5h
+// setInterval(getItems, 45 * 1000);
+// setInterval(resetCache, 18000 * 1000) // reset cache every 5h
 
 function getItems() {
-    // let links = Object.values(urls.URLS);
+    // Promise.all(links.map(link => axios.get(link)))
+    let links = Object.values(urls.URLS);
 
-    axios.get(urls.URLS.allMen).then((response) => {
-        let items = [];
-        const html = response.data;
-        const $ = cheerio.load(html); // can now access all html elements via cheerio api
+    links.forEach((link) => {
+        axios.get(link).then((response) => {
+            let items = [];
+            const html = response.data;
+            const $ = cheerio.load(html); // can now access all html elements via cheerio api
 
-        $('.productListItem').each((index, element) => {
-            let discount = $(element).find('.sav').text().trim().substring(5, 6); // Just get the tenth column number
-            if (discount < 5) return; // don't care about items with less than 50% discount
-            discount *= 10;
+            $('.productListItem').each((index, element) => {
+                let discount = $(element).find('.sav').text().trim().substring(5, 6); // Just get the tenth column number
+                if (discount < 5) return; // don't care about items with less than 50% discount
+                discount *= 10;
 
-            let itemName = $(element).find('.itemTitle').text().trim().toLowerCase();
-            if (filterData.removeUnneededItem(itemName)) return; // Don't like item, continue searching
+                let itemName = $(element).find('.itemTitle').text().trim().toLowerCase();
+                if (filterData.removeUnneededItem(itemName)) return; // Don't like item, continue searching
 
-            let url = urls.JD + $(element).find('a').attr('href');
-            let imageUrl = $(element).find('source').attr('data-srcset').split(' ')[2]; // => [smallImgUrl, 1x, largeImgUrl, 2x];
-            let wasPrice = $(element).find('.was').text().substring(3).trim();
-            let nowPrice = $(element).find('.now').text().substring(3).trim();
+                let url = urls.JD + $(element).find('a').attr('href');
+                let imageUrl = $(element).find('source').attr('data-srcset').split(' ')[2]; // => [smallImgUrl, 1x, largeImgUrl, 2x];
+                let wasPrice = $(element).find('.was').text().substring(3).trim();
+                let nowPrice = $(element).find('.now').text().substring(3).trim();
 
-            items.push({ itemName, wasPrice, nowPrice, discount, url, imageUrl });
-        });
-        return items;
-
-    }).then(async (items) => {
-        return await getItemDetails(items);
-    }).then((detailedItems) => {
-        const newItems = cacheDeals(sortByDiscount(detailedItems));
-        sendDeals(newItems);
-    }).catch(err => console.log(err));
+                items.push({ itemName, wasPrice, nowPrice, discount, url, imageUrl });
+            });
+            return items;
+        }).then(async (items) => {
+            return await getItemDetails(items);
+        }).then((detailedItems) => {
+            const newItems = cacheDeals(sortByDiscount(detailedItems));
+            sendDeals(newItems);
+        }).catch(err => console.log(err));
+    });
 }
 
 async function getItemDetails(items) { // get size and if in stock, remove those not in stock
