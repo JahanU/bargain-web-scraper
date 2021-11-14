@@ -18,7 +18,7 @@ setInterval(getItems, 45 * 1000);
 setInterval(resetCache, 18000 * 1000) // reset cache every 5h
 
 function getItems() {
-    let links = Object.values(urls.URLS);
+    // let links = Object.values(urls.URLS);
 
     axios.get(urls.URLS.allMen).then((response) => {
         let items = [];
@@ -42,7 +42,8 @@ function getItems() {
         return items;
 
     }).then(async (items) => {
-        const detailedItems = await getItemDetails(items);
+        return await getItemDetails(items);
+    }).then((detailedItems) => {
         const newItems = cacheDeals(sortByDiscount(detailedItems));
         sendDeals(newItems);
     }).catch(err => console.log(err));
@@ -51,14 +52,14 @@ function getItems() {
 async function getItemDetails(items) { // get size and if in stock, remove those not in stock
 
     let stockedItems = [];
-    for (const item of items) {
+    for await (const item of items) {
         await axios.get(item.url).then((response) => {
             const html = response.data;
             const $ = cheerio.load(html);
 
             // get stock
             const inStock = $('meta')[28].attribs.content;
-            if (inStock.length === 3) return;
+            if (inStock === 'OUT OF STOCK') return;
 
             // get sizes
             const objectStr = $('script')[3].children[0].data;
@@ -73,6 +74,7 @@ async function getItemDetails(items) { // get size and if in stock, remove those
                 url: item.url,
                 imageUrl: item.imageUrl,
                 size: sizes,
+                inStock: inStock
             });
         });
 
