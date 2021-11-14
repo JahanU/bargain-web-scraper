@@ -52,3 +52,29 @@ NodeList has array methods (forEach)
 -
 HTML has live updates, difficult to debug
 Thus for this reason, best to use querySelectorAll instead of getElementsByClassName, as this is suspectable to live updates
+
+
+
+
+---
+async function getItemDetails(items) { // get size and if in stock, remove those not in stock
+    Promise.all(items.map((item) => {
+        return axios.get(item.url).then((response) => {
+            const html = response.data;
+            const $ = cheerio.load(html);
+            // get stock
+            const inStock = $('meta')[28].attribs.content;
+            if (inStock === 'OUT OF STOCK') throw new Error(`'${item.itemName}' Out of stock`);
+            // get sizes
+            const objectStr = $('script')[3].children[0].data;
+            const regex = /name:("\w{1,3}")/g;
+            const sizes = [...objectStr.matchAll(regex)].map(item => item[1].substring(1, item[1].length - 1));
+
+            return { ...item, sizes, inStock };
+        }).catch(err => console.log(err.name, 'in getItemDetails Axios.get: ', err.message));
+    })).then((inStockItems) => {
+        if (inStockItems == undefined || inStockItems.length === 0) throw new Error('Promise.all returned 0');
+        return inStockItems;
+    }).catch(err => console.log(err.name, 'in getItemDetails Promise.all: ', err.message));
+}
+---
