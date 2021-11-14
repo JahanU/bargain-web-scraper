@@ -26,8 +26,8 @@ function getItems() {
         const $ = cheerio.load(html); // can now access all html elements via cheerio api
 
         $('.productListItem').each((index, element) => {
-            let discount = $(element).find('.sav').text().trim().substring(5, 7);
-            if (discount < 65) return; // don't care about items with less than 65% discount
+            let discount = $(element).find('.sav').text().trim().substring(5, 6); // Just get the tenth column number
+            if (discount < 5) return; // don't care about items with less than 50% discount
 
             let itemName = $(element).find('.itemTitle').text().trim().toLowerCase();
             if (filterData.removeUnneededItem(itemName)) return; // Don't like item, continue searching
