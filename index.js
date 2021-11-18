@@ -14,8 +14,8 @@ const telegram = require('./logic/telegram');
 var allBestItems = new Map();
 getItems();
 
-// setInterval(getItems, 45 * 1000);
-// setInterval(resetCache, 18000 * 1000) // reset cache every 5h
+setInterval(getItems, 60 * 1000);
+setInterval(resetCache, 21600 * 1000) // reset cache every 6h
 
 function getItems() {
     console.log(new Date().toLocaleString());
@@ -62,6 +62,7 @@ function getItems() {
 async function getStockAndSize(items) { // get size and if in stock, remove those not in stock
 
     let stockedItems = [];
+
     for await (const item of items) {
         await axios.get(item.url).then((response) => {
             const html = response.data;
@@ -69,20 +70,19 @@ async function getStockAndSize(items) { // get size and if in stock, remove thos
 
             // get stock
             const inStock = $('meta')[28].attribs.content;
-            if (inStock === 'OUT OF STOCK') throw new Error(`${item.itemName} Out of stock`);
-
+            // if (inStock === 'OUT OF STOCK') throw new Error(`${item.itemName} Out of stock`);
+            if (inStock === 'OUT OF STOCK') return;
             // get sizes
             const objectStr = $('script')[3].children[0].data;
-            const regex = /name:("\w{1,3}")/g;
+            const regex = /name:("\w+")/g;
             const sizes = [...objectStr.matchAll(regex)].map(item => item[1].substring(1, item[1].length - 1));
 
             stockedItems.push({ ...item, inStock, sizes });
 
         }).catch(err => console.log(`${err.name}, in getStockAndSize():  ${err.message}`));
-
-        console.log('new Items: ', stockedItems);
-        return stockedItems;
     }
+    console.log('new Items: ', stockedItems);
+    return stockedItems;
 }
 
 sortByDiscount = (items) => items?.sort((a, b) => a.discount - b.discount);
