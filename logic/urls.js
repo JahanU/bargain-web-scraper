@@ -1,3 +1,4 @@
+/* eslint-disable max-len */
 // enum
 const URLS = {
     // All items, (T Shirts + Shoes)
@@ -12,8 +13,7 @@ const URLS = {
 
 const JD = 'https://www.jdsports.co.uk';
 
-module.exports = { URLS, JD }
-
+module.exports = { URLS, JD };
 
 // ASOS Sales
 // https://www.asos.com/men/sale/ctas/sale-edit-6/cat/?cid=28233&currentpricerange=5-180&nlid=mw%7Csale%7Cshop%20sale%20by%20product%7Cbest%20of%20sale&refine=attribute_10992:61375,61377,61380,61383,61386,61388|brand:105,12507,13623,13688,14513,15059,15176,15177,16346,16545,17,18,298,2986,3029,3060,3312,3594,3735,391,401,499,691&sort=priceasc

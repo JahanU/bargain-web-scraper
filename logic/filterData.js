@@ -1,8 +1,8 @@
 // remove unneeded elements (football t shirts, caps etc)
 function removeUnneededItem(itemName) {
-    let dislikedItems = ['fc', 'nba', 'home', 'hip', 'gloves', 'cap', 'training', 'away',
+    const dislikedItems = ['fc', 'nba', 'home', 'hip', 'gloves', 'cap', 'training', 'away',
         'team', 'gb', 'england', 'scotland', 'wales', 'ireland', 'basketball', 'football'];
-    return dislikedItems.find(badWord => itemName.includes(badWord));
+    return dislikedItems.find((badWord) => itemName.includes(badWord));
 }
 
 // // Create highest discount filter/sort (mainly for myself to reach, not being used for performance)
@@ -13,5 +13,4 @@ function removeUnneededItem(itemName) {
 //     return sortedItems;
 // }
 
-
-module.exports = { removeUnneededItem }
+module.exports = { removeUnneededItem };
