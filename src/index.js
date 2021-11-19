@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 // libs
 const express = require('express');
 const cheerio = require('cheerio'); // JQuery under the hood
@@ -7,9 +8,9 @@ const app = express();
 require('dotenv').config();
 
 // classes
-const urls = require('./logic/urls');
-const filterData = require('./logic/filterData');
-const telegram = require('./logic/telegram');
+const urls = require('./utils/urls');
+const filterData = require('./utils/filterData');
+const telegram = require('./telegram/telegram');
 
 let allBestItems = new Map();
 getItems();
@@ -70,10 +71,8 @@ async function getStockAndSize(items) { // get size and if in stock, remove thos
         await axios.get(item.url).then((response) => {
             const html = response.data;
             const $ = cheerio.load(html);
-
             // get stock
             const inStock = $('meta')[28].attribs.content;
-            // if (inStock === 'OUT OF STOCK') throw new Error(`${item.itemName} Out of stock`);
             if (inStock === 'OUT OF STOCK') return;
             // get sizes
             const objectStr = $('script')[3].children[0].data;

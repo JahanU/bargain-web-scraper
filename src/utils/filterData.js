@@ -5,12 +5,4 @@ function removeUnneededItem(itemName) {
     return dislikedItems.find((badWord) => itemName.includes(badWord));
 }
 
-// // Create highest discount filter/sort (mainly for myself to reach, not being used for performance)
-// function sortByDiscount(items) {
-//     const deepCopy = JSON.parse(JSON.stringify(items));
-//     let sortedItems = deepCopy.sort((a, b) => a.discount - b.discount);
-//     sortedItems.forEach((item) => item.discount = item.discount + '%');
-//     return sortedItems;
-// }
-
 module.exports = { removeUnneededItem };
