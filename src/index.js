@@ -13,10 +13,10 @@ const filterData = require('./utils/filterData');
 const telegram = require('./telegram/telegram');
 
 let allBestItems = new Map();
-getItems();
+// getItems();
 
-setInterval(getItems, 60 * 1000);
-setInterval(resetCache, 21600 * 1000); // reset cache every 6h
+// setInterval(getItems, 60 * 1000);
+// setInterval(resetCache, 21600 * 1000); // reset cache every 6h
 
 function getItems() {
     console.log(new Date().toLocaleString());

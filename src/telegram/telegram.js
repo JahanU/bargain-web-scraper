@@ -1,5 +1,6 @@
 const TG = require('telegram-bot-api');
 const sendUpdate = require('./sendUpdate');
+const handleCommands = require('./handleCommands');
 
 const api = new TG({
     token: process.env.TELEGRAM_API,
@@ -20,10 +21,11 @@ api.start()
 api.on('update', (update) => {
     // update object is defined at
     // https://core.telegram.org/bots/api#update
-    console.log('update: ', update);
+
+    handleCommands.handleCommands(update);
+    // console.log('update: ', update);
 });
 
 const sendPhotosToBot = (newDeals) => sendUpdate.sendPhotosToBot(newDeals);
-const test = () => console.log('test');
 
-module.exports = { sendPhotosToBot, test };
+module.exports = { sendPhotosToBot };

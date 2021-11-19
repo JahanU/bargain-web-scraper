@@ -22,4 +22,13 @@ function sendPhotos(i) { // .itemName, .wasPrice, .nowPrice, .discount, .url, .i
     });
 }
 
-module.exports = { sendPhotosToBot };
+function sendMessage(response) {
+    console.log('sending back: ', response);
+
+    api.sendMessage({
+        chat_id: response.chatId,
+        text: response.text,
+    }).catch((err) => console.log(err));
+}
+
+module.exports = { sendPhotosToBot, sendMessage };
