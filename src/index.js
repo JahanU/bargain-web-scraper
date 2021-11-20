@@ -3,8 +3,10 @@
 const express = require('express');
 const cheerio = require('cheerio'); // JQuery under the hood
 const axios = require('axios');
+const logger = require('morgan');
 
 const app = express();
+app.use(logger('dev'));
 require('dotenv').config();
 
 // classes
@@ -13,6 +15,7 @@ const filterData = require('./utils/filterData');
 const telegram = require('./telegram/telegram');
 
 let allBestItems = new Map();
+
 // getItems();
 
 // setInterval(getItems, 60 * 1000);
