@@ -11,8 +11,8 @@ function sendPhotosToBot(items) {
 }
 
 function sendPhotos(i) { // .itemName, .wasPrice, .nowPrice, .discount, .url, .imageUrl, .sizes
-    const arr = [process.env.CHAT_ID_JAHAN];
-    // let arr = [];
+    // const arr = [process.env.CHAT_ID_JAHAN, 1073999480];
+    const arr = [];
     arr.forEach((chatId) => {
         api.sendPhoto({
             chat_id: chatId,
