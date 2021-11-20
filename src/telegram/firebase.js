@@ -19,19 +19,19 @@ const firebaseConfig = {
 };
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
-
 const db = getFirestore(app);
 
 // Get a list t of telegram users from  database
-async function getUsers(db) {
+async function getUsers() {
     const usersCol = collection(db, 'users');
     const userSnapshot = await getDocs(usersCol);
-    const userList = userSnapshot.docs.map((doc) => doc.data());
-    return userList;
+    console.log('all users: ', userSnapshot.docs.map((doc) => doc.data()));
+    return userSnapshot.docs.map((doc) => doc.data());
+
+    //     const snapshot = await db.collection('users').get();
+    // snapshot.forEach((doc) => {
+    //   console.log(doc.id, '=>', doc.data());
+    // }); - both work
 }
 
-getUsers(db).then((users) => {
-    console.log('got users: ', users);
-}).catch((err) => {
-    console.log(err);
-});
+module.exports = { getUsers };

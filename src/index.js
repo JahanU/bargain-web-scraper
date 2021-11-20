@@ -1,3 +1,4 @@
+/* eslint-disable newline-per-chained-call */
 /* eslint-disable no-console */
 // libs
 const express = require('express');
@@ -13,11 +14,10 @@ require('dotenv').config();
 const urls = require('./utils/urls');
 const filterData = require('./utils/filterData');
 const telegram = require('./telegram/telegram');
-const firebase = require('./firebase/firebase');
 
 let allBestItems = new Map();
 
-// getItems();
+getItems();
 
 // setInterval(getItems, 60 * 1000);
 // setInterval(resetCache, 21600 * 1000); // reset cache every 6h
@@ -35,7 +35,7 @@ function getItems() {
             $('.productListItem').each((index, element) => {
                 let discount = $(element).find('.sav').text().trim()
                     .substring(5, 6); // Just get the tenth column number
-                if (discount < 5) return; // don't care about items with less than 50% discount
+                if (discount < 7) return; // don't care about items with less than 50% discount
                 discount *= 10;
 
                 const itemName = $(element).find('.itemTitle').text().trim()
@@ -44,10 +44,8 @@ function getItems() {
 
                 const url = urls.JD + $(element).find('a').attr('href');
                 const imageUrl = $(element).find('source').attr('data-srcset').split(' ')[2]; // => [smallImgUrl, 1x, largeImgUrl, 2x];
-                const wasPrice = $(element).find('.was').text().substring(3)
-                    .trim();
-                const nowPrice = $(element).find('.now').text().substring(3)
-                    .trim();
+                const wasPrice = $(element).find('.was').text().substring(3).trim();
+                const nowPrice = $(element).find('.now').text().substring(3).trim();
 
                 items.push({
                     itemName, wasPrice, nowPrice, discount, url, imageUrl,
