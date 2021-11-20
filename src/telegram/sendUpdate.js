@@ -11,8 +11,8 @@ function sendPhotosToBot(items) {
 }
 
 function sendPhotos(i) { // .itemName, .wasPrice, .nowPrice, .discount, .url, .imageUrl, .sizes
-    const arr = [process.env.CHAT_ID_JAHAN];
-    // let arr = [];
+    // const arr = [process.env.CHAT_ID_JAHAN, 1073999480];
+    const arr = [];
     arr.forEach((chatId) => {
         api.sendPhoto({
             chat_id: chatId,
@@ -22,4 +22,13 @@ function sendPhotos(i) { // .itemName, .wasPrice, .nowPrice, .discount, .url, .i
     });
 }
 
-module.exports = { sendPhotosToBot };
+function sendMessage(response) {
+    console.log('sending back: ', response);
+
+    api.sendMessage({
+        chat_id: response.chatId,
+        text: response.text,
+    }).catch((err) => console.log(err));
+}
+
+module.exports = { sendPhotosToBot, sendMessage };

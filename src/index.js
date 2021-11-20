@@ -3,20 +3,24 @@
 const express = require('express');
 const cheerio = require('cheerio'); // JQuery under the hood
 const axios = require('axios');
+const logger = require('morgan');
 
 const app = express();
+app.use(logger('dev'));
 require('dotenv').config();
 
 // classes
 const urls = require('./utils/urls');
 const filterData = require('./utils/filterData');
 const telegram = require('./telegram/telegram');
+const firebase = require('./firebase/firebase');
 
 let allBestItems = new Map();
-getItems();
 
-setInterval(getItems, 60 * 1000);
-setInterval(resetCache, 21600 * 1000); // reset cache every 6h
+// getItems();
+
+// setInterval(getItems, 60 * 1000);
+// setInterval(resetCache, 21600 * 1000); // reset cache every 6h
 
 function getItems() {
     console.log(new Date().toLocaleString());
