@@ -13,6 +13,7 @@ require('dotenv').config();
 const urls = require('./utils/urls');
 const filterData = require('./utils/filterData');
 const telegram = require('./telegram/telegram');
+const firebase = require('./firebase/firebase');
 
 let allBestItems = new Map();
 

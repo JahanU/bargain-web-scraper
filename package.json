@@ -10,10 +10,12 @@
   "author": "Jahan Ulhaque",
   "license": "ISC",
   "dependencies": {
+    "@firebase/app": "^0.7.9",
     "axios": "^0.23.0",
     "cheerio": "^1.0.0-rc.10",
     "dotenv": "^10.0.0",
     "express": "^4.17.1",
+    "firebase": "^9.5.0",
     "morgan": "^1.10.0",
     "telegram-bot-api": "^2.0.1"
   },
