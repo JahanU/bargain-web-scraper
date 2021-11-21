@@ -1,23 +1,46 @@
+/* eslint-disable indent */
 const urls = require('../utils/urls');
 const sendUpdate = require('./sendUpdate');
+const firebase = require('./firebase');
 
 function handleCommands(request) {
-    console.log('message is: ', request.message.text);
-    switch (request.message.text) {
+    const user = deserialiseUserFromRequest(request);
+    switch (user.textFromUser) {
         case '/brands':
-            handleGetBrands(request);
+            handleGetBrands(user);
+            break;
+        case '/start':
+            signOnUser(user);
             break;
         default:
+            break;
     }
 }
 
-function handleGetBrands(request) {
-    const response = {
-        chatId: request.message.from.id,
-        text: urls.URLS.JD_ALL_MEN,
+function deserialiseUserFromRequest(request) {
+    return {
+        telegramId: request.message.from.id,
+        fullName: request.message.from.first_name.concat(' ', request.message.from.last_name),
+        textFromUser: request.message.text,
+        responseBack: urls.URLS.JD_ALL_MEN,
     };
-    sendUpdate.sendMessage(response);
 }
+
+function handleGetBrands(user) {
+    sendUpdate.sendMessage(user);
+}
+
+async function signOnUser(user) {
+    try {
+        await firebase.addUser(user);
+    } catch (err) {
+        console.log(err);
+    }
+}
+
+// function defaultCommand(request) {
+//     const message =
+// }
 
 module.exports = { handleCommands };
 

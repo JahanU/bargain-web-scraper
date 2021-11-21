@@ -5,7 +5,8 @@ const firebase = require('./firebase');
 const api = new TG({ token: process.env.TELEGRAM_API });
 
 async function sendPhotosToBot(items) {
-    const users = await firebase.getUsers(); // TODO cache this, cache items too? User.length * item.length = O(n*m)
+    // const users = await firebase.getUsers(); // TODO cache this, cache items too? User.length * item.length = O(n*m)
+    const users = [905610727];
     items.forEach((item) => sendPhotos(item, users));
 }
 
@@ -20,11 +21,11 @@ function sendPhotos(i, users) { // .itemName, .wasPrice, .nowPrice, .discount, .
     });
 }
 
-function sendMessage(response) {
-    console.log('sending back: ', response);
+function sendMessage(user) {
+    console.log(`sending back resp to user: ${user.chatId} - ${user}`);
     api.sendMessage({
-        chat_id: response.chatId,
-        text: response.text,
+        chat_id: user.telegramId,
+        text: user.responseBack,
     }).catch((err) => console.log(err));
 }
 

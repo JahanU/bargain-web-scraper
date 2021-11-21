@@ -1,7 +1,9 @@
 // Import the functions you need from the SDKs you need
 // import { getAnalytics } from 'firebase/analytics';
 const { initializeApp } = require('firebase/app');
-const { getFirestore, collection, getDocs } = require('firebase/firestore');
+const {
+    getFirestore, collection, getDocs, setDoc, doc,
+} = require('firebase/firestore');
 
 // TODO: Add SDKs for Firebase products that you want to use
 // https://firebase.google.com/docs/web/setup#available-libraries
@@ -20,18 +22,19 @@ const firebaseConfig = {
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
+const userCollection = collection(db, 'users');
 
 // Get a list t of telegram users from  database
 async function getUsers() {
-    const usersCol = collection(db, 'users');
-    const userSnapshot = await getDocs(usersCol);
-    console.log('all users: ', userSnapshot.docs.map((doc) => doc.data()));
-    return userSnapshot.docs.map((doc) => doc.data());
-
-    //     const snapshot = await db.collection('users').get();
-    // snapshot.forEach((doc) => {
-    //   console.log(doc.id, '=>', doc.data());
-    // }); - both work
+    const userSnapshot = await getDocs(userCollection);
+    console.log('all users: ', userSnapshot.docs.map((d) => d.data()));
+    return userSnapshot.docs.map((d) => d.data());
 }
 
-module.exports = { getUsers };
+async function addUser(user) {
+    await setDoc(doc(db, 'users', user.telegramId.toString()), {
+        fullName: user.fullName,
+    });
+}
+
+module.exports = { getUsers, addUser };
