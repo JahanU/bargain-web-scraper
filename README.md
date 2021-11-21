@@ -1,5 +1,6 @@
 # Bargain Web Scraper
-# Codename: HxH (Hunter x Hunter)
+
+### Try it out: 
 @JD_sales_bot
 
 Express Node.js application to find highly discounted JD sale items and notify me via a Telegram Bot.
