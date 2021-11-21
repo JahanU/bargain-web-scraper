@@ -1,7 +1,6 @@
 # Bargain Web Scraper
 
-### Try it out: 
-@JD_sales_bot
+#### Try it out:  https://t.me/JD_sales_bot
 
 Express Node.js application to find highly discounted JD sale items and notify me via a Telegram Bot.
 
