@@ -5,8 +5,8 @@ const firebase = require('./firebase');
 const api = new TG({ token: process.env.TELEGRAM_API });
 
 async function sendPhotosToBot(items) {
-    // const users = await firebase.getUsers(); // TODO cache this, cache items too? User.length * item.length = O(n*m)
-    const users = [905610727];
+    const users = await firebase.getUsers(); // TODO cache this, cache items too? User.length * item.length = O(n*m)
+    // const users = [905610727];
     items.forEach((item) => sendPhotos(item, users));
 }
 

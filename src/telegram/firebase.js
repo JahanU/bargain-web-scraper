@@ -27,8 +27,13 @@ const userCollection = collection(db, 'users');
 // Get a list t of telegram users from  database
 async function getUsers() {
     const userSnapshot = await getDocs(userCollection);
-    console.log('all users: ', userSnapshot.docs.map((d) => d.data()));
-    return userSnapshot.docs.map((d) => d.data());
+    const users = userSnapshot.docs.map((d) => {
+        const user = d.data();
+        user.telegramId = d.id;
+        return user;
+    });
+    console.log(users);
+    return users;
 }
 
 async function addUser(user) {
@@ -37,4 +42,5 @@ async function addUser(user) {
     });
 }
 
+getUsers();
 module.exports = { getUsers, addUser };

@@ -19,8 +19,8 @@ let allBestItems = new Map();
 
 getItems();
 
-// setInterval(getItems, 60 * 1000);
-// setInterval(resetCache, 21600 * 1000); // reset cache every 6h
+setInterval(getItems, 60 * 1000);
+setInterval(resetCache, 21600 * 1000); // reset cache every 6h
 
 function getItems() {
     console.log(new Date().toLocaleString());
@@ -35,7 +35,7 @@ function getItems() {
             $('.productListItem').each((index, element) => {
                 let discount = $(element).find('.sav').text().trim()
                     .substring(5, 6); // Just get the tenth column number
-                if (discount < 7) return; // don't care about items with less than 50% discount
+                if (discount < 5) return; // don't care about items with less than 50% discount
                 discount *= 10;
 
                 const itemName = $(element).find('.itemTitle').text().trim()
