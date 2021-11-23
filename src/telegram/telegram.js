@@ -17,7 +17,6 @@ api.start()
 // Receive messages via event callback
 api.on('update', (update) => {
     // update object is defined at: https://core.telegram.org/bots/api#update
-
     handleCommands.handleCommands(update);
 });
 

@@ -12,6 +12,7 @@
   "dependencies": {
     "@firebase/app": "^0.7.9",
     "axios": "^0.23.0",
+    "body-parser": "^1.19.0",
     "cheerio": "^1.0.0-rc.10",
     "dotenv": "^10.0.0",
     "express": "^4.17.1",

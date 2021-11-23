@@ -1,5 +1,5 @@
 /* eslint-disable indent */
-const urls = require('../utils/urls');
+const urls = require('../helper/urls');
 const sendUpdate = require('./sendUpdate');
 const firebase = require('./firebase');
 

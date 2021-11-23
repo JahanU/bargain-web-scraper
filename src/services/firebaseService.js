@@ -32,7 +32,6 @@ async function getUsers() {
         user.telegramId = d.id;
         return user;
     });
-    console.log(users);
     return users;
 }
 
@@ -42,5 +41,4 @@ async function addUser(user) {
     });
 }
 
-getUsers();
 module.exports = { getUsers, addUser };
