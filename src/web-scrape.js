@@ -99,7 +99,7 @@ function sendDeals(newDeals) {
         console.log('no new items');
     } else {
         console.log('got new items!: ', newDeals);
-        telegram.sendPhotosToBot(newDeals);
+        telegram.sendPhotosToUsers(newDeals);
     }
 }
 
