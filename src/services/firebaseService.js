@@ -36,9 +36,13 @@ async function getUsers() {
 }
 
 async function addUser(user) {
-    await setDoc(doc(db, 'users', user.telegramId.toString()), {
-        fullName: user.fullName,
-    });
+    try {
+        await setDoc(doc(db, 'users', user.telegramId.toString()), {
+            fullName: user.fullName,
+        });
+    } catch (err) {
+        console.log(err);
+    }
 }
 
 module.exports = { getUsers, addUser };

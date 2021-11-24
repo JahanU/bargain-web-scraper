@@ -1,15 +1,17 @@
 const cheerio = require('cheerio'); // JQuery under the hood
 const axios = require('axios');
 
-const urls = require('./utils/urls');
-const filterData = require('./utils/filterData');
-const telegram = require('./telegram/telegram');
+const urls = require('../helper/urls');
+const filterData = require('../helper/filterData');
+const telegram = require('./telegramService');
 
 let allBestItems = new Map();
 
-getItems();
-setInterval(getItems, 60 * 1000);
-setInterval(resetCache, 21600 * 1000); // reset cache every 6h
+module.exports = () => {
+    getItems();
+    setInterval(getItems, 60 * 1000);
+    setInterval(resetCache, 21600 * 1000); // reset cache every 6h
+};
 
 function getItems() {
     console.log(new Date().toLocaleString());
@@ -24,12 +26,12 @@ function getItems() {
             $('.productListItem').each((index, element) => {
                 let discount = $(element).find('.sav').text().trim()
                     .substring(5, 6); // Just get the tenth column number
-                if (discount < 5) return; // don't care about items with less than 50% discount
+                if (discount < 6) return; // don't care about items with less than 60% discount
                 discount *= 10;
 
                 const itemName = $(element).find('.itemTitle').text().trim()
                     .toLowerCase();
-                if (filterData.removeUnneededItem(itemName)) return; // Don't like item, continue searching
+                if (filterData(itemName)) return; // Don't like item, continue searching
 
                 const url = urls.JD + $(element).find('a').attr('href');
                 const imageUrl = $(element).find('source').attr('data-srcset').split(' ')[2]; // => [smallImgUrl, 1x, largeImgUrl, 2x];

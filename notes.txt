@@ -96,3 +96,4 @@ Views (templates) used by the controllers to render the data.
 ---
 https://stackoverflow.com/questions/46677752/the-difference-between-requirex-and-import-x
 ---
+https://mathieularose.com/main-function-in-node-js

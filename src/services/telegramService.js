@@ -1,6 +1,8 @@
+/* eslint-disable indent */
 const TG = require('telegram-bot-api');
-const sendUpdate = require('./sendUpdate');
-const handleCommands = require('../helper/telegramHandleCommands');
+
+const telegramMiddleware = require('../helper/telegramDeserialise');
+const firebaseService = require('./firebaseService');
 
 const api = new TG({ token: process.env.TELEGRAM_API });
 const mp = new TG.GetUpdateMessageProvider(); // Define your message provider
@@ -11,16 +13,39 @@ api.start()
         console.log('Telegram Message handler API started');
     })
     .catch(console.err);
-
 // Receive messages via event callback
-api.on('update', (update) => {
-    // update object is defined at: https://core.telegram.org/bots/api#update
-    handleCommands.handleCommands(update);
+api.on('update', (update) => { // update object is defined at: https://core.telegram.org/bots/api#update
+    handleCommands(update);
 });
 
+function handleCommands(request) { // google cloud functions?
+    const user = telegramMiddleware(request);
+    switch (user.reqFromUser) {
+        case '/brands':
+            handleGetBrands(user);
+            break;
+        case '/start':
+            signOnUser(user);
+            break;
+        default:
+            break;
+    }
+}
+
+function handleGetBrands(user) { // works for now cos when deserialised, all get given the same response message
+    sendMessage(user);
+}
+
+async function signOnUser(user) {
+    await firebaseService.addUser(user);
+}
+
 async function sendPhotosToUsers(items) {
-    // const users = await firebase.getUsers(); // TODO cache this, cache items too? User.length * item.length = O(n*m)
-    const users = [905610727];
+    const users = await firebaseService.getUsers(); // TODO cache this, cache items too? User.length * item.length = O(n*m)
+
+    // const users = [{
+    //     telegramId: 905610727,
+    // }];
 
     items.forEach((i) => { // .itemName, .wasPrice, .nowPrice, .discount, .url, .imageUrl, .sizes
         users.forEach((u) => {
@@ -34,10 +59,10 @@ async function sendPhotosToUsers(items) {
 }
 
 function sendMessage(user) {
-    console.log(`sending back resp to user: ${user.chatId} - ${user}`);
+    console.log(`sending back resp to user: ${user.telegramId} - ${user.fullName}`);
     api.sendMessage({
         chat_id: user.telegramId,
-        text: user.responseBack,
+        text: user.resToUser,
     }).catch((err) => console.log(err));
 }
 
