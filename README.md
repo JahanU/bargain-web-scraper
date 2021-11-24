@@ -10,10 +10,11 @@ Bargain Web Scraper is a Node.js application that polls the JD website every 45 
 Node server (hosted locally) pings the Telegram Bot API with item description and link to view.
 
 ## Features
-- Firebase/Firesore (add and get users)
+- Good design patterns followed (MVC, DRY, High cohesion, low coupling etc)
+- Firebase/Firestore (add and get users)
 - Regex
 - Web Scraping via Cheerio library
-- Asynchronous Programming (via Axios)
+- Asynchronous Programming
 - Telegram API Bot
 
 ## Example
