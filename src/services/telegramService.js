@@ -1,7 +1,7 @@
 /* eslint-disable indent */
 const TG = require('telegram-bot-api');
 
-const telegramMiddleware = require('../helper/telegramDeserialise');
+const telegramMiddleware = require('../helper/telegramParse');
 const firebaseService = require('./firebaseService');
 
 const api = new TG({ token: process.env.TELEGRAM_API });

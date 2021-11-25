@@ -1,3 +1,4 @@
+/* eslint-disable newline-per-chained-call */
 const cheerio = require('cheerio'); // JQuery under the hood
 const axios = require('axios');
 
@@ -24,21 +25,17 @@ function getItems() {
             const $ = cheerio.load(html); // can now access all html elements via cheerio api
 
             $('.productListItem').each((index, element) => {
-                let discount = $(element).find('.sav').text().trim()
-                    .substring(5, 6); // Just get the tenth column number
+                let discount = $(element).find('.sav').text().trim().substring(5, 6); // Just get the tenth column number
                 if (discount < 6) return; // don't care about items with less than 60% discount
                 discount *= 10;
 
-                const itemName = $(element).find('.itemTitle').text().trim()
-                    .toLowerCase();
+                const itemName = $(element).find('.itemTitle').text().trim().toLowerCase();
                 if (filterData(itemName)) return; // Don't like item, continue searching
 
                 const url = urls.JD + $(element).find('a').attr('href');
                 const imageUrl = $(element).find('source').attr('data-srcset').split(' ')[2]; // => [smallImgUrl, 1x, largeImgUrl, 2x];
-                const wasPrice = $(element).find('.was').text().substring(3)
-                    .trim();
-                const nowPrice = $(element).find('.now').text().substring(3)
-                    .trim();
+                const wasPrice = $(element).find('.was').text().substring(3).trim();
+                const nowPrice = $(element).find('.now').text().substring(3).trim();
 
                 items.push({
                     itemName, wasPrice, nowPrice, discount, url, imageUrl,
@@ -53,14 +50,12 @@ function getItems() {
         }).then((detailedItems) => {
             const newItems = cacheDeals(detailedItems);
             sendDeals(newItems);
-        })
-            .catch((err) => console.log(`${err.name}, in getItems():  ${err.message}`));
+        }).catch((err) => console.log(`${err.name}, in getItems():  ${err.message}`));
     });
 }
 
 async function getStockAndSize(items) { // get size and if in stock, remove those not in stock
     const stockedItems = [];
-
     // eslint-disable-next-line no-restricted-syntax
     for await (const item of items) {
         await axios.get(item.url).then((response) => {
@@ -72,7 +67,7 @@ async function getStockAndSize(items) { // get size and if in stock, remove thos
             // get sizes
             const objectStr = $('script')[3].children[0].data;
             const regex = /name:("\w+")/g;
-            const sizes = [...objectStr.matchAll(regex)].map((item) => item[1].substring(1, item[1].length - 1));
+            const sizes = [...objectStr.matchAll(regex)].map((i) => i[1].substring(1, i[1].length - 1));
 
             stockedItems.push({ ...item, inStock, sizes });
         }).catch((err) => console.log(`${err.name}, in getStockAndSize():  ${err.message}`));
