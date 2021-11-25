@@ -7,20 +7,21 @@ app.use(logger('dev'));
 app.use(bodyParser.json());
 require('dotenv').config();
 
-const webScrape = require('./services/webScrapeService');
-
-webScrape();
+// const webScrape = require('./services/webScrapeService');
+// webScrape();
 
 const firebaseRoute = require('./routes/firebaseRoute');
+const telegramRoute = require('./routes/telegramRoute');
+
 const loggingMiddleware = require('./middlewares/logging');
 
 app.use('/firebase', firebaseRoute);
+app.use(telegramRoute);
+
 app.use(loggingMiddleware);
 
 // Default route
-app.get('/', (req, res) => {
-    res.send('on home');
-});
+app.get('/', (req, res) => res.send('on home'));
 
 app.use((req, res, next) => {
     const error = new Error('Not Found');

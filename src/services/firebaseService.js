@@ -32,6 +32,7 @@ async function getUsers() {
         user.telegramId = d.id;
         return user;
     });
+    console.log('users: ', users);
     return users;
 }
 
@@ -40,6 +41,7 @@ async function addUser(user) {
         await setDoc(doc(db, 'users', user.telegramId.toString()), {
             fullName: user.fullName,
         });
+        console.log('user added successful');
     } catch (err) {
         console.log(err);
     }

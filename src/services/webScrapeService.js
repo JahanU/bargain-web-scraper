@@ -8,7 +8,7 @@ const telegram = require('./telegramService');
 
 let allBestItems = new Map();
 
-module.exports = () => {
+module.exports = () => { // main method
     getItems();
     setInterval(getItems, 60 * 1000);
     setInterval(resetCache, 21600 * 1000); // reset cache every 6h
@@ -26,7 +26,7 @@ function getItems() {
 
             $('.productListItem').each((index, element) => {
                 let discount = $(element).find('.sav').text().trim().substring(5, 6); // Just get the tenth column number
-                if (discount < 6) return; // don't care about items with less than 60% discount
+                if (discount < 9) return; // don't care about items with less than 60% discount
                 discount *= 10;
 
                 const itemName = $(element).find('.itemTitle').text().trim().toLowerCase();

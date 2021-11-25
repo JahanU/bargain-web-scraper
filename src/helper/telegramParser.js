@@ -1,12 +1,15 @@
 const urls = require('./urls');
 
 // get request from telegram and convert it into the same cols as firebase + better readability
-module.exports = (req, res, next) => ({
-    telegramId: req.message.from.id,
-    fullName: req.message.from.first_name.concat(' ', req.message.from.last_name),
-    reqFromUser: req.message.text,
-    resToUser: urls.URLS.JD_ALL_MEN,
-});
+module.exports = (req, res, next) => {
+    console.log('telegram parser');
+    return {
+        telegramId: req.message.from.id,
+        fullName: req.message.from.first_name.concat(' ', req.message.from.last_name),
+        reqFromUser: req.message.text,
+        resToUser: '',
+    };
+};
 
 // NOTE:
 // update:  {
