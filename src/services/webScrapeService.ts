@@ -1,10 +1,13 @@
 /* eslint-disable newline-per-chained-call */
-const cheerio = require('cheerio'); // JQuery under the hood
+// const cheerio = require('cheerio'); // JQuery under the hood
+import cheerio, { xml } from 'cheerio';
 const axios = require('axios');
 
 const urls = require('../helper/urls');
 const filterData = require('../helper/filterData');
 const telegram = require('./telegramService');
+
+import { Item } from "../interfaces/Item";
 
 let allBestItems = new Map();
 
@@ -16,71 +19,71 @@ module.exports = () => { // main method
 
 function getItems() {
     console.log(new Date().toLocaleString());
+    const links = Object.values(urls);
 
-    const links = Object.values(urls.URLS);
     links.forEach((link) => {
-        axios.get(link).then((response) => {
-            const items = [];
-            const html = response.data;
+        axios.get(link).then((response: cheerio.Element) => {
+            const items: Item[] = [];
+            const html: cheerio.Element['data'] = response.data!;
             const $ = cheerio.load(html); // can now access all html elements via cheerio api
 
             $('.productListItem').each((index, element) => {
-                let discount = $(element).find('.sav').text().trim().substring(5, 6); // Just get the tenth column number
-                if (discount < 9) return; // don't care about items with less than 60% discount
+                let discount = parseInt($(element).find('.sav').text().trim().substring(5, 6)); // Just get the tenth column number
+                if (discount < 6) return; // don't care about items with less than 60% discount
                 discount *= 10;
 
-                const itemName = $(element).find('.itemTitle').text().trim().toLowerCase();
-                if (filterData(itemName)) return; // Don't like item, continue searching
+                const name = $(element).find('.itemTitle').text().trim().toLowerCase();
+                if (filterData(name)) return; // Don't like item, continue searching
 
                 const url = urls.JD + $(element).find('a').attr('href');
-                const imageUrl = $(element).find('source').attr('data-srcset').split(' ')[2]; // => [smallImgUrl, 1x, largeImgUrl, 2x];
+                const imageUrl = $(element).find('source').attr('data-srcset')?.split(' ')[2]; // => [smallImgUrl, 1x, largeImgUrl, 2x];
                 const wasPrice = $(element).find('.was').text().substring(3).trim();
                 const nowPrice = $(element).find('.now').text().substring(3).trim();
 
                 items.push({
-                    itemName, wasPrice, nowPrice, discount, url, imageUrl,
+                    name, wasPrice, nowPrice, discount, url, imageUrl,
                 });
             });
-            if (!items.length) throw new Error('Item length from .productListItem is 0');
+            if (!items.length) console.error('Item length from .productListItem is 0');
             return items;
-        }).then(async (items) => {
+        }).then(async (items: Item[]) => {
             const detailedItems = await getStockAndSize(items);
-            if (!detailedItems) throw new Error('DetailedItems length is 0, nothing in stock');
+            if (!detailedItems) console.error('DetailedItems length is 0, nothing in stock');
             return detailedItems;
-        }).then((detailedItems) => {
+        }).then((detailedItems: Item[]) => {
             const newItems = cacheDeals(detailedItems);
             sendDeals(newItems);
-        }).catch((err) => console.log(`${err.name}, in getItems():  ${err.message}`));
+        }).catch((err: Error) => console.error(`${err.name}, in getItems():  ${err.message}`));
     });
 }
 
-async function getStockAndSize(items) { // get size and if in stock, remove those not in stock
-    const stockedItems = [];
+async function getStockAndSize(items: Item[]) { // get size and if in stock, remove those not in stock
+    const stockedItems: Item[] = [];
     // eslint-disable-next-line no-restricted-syntax
     for await (const item of items) {
-        await axios.get(item.url).then((response) => {
-            const html = response.data;
+        await axios.get(item.url).then((response: cheerio.TagElement) => {
+            const html: cheerio.Element['data'] = response.data!;
             const $ = cheerio.load(html);
             // get stock
             const inStock = $('meta')[28].attribs.content;
             if (inStock === 'OUT OF STOCK') return;
             // get sizes
-            const objectStr = $('script')[3].children[0].data;
+            const objectStr: any = $('script')[3].children[0].data
             const regex = /name:("\w+")/g;
             const sizes = [...objectStr.matchAll(regex)].map((i) => i[1].substring(1, i[1].length - 1));
 
             stockedItems.push({ ...item, inStock, sizes });
-        }).catch((err) => console.log(`${err.name}, in getStockAndSize():  ${err.message}`));
+        }).catch((err: Error) => console.log(`${err.name}, in getStockAndSize():  ${err.message}`));
     }
     console.log('new Items: ', stockedItems);
     return stockedItems;
 }
 
 // eslint-disable-next-line no-undef
-sortByDiscount = (items) => items?.sort((a, b) => a.discount - b.discount);
+const sortByDiscount = (items: Item[]) => items?.sort((a, b) => a.discount - b.discount);
 
-function cacheDeals(newBestDeals) { // don't send items we have already seen
-    const newItems = [];
+function cacheDeals(newBestDeals: Item[]) { // don't send items we have already seen
+    const newItems: Item[] = [];
     newBestDeals.forEach((item) => {
         if (!allBestItems.has(item.url)) { // found new item!
             newItems.push(item);
@@ -91,7 +94,7 @@ function cacheDeals(newBestDeals) { // don't send items we have already seen
     return newItems;
 }
 
-function sendDeals(newDeals) {
+function sendDeals(newDeals: Item[]) {
     if (newDeals.length === 0) {
         console.log('no new items');
     } else {
