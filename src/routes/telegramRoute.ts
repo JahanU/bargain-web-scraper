@@ -1,10 +1,9 @@
-const express = require('express');
+import express, { Request, Response, NextFunction } from 'express';
+import { TelegramUpdate } from "../interfaces/TelegramUpdate";
 
 const router = express.Router();
 const TG = require('telegram-bot-api');
-const telegramMiddleware = require('../helper/telegramParser');
 const telegramController = require('../controllers/telegramController');
-
 const api = new TG({ token: process.env.TELEGRAM_API });
 const mp = new TG.GetUpdateMessageProvider(); // Define your message provider
 
@@ -17,34 +16,34 @@ api.start()
     .then(() => {
         console.log('Telegram Message handler API started');
     })
-    .catch(console.err);
+    .catch((err: Error) => console.log(err));
 // Receive messages via event callback
-api.on('update', (update) => { // update object is defined at: https://core.telegram.org/bots/api#update
+api.on('update', (update: TelegramUpdate) => { // update object is defined at: https://core.telegram.org/bots/api#update
+    console.log('update: ', update);
     handleCommands(update); // handle all telegram bot commands
 });
 
 /* eslint-disable indent */
-function handleCommands(request) { // google cloud functions?
-    const user = telegramMiddleware(request);
-    console.log(user);
-    switch (user.reqFromUser) {
+function handleCommands(update: TelegramUpdate) { // google cloud functions?
+
+    switch (update.message?.text) {
         case '/getbrands':
-            handleGetBrands(user);
+            handleGetBrands(update);
             break;
         case '/start':
-            handleSignOnUser(user);
+            handleSignOnUser(update);
             break;
         default:
             break;
     }
 }
 
-function handleGetBrands(user) { // works for now cos when deserialised, all get given the same response message
-    telegramController.getBrands(user);
+function handleGetBrands(update: TelegramUpdate) {
+    telegramController.getBrands(update);
 }
 
-async function handleSignOnUser(user) {
-    await telegramController.signOnUser(user);
+async function handleSignOnUser(update: TelegramUpdate) {
+    await telegramController.signOnUser(update);
 }
 
 module.exports = router; // Export this as a module, so that the router is accessible from index.

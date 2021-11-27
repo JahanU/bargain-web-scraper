@@ -1,4 +1,7 @@
 // Import the functions you need from the SDKs you need
+
+import { TelegramUpdate } from "../interfaces/TelegramUpdate";
+
 // import { getAnalytics } from 'firebase/analytics';
 const { initializeApp } = require('firebase/app');
 const {
@@ -27,7 +30,7 @@ const userCollection = collection(db, 'users');
 // Get a list t of telegram users from  database
 async function getUsers() {
     const userSnapshot = await getDocs(userCollection);
-    const users = userSnapshot.docs.map((d) => {
+    const users = userSnapshot.docs.map((d: any) => {
         const user = d.data();
         user.telegramId = d.id;
         return user;
@@ -36,12 +39,12 @@ async function getUsers() {
     return users;
 }
 
-async function addUser(user) {
+async function addUser(update: TelegramUpdate) {
     try {
-        await setDoc(doc(db, 'users', user.telegramId.toString()), {
-            fullName: user.fullName,
+        await setDoc(doc(db, 'users', update.message?.from.id.toString() + '111'), {
+            fullName: (update.message?.from.first_name + ' ' + update.message?.from.last_name) || 'No Name Given',
         });
-        console.log('user added successful');
+        console.log(`New user added!: ${update.message?.from.first_name + ' ' + update.message?.from.last_name}`);
     } catch (err) {
         console.log(err);
     }
