@@ -29,7 +29,7 @@ function getItems() {
 
             $('.productListItem').each((index, element) => {
                 let discount = parseInt($(element).find('.sav').text().trim().substring(5, 6)); // Just get the tenth column number
-                if (discount < 6) return; // don't care about items with less than 60% discount
+                if (discount < 5) return; // don't care about items with less than 50% discount
                 discount *= 10;
 
                 const name = $(element).find('.itemTitle').text().trim().toLowerCase();
@@ -61,18 +61,24 @@ async function getStockAndSize(items: Item[]) { // get size and if in stock, rem
     const stockedItems: Item[] = [];
     // eslint-disable-next-line no-restricted-syntax
     for await (const item of items) {
-        await axios.get(item.url).then((response: cheerio.TagElement) => {
-            const html: cheerio.Element['data'] = response.data!;
+        await axios.get(item.url).then((response: cheerio.Element) => {
+            const html = response.data!;
             const $ = cheerio.load(html);
+
+
             // get stock
-            const inStock = $('meta')[28].attribs.content;
+            const metaTag = $('meta')[28] as cheerio.TagElement;
+            const inStock = metaTag.attribs.content;
             if (inStock === 'OUT OF STOCK') return;
+
             // get sizes
-            const objectStr: any = $('script')[3].children[0].data
+            const scriptTag = $('script')[3] as cheerio.TagElement;
+            const objectStr = scriptTag.children[0].data!;
             const regex = /name:("\w+")/g;
             const sizes = [...objectStr.matchAll(regex)].map((i) => i[1].substring(1, i[1].length - 1));
 
-            stockedItems.push({ ...item, inStock, sizes });
+            stockedItems.push({ ...item, sizes });
+
         }).catch((err: Error) => console.log(`${err.name}, in getStockAndSize():  ${err.message}`));
     }
     console.log('new Items: ', stockedItems);

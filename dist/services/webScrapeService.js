@@ -84,14 +84,16 @@ function getStockAndSize(items) {
                     const html = response.data;
                     const $ = cheerio_1.default.load(html);
                     // get stock
-                    const inStock = $('meta')[28].attribs.content;
-                    if (inStock['attr'] === 'OUT OF STOCK')
+                    const metaTag = $('meta')[28];
+                    const inStock = metaTag.attribs.content;
+                    if (inStock === 'OUT OF STOCK')
                         return;
                     // get sizes
-                    const objectStr = $('script')[3].children[0].data;
+                    const scriptTag = $('script')[3];
+                    const objectStr = scriptTag.children[0].data;
                     const regex = /name:("\w+")/g;
                     const sizes = [...objectStr.matchAll(regex)].map((i) => i[1].substring(1, i[1].length - 1));
-                    stockedItems.push(Object.assign(Object.assign({}, item), { inStock, sizes }));
+                    stockedItems.push(Object.assign(Object.assign({}, item), { sizes }));
                 }).catch((err) => console.log(`${err.name}, in getStockAndSize():  ${err.message}`));
             }
         }

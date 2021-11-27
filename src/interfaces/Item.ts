@@ -5,6 +5,6 @@ export interface Item {
     discount: number,
     url: string,
     imageUrl?: string,
-    inStock?: boolean,
+    // inStock?: boolean,
     sizes?: string[],
 }
