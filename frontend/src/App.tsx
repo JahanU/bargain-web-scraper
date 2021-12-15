@@ -10,7 +10,7 @@ const tempItem = [
   { name: 'amrani', price: 50, link: 'http://amrani' },
 ]
 
-function App() {
+export default function App() {
 
   const [items, setItems] = useState(tempItem);
 
@@ -21,4 +21,3 @@ function App() {
   );
 }
 
-export default App;
