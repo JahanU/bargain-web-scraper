@@ -1,3 +1,5 @@
+# backend
+
 Cheerio = Fast, flexible, and lean implementation of core jQuery designed specifically for the server. (Used for web scraping) 
 express = server framework
 nodemon = live reload/restart
@@ -97,3 +99,10 @@ Views (templates) used by the controllers to render the data.
 https://stackoverflow.com/questions/46677752/the-difference-between-requirex-and-import-x
 ---
 https://mathieularose.com/main-function-in-node-js
+---
+
+# frontend
+
+https://stackoverflow.com/questions/56577201/why-is-isolatedmodules-error-fixed-by-any-import/56577324
+https://dev.to/adyasha8105/how-to-manage-api-calls-in-react-11a8
+https://www.smashingmagazine.com/2020/06/rest-api-react-fetch-axios/

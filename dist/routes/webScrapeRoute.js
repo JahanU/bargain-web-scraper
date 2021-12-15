@@ -9,6 +9,5 @@ const webScrapeController = require('../controllers/webScrapeController');
 router.get('/', (req, res) => {
     res.send('on webScrape home');
 });
-router.get('/test', webScrapeController.test);
-router.get('/getBestDeals', webScrapeController.getItems);
+router.get('/getBestDeals', webScrapeController.getBestDeals);
 module.exports = router; // Export this as a module, so that the router is accessible from index.

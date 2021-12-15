@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-
+import { getItems } from './services/webScrape.service';
 const products = [
     {
         id: 1,
@@ -24,12 +24,14 @@ const products = [
 
 function Table(props: any) {
 
-    console.log('got props: ', props);
     const [items, setItems] = useState([]);
 
     useEffect(() => {
+        console.log('in useEffect');
         // HTTP request
-
+        getItems().then((res: any) => {
+            console.log('res: ', res);
+        }).catch((err: any) => console.log('err: ', err));
         return () => { } // cleanup
     }, [items]) // Whenever items change
 

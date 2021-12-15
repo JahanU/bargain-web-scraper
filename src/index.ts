@@ -2,10 +2,12 @@
 import express, { Request, Response, NextFunction } from 'express';
 const logger = require('morgan');
 const bodyParser = require('body-parser'); // Parse body data; JSON data
+const cors = require('cors')
 
 const app = express();
 app.use(logger('dev'));
 app.use(bodyParser.json());
+app.use(cors());
 require('dotenv').config();
 
 const webScrape = require('./services/webScrapeService');
