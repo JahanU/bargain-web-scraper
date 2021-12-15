@@ -1,24 +1,22 @@
-import React from 'react';
-import logo from './logo.svg';
+import React, { useState } from 'react';
 import './App.css';
+import Table from './Table';
+
+
+const tempItem = [
+  { name: 'nike', price: 20, link: 'http://nike' },
+  { name: 'addidas', price: 30, link: 'http://addias' },
+  { name: 'levi', price: 30, link: 'http://levi' },
+  { name: 'amrani', price: 50, link: 'http://amrani' },
+]
 
 function App() {
+
+  const [items, setItems] = useState(tempItem);
+
   return (
     <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.tsx</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
+      <Table items={items} />
     </div>
   );
 }
