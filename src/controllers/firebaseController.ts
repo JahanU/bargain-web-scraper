@@ -1,5 +1,5 @@
-const firebaseService = require('../services/firebaseService');
 import express, { Request, Response, NextFunction } from 'express';
+const firebaseService = require('../services/firebaseService');
 
 exports.getUsers = async (req: Request, res: Response, next: NextFunction) => {
     firebaseService.getUsers()

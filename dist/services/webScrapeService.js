@@ -27,15 +27,16 @@ const urls = require('../helper/urls');
 const filterData = require('../helper/filterData');
 const telegram = require('./telegramService');
 let allBestItems = new Map();
-module.exports = () => {
+function startScraping() {
     getItems();
     setInterval(getItems, 60 * 1000);
     setInterval(resetCache, 21600 * 1000); // reset cache every 6h
-};
+}
 function getItems() {
     console.log(new Date().toLocaleString());
     const links = Object.values(urls);
     links.forEach((link) => {
+        console.log(link);
         axios.get(link).then((response) => {
             const items = [];
             const html = response.data;
@@ -43,8 +44,8 @@ function getItems() {
             $('.productListItem').each((index, element) => {
                 var _a;
                 let discount = parseInt($(element).find('.sav').text().trim().substring(5, 6)); // Just get the tenth column number
-                if (discount < 6)
-                    return; // don't care about items with less than 60% discount
+                if (discount < 7)
+                    return; // don't care about items with less than 50% discount
                 discount *= 10;
                 const name = $(element).find('.itemTitle').text().trim().toLowerCase();
                 if (filterData(name))
@@ -109,7 +110,7 @@ function getStockAndSize(items) {
     });
 }
 // eslint-disable-next-line no-undef
-const sortByDiscount = (items) => items === null || items === void 0 ? void 0 : items.sort((a, b) => a.discount - b.discount);
+// const sortByDiscount = (items: Item[]) => items?.sort((a, b) => a.discount - b.discount);
 function cacheDeals(newBestDeals) {
     const newItems = [];
     newBestDeals.forEach((item) => {
@@ -133,3 +134,10 @@ function sendDeals(newDeals) {
 function resetCache() {
     allBestItems = new Map();
 }
+const test = () => 'web scrape service test!!';
+const getBestDeals = () => {
+    console.log('best deals: ', allBestItems);
+    // return allBestItems;
+    console.log('hi');
+};
+module.exports = { startScraping, getBestDeals, test };

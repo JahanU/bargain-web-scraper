@@ -10,22 +10,26 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const TG = require('telegram-bot-api');
+const firebaseService = require("../services/firebaseService");
 const api = new TG({ token: process.env.TELEGRAM_API });
 function sendPhotosToUsers(items) {
     return __awaiter(this, void 0, void 0, function* () {
         // const users = await firebaseService.getUsers(); // TODO cache this, cache items too? User.length * item.length = O(n*m)
-        const users = [{
-                telegramId: 905610727,
-            }];
-        items.forEach((i) => {
-            users.forEach((u) => {
-                api.sendPhoto({
-                    chat_id: u.telegramId,
-                    caption: `Name: ${i.name} \nPrice: ${i.nowPrice} \nDiscount: ${i.discount}+% \nSize: ${i.sizes} \nLink: ${i.url}`,
-                    photo: i.imageUrl,
-                }).catch((err) => console.log(err));
-            });
-        });
+        // const users = [{
+        //     telegramId: 905610727,
+        //     name: 'Jahan'
+        // }];
+        // console.log('users: ', users);
+        // items.forEach((i) => { // .itemName, .wasPrice, .nowPrice, .discount, .url, .imageUrl, .sizes
+        //     console.log(`sending: ${i.name}`);
+        //     users.forEach((u) => {
+        //         api.sendPhoto({ // https://core.telegram.org/bots/api#sendphoto
+        //             chat_id: u.telegramId,
+        //             caption: `Name: ${i.name} \nPrice: ${i.nowPrice} \nDiscount: ${i.discount}+% \nSize: ${i.sizes} \nLink: ${i.url}`,
+        //             photo: i.imageUrl,
+        //         }).catch((err: Error) => console.log(err));
+        //     });
+        // });
     });
 }
 function sendMessage(telegramUpdate) {

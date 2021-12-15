@@ -1,13 +1,12 @@
 import express, { Request, Response } from 'express';
 
 const router = express.Router();
-const firebaseController = require('../controllers/firebaseController');
+const webScrapeController = require('../controllers/webScrapeController');
 
 router.get('/', (req: Request, res: Response) => {
-    res.send('on firebase home');
+    res.send('on webScrape home');
 });
 
-router.get('/allUsers', firebaseController.getUsers);
-router.post('/addUser', firebaseController.addUser);
+router.get('/getBestDeals', webScrapeController.getBestDeals);
 
 module.exports = router; // Export this as a module, so that the router is accessible from index.
