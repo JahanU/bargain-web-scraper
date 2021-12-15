@@ -9,14 +9,15 @@ app.use(bodyParser.json());
 require('dotenv').config();
 
 const webScrape = require('./services/webScrapeService');
-webScrape();
+webScrape.startScraping();
 
 const firebaseRoute = require('./routes/firebaseRoute');
+const webScrapeRoute = require('./routes/webScrapeRoute')
 const telegramRoute = require('./routes/telegramRoute');
-
 const loggingMiddleware = require('./middlewares/logging');
 
 app.use('/firebase', firebaseRoute);
+app.use('/webscrape', webScrapeRoute);
 app.use(telegramRoute);
 
 app.use(loggingMiddleware);

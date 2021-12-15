@@ -1,6 +1,6 @@
 /* eslint-disable newline-per-chained-call */
 // const cheerio = require('cheerio'); // JQuery under the hood
-import cheerio, { xml } from 'cheerio';
+import cheerio from 'cheerio';
 const axios = require('axios');
 
 const urls = require('../helper/urls');
@@ -11,17 +11,18 @@ import { Item } from "../interfaces/Item";
 
 let allBestItems = new Map();
 
-module.exports = () => { // main method
+function startScraping() {
     getItems();
     setInterval(getItems, 60 * 1000);
     setInterval(resetCache, 21600 * 1000); // reset cache every 6h
-};
+}
 
 function getItems() {
     console.log(new Date().toLocaleString());
     const links = Object.values(urls);
 
     links.forEach((link) => {
+        console.log(link);
         axios.get(link).then((response: cheerio.Element) => {
             const items: Item[] = [];
             const html: cheerio.Element['data'] = response.data!;
@@ -29,7 +30,7 @@ function getItems() {
 
             $('.productListItem').each((index, element) => {
                 let discount = parseInt($(element).find('.sav').text().trim().substring(5, 6)); // Just get the tenth column number
-                if (discount < 5) return; // don't care about items with less than 50% discount
+                if (discount < 7) return; // don't care about items with less than 50% discount
                 discount *= 10;
 
                 const name = $(element).find('.itemTitle').text().trim().toLowerCase();
@@ -46,10 +47,12 @@ function getItems() {
             });
             if (!items.length) console.error('Item length from .productListItem is 0');
             return items;
+
         }).then(async (items: Item[]) => {
             const detailedItems = await getStockAndSize(items);
             if (!detailedItems) console.error('DetailedItems length is 0, nothing in stock');
             return detailedItems;
+
         }).then((detailedItems: Item[]) => {
             const newItems = cacheDeals(detailedItems);
             sendDeals(newItems);
@@ -64,7 +67,6 @@ async function getStockAndSize(items: Item[]) { // get size and if in stock, rem
         await axios.get(item.url).then((response: cheerio.Element) => {
             const html = response.data!;
             const $ = cheerio.load(html);
-
 
             // get stock
             const metaTag = $('meta')[28] as cheerio.TagElement;
@@ -86,7 +88,7 @@ async function getStockAndSize(items: Item[]) { // get size and if in stock, rem
 }
 
 // eslint-disable-next-line no-undef
-const sortByDiscount = (items: Item[]) => items?.sort((a, b) => a.discount - b.discount);
+// const sortByDiscount = (items: Item[]) => items?.sort((a, b) => a.discount - b.discount);
 
 function cacheDeals(newBestDeals: Item[]) { // don't send items we have already seen
     const newItems: Item[] = [];
@@ -112,3 +114,7 @@ function sendDeals(newDeals: Item[]) {
 function resetCache() {
     allBestItems = new Map();
 }
+
+const getBestDeals = () => allBestItems;
+
+module.exports = { startScraping, getBestDeals }
