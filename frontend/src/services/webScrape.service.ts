@@ -2,20 +2,27 @@
 
 
 const getItems = () => {
-    // Where we're fetching data from
-    // return fetch("https://api.github.com/users/jahanu")
 
     const url = 'http://localhost:8000/webscrape/getBestDeals';
-
     return fetch(url)
-        // We get the API response and receive data in JSON format
         .then((response) => response.json())
         .then((data) => data)
         .catch((error) => console.error(error));
 };
 
-
 export { getItems };
+
+// (4) [Array(2), Array(2), Array(2), Array(2)]
+// [key, value] = [0, 1];
+// 0: "https://www.jdsports.co.uk/product/grey-adidas-tech-joggers/16211055/"
+// 1:
+// discount: 80
+// imageUrl: "https://i8.amplience.net/t/jpl/jd_product_list?plu=jd_466294_al&qlt=92&w=726&h=726&v=1&fmt=auto"
+// name: "adidas tech joggers"
+// nowPrice: "£55.00"
+// sizes: (6) ['XS', 'S', 'M', 'L', 'XL', 'XXL']
+// url: "https://www.jdsports.co.uk/product/grey-adidas-tech-joggers/16211055/"
+// wasPrice: "£60.00"
 
 // DUMMY DATA
 // [
