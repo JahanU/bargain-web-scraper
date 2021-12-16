@@ -3,22 +3,31 @@ import { getItems } from '../services/webScrape.service';
 import ItemCard from './ItemCard';
 import Item from '../interfaces/Item';
 
-
 function ItemTable(props: any) {
 
     const [items, setItems] = useState([]);
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        console.log('in useEffect');
-        // HTTP request
-        getItems().then((items: any) => {
-            console.log('res: ', items);
-            setItems(items);
-        }).catch((err: any) => console.log('err: ', err));
-        return () => { } // cleanup
-    }, []) // Whenever items change
+        setLoading(true);
+        getItems()
+            .then((items: any) => setItems(items))
+            .catch((err: any) => console.log('err: ', err))
+            .finally(() => setLoading(false));
 
-    if (items.length === 0) {
+        return () => { } // cleanup
+    }, [setLoading]) // Whenever items change
+
+
+    if (loading) {
+        return (
+            <div className="max-w-2xl mx-auto py-16 px-4 sm:py-24 sm:px-6 lg:max-w-7xl lg:px-8">
+                <h2 className="text-2xl font-extrabold tracking-tight text-gray-900">Loading</h2>
+            </div>
+        )
+    }
+
+    if (!loading && items.length === 0) {
         console.log(items);
         return (
             <div className="max-w-2xl mx-auto py-16 px-4 sm:py-24 sm:px-6 lg:max-w-7xl lg:px-8">

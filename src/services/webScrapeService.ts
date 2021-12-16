@@ -31,7 +31,7 @@ function getItems() {
             $('.productListItem').each((index, element) => {
 
                 let discount = parseInt($(element).find('.sav').text().trim().substring(5, 7)); // Just get the tenth column number
-                if (discount < 60) return; // don't care about items with less than 50% discount
+                if (discount < 50) return; // don't care about items with less than 50% discount
 
                 const name = $(element).find('.itemTitle').text().trim().toLowerCase();
                 if (filterData(name)) return; // Don't like item, continue searching
