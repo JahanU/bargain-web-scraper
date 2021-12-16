@@ -4,14 +4,11 @@ import Item from '../interfaces/Item';
 function ItemCard(props: any) {
 
     const [url, item] = props.item;
-    console.log(item);
     const sizes = item.sizes.toString();
-    console.log(sizes);
-
 
     return (
         <div key={url} className="relative">
-            <div className="w-full min-h-80 bg-gray-200 aspect-w-1 aspect-h-1 rounded-md  hover:opacity-75 lg:h-80 lg:aspect-none">
+            <div className="w-full min-h-80 bg-gray-200 aspect-w-1 aspect-h-1 rounded-md  hover:opacity-75 lg:h-80 lg:aspect-none shadow-lg">
                 <img
                     src={item.imageUrl}
                     alt={item.name}
