@@ -18,7 +18,7 @@ function HeaderBar() {
                             />
                         </a>
                     </div>
-                    <div className="hidden md:flex items-center justify-end md:flex-1 lg:w-0">
+                    <div className="md:flex items-center justify-end md:flex-1 lg:w-0">
                         <DiscountSlider />
                     </div>
 

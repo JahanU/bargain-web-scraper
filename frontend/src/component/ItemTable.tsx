@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { getItems } from '../services/webScrape.service';
+import { getItemsService } from '../services/webScrape.service';
 import ItemCard from './ItemCard';
 import Item from '../interfaces/Item';
 
@@ -7,16 +7,21 @@ function ItemTable(props: any) {
 
     const [items, setItems] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [fetchItemTimer, setFetchItemTimer] = useState(false);
 
     useEffect(() => {
         setLoading(true);
-        getItems()
+        getItemsService()
             .then((items: any) => setItems(items))
             .catch((err: any) => console.log('err: ', err))
             .finally(() => setLoading(false));
 
-        return () => { } // cleanup
-    }, [setLoading]) // Whenever items change
+        const timer = setInterval(() => {
+            setFetchItemTimer((prevState: boolean) => !prevState);
+        }, (1000 * 60));
+
+        return () => clearTimeout(timer); // cleanup
+    }, [fetchItemTimer]) // Whenever items change
 
 
     if (loading) {

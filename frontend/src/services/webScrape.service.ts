@@ -1,7 +1,7 @@
 
 
 
-const getItems = () => {
+const getItemsService = () => {
 
     const url = 'http://localhost:8000/webscrape/getBestDeals';
     return fetch(url)
@@ -10,7 +10,7 @@ const getItems = () => {
         .catch((error) => console.error(error));
 };
 
-export { getItems };
+export { getItemsService };
 
 // (4) [Array(2), Array(2), Array(2), Array(2)]
 // [key, value] = [0, 1];
