@@ -134,10 +134,5 @@ function sendDeals(newDeals) {
 function resetCache() {
     allBestItems = new Map();
 }
-const test = () => 'web scrape service test!!';
-const getBestDeals = () => {
-    console.log('best deals: ', allBestItems);
-    // return allBestItems;
-    console.log('hi');
-};
-module.exports = { startScraping, getBestDeals, test };
+const getBestDeals = () => allBestItems;
+module.exports = { startScraping, getBestDeals };

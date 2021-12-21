@@ -7,9 +7,11 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
 const logger = require('morgan');
 const bodyParser = require('body-parser'); // Parse body data; JSON data
+const cors = require('cors');
 const app = (0, express_1.default)();
 app.use(logger('dev'));
 app.use(bodyParser.json());
+app.use(cors());
 require('dotenv').config();
 const webScrape = require('./services/webScrapeService');
 webScrape.startScraping();
@@ -18,7 +20,7 @@ const webScrapeRoute = require('./routes/webScrapeRoute');
 const telegramRoute = require('./routes/telegramRoute');
 const loggingMiddleware = require('./middlewares/logging');
 app.use('/firebase', firebaseRoute);
-// app.use('/webscrape', webScrapeRoute);
+app.use('/webscrape', webScrapeRoute);
 app.use(telegramRoute);
 app.use(loggingMiddleware);
 // Default route
