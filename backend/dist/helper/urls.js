@@ -1,4 +1,3 @@
-"use strict";
 /* eslint-disable max-len */
 // enum
 module.exports = {
@@ -6,8 +5,7 @@ module.exports = {
     JD_ALL_MEN: 'https://www.jdsports.co.uk/men/brand/adidas-originals,adidas,nike,under-armour,the-north-face,new-balance,lacoste,tommy-hilfiger,calvin-klein-underwear,levis,columbia,jordan,emporio-armani-ea7,berghaus,polo-ralph-lauren,boss,champion,fred-perry,asics/sale/?sort=price-low-high&max=200',
     // allFemale: 'https://www.jdsports.co.uk/women/brand/adidas-originals,adidas,nike,under-armour,the-north-face,new-balance,lacoste,vans,tommy-hilfiger,calvin-klein-underwear,levis,columbia,jordan,emporio-armani-ea7,berghaus,polo-ralph-lauren,boss,champion,fred-perry,asics/sale/?sort=price-low-high&max=200',
     // Shoe filter only
-    // SHOES: 'https://www.jdsports.co.uk/men/mens-footwear/brand/adidas-originals,adidas,nike,under-armour,the-north-face,new-balance,lacoste,vans,tommy-hilfiger,calvin-klein-underwear,levis,columbia,reebok,jordan,fila,emporio-armani-ea7,puma,berghaus,polo-ralph-lauren,boss,champion,fred-perry,asics,converse/sale/?max=100&sort=price-low-high&max=200',
-    JD: 'https://www.jdsports.co.uk'
+    SHOES: 'https://www.jdsports.co.uk/men/mens-footwear/brand/adidas-originals,adidas,nike,under-armour,the-north-face,new-balance,lacoste,vans,tommy-hilfiger,calvin-klein-underwear,levis,columbia,reebok,jordan,fila,emporio-armani-ea7,puma,berghaus,polo-ralph-lauren,boss,champion,fred-perry,asics,converse/sale/?max=100&sort=price-low-high&max=200',
 };
 // ASOS Sales
 // https://www.asos.com/men/sale/ctas/sale-edit-6/cat/?cid=28233&currentpricerange=5-180&nlid=mw%7Csale%7Cshop%20sale%20by%20product%7Cbest%20of%20sale&refine=attribute_10992:61375,61377,61380,61383,61386,61388|brand:105,12507,13623,13688,14513,15059,15176,15177,16346,16545,17,18,298,2986,3029,3060,3312,3594,3735,391,401,499,691&sort=priceasc
