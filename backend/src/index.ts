@@ -11,7 +11,7 @@ app.use(cors());
 require('dotenv').config();
 
 const webScrape = require('./services/webScrapeService');
-webScrape.startScraping();
+webScrape.main();
 
 const firebaseRoute = require('./routes/firebaseRoute');
 const webScrapeRoute = require('./routes/webScrapeRoute')
