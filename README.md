@@ -9,13 +9,19 @@ Bargain Web Scraper is a Node.js application that polls the JD website every min
 
 
 ## Features
-- Typescript migration
-- Good design patterns followed (MVC, DRY, High cohesion, low coupling etc)
+### Frontend
+- React Web App
+- Tailwind CSS
+
+
+### Backend
 - Firebase/Firestore (add and get users)
-- Regex
-- Web Scraping via Cheerio library
-- Asynchronous Programming
+- Typescript migration
 - Telegram API Bot
+- Good design patterns followed (MVC, DRY, High cohesion, low coupling etc)
+- Web Scraping via Cheerio library
+- Asynchronous Programming (Promises, Promise.all, Async/Await)
+- Regex
 
 ## Example
 <p>
