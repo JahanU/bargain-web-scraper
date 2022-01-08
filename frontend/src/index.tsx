@@ -3,11 +3,9 @@ import ReactDOM from 'react-dom';
 import './index.css';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
-import HeaderBar from './component/HeaderBar';
 
 ReactDOM.render(
   <React.StrictMode>
-    <HeaderBar />
     <App />
   </React.StrictMode>,
   document.getElementById('root')

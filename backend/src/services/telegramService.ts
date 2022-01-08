@@ -8,22 +8,22 @@ const api = new TG({ token: process.env.TELEGRAM_API });
 
 async function sendPhotosToUsers(items: Item[]) {
     // const users = await firebaseService.getUsers(); // TODO cache this, cache items too? User.length * item.length = O(n*m)
-    const users = [{
-        telegramId: process.env.CHAT_ID_JAHAN,
-        fullName: 'Jahan',
-    }];
+    // const users = [{
+    //     telegramId: process.env.CHAT_ID_JAHAN,
+    //     fullName: 'Jahan',
+    // }];
 
-    console.log('users: ', users);
-    items.forEach((i) => { // .itemName, .wasPrice, .nowPrice, .discount, .url, .imageUrl, .sizes
-        console.log(`sending: ${i.name}`);
-        users.forEach((u) => {
-            api.sendPhoto({ // https://core.telegram.org/bots/api#sendphoto
-                chat_id: u.telegramId,
-                caption: `Name: ${i.name} \nPrice: ${i.nowPrice} \nDiscount: ${i.discount}+% \nSize: ${i.sizes} \nLink: ${i.url}`,
-                photo: i.imageUrl,
-            }).catch((err: Error) => console.log(err));
-        });
-    });
+    // console.log('users: ', users);
+    // items.forEach((i) => { // .itemName, .wasPrice, .nowPrice, .discount, .url, .imageUrl, .sizes
+    //     console.log(`sending: ${i.name}`);
+    //     users.forEach((u) => {
+    //         api.sendPhoto({ // https://core.telegram.org/bots/api#sendphoto
+    //             chat_id: u.telegramId,
+    //             caption: `Name: ${i.name} \nPrice: ${i.nowPrice} \nDiscount: ${i.discount}+% \nSize: ${i.sizes} \nLink: ${i.url}`,
+    //             photo: i.imageUrl,
+    //         }).catch((err: Error) => console.log(err));
+    //     });
+    // });
 }
 
 function sendMessage(telegramUpdate: TelegramUpdate) {

@@ -1,30 +1,9 @@
-import React, { useEffect, useState } from 'react';
-import { getItemsService } from '../services/webScrape.service';
 import ItemCard from './ItemCard';
 import Item from '../interfaces/Item';
 
-function ItemTable(props: any) {
+function ItemTable({ items, isLoading }: { items: Item[], isLoading: boolean }) {
 
-    const [items, setItems] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [fetchItemTimer, setFetchItemTimer] = useState(false);
-
-    useEffect(() => {
-        setLoading(true);
-        getItemsService()
-            .then((items: any) => setItems(items))
-            .catch((err: any) => console.log('err: ', err))
-            .finally(() => setLoading(false));
-
-        const timer = setInterval(() => {
-            setFetchItemTimer((prevState: boolean) => !prevState);
-        }, (1000 * 60));
-
-        return () => clearTimeout(timer); // cleanup
-    }, [fetchItemTimer]) // Whenever items change
-
-
-    if (loading) {
+    if (isLoading) {
         return (
             <div className="max-w-2xl mx-auto py-16 px-4 sm:py-24 sm:px-6 lg:max-w-7xl lg:px-8">
                 <h2 className="text-2xl font-extrabold tracking-tight text-gray-900">Loading</h2>
@@ -32,7 +11,7 @@ function ItemTable(props: any) {
         )
     }
 
-    if (!loading && items.length === 0) {
+    if (!isLoading && items.length === 0) {
         console.log(items);
         return (
             <div className="max-w-2xl mx-auto py-16 px-4 sm:py-24 sm:px-6 lg:max-w-7xl lg:px-8">

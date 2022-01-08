@@ -3,7 +3,7 @@ import getJDItems from '../helper/JD';
 import { Item } from "../interfaces/Item";
 
 let allBestItems = new Map<string, Item>(); // <URL, Item>
-let discountLimit = 70; // item discount must be greater than this value
+let discountLimit = 10; // item discount must be greater than this value
 
 const getBestDeals = () => allBestItems;
 const resetCache = () => allBestItems = new Map();

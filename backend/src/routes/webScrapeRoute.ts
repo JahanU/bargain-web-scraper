@@ -9,4 +9,5 @@ router.get('/', (req: Request, res: Response) => {
 
 router.get('/getBestDeals', webScrapeController.getBestDeals);
 
+
 module.exports = router; // Export this as a module, so that the router is accessible from index.

@@ -1,7 +1,7 @@
-import react from 'react';
+import React from 'react';
 import { useState, useEffect } from 'react';
 
-function DiscountSlider() {
+function DiscountSlider(props: any) {
 
     const [discount, setDiscount] = useState(0);
 
@@ -10,13 +10,9 @@ function DiscountSlider() {
 
     useEffect(() => {
         const timer = setTimeout(() => {
-            // ping server
-        }, 500);
-
-
+            props.onSliderChange(discount);
+        }, 100);
         return () => clearInterval(timer); // clean up
-
-
     }, [discount]);
 
 
