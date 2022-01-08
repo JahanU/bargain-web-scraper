@@ -5,3 +5,4 @@ exports.getBestDeals = (req: Request, res: Response, next: NextFunction) => {
     let items = webScrapeService.getBestDeals();
     res.send([...items]);
 };
+

@@ -1,20 +1,27 @@
 import react from 'react';
+import { useState, useEffect } from 'react';
 
 function DiscountSlider() {
 
-    const [discount, setDiscount] = react.useState(0);
+    const [discount, setDiscount] = useState(0);
 
-    const handleSlider = (e: any) => {
-        setDiscount(e.target.value);
-    }
+    const handleSlider = (e: any) => setDiscount(e.target.value);
+
+
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            // ping server
+        }, 500);
+
+
+        return () => clearInterval(timer); // clean up
+
+
+    }, [discount]);
+
 
     return (
         <div className="relative">
-            {/* <input type="text" id="simple-email"
-                className="flex-1 appearance-none border border-gray-300 w-full py-2 px-4 bg-white text-gray-700 placeholder-gray-400 shadow-sm text-base focus:outline-none focus:ring-2 focus:ring-purple-600 focus:border-transparent"
-                placeholder="Your email"
-            /> */}
-
 
             <div>
                 <label className="m-1 bg-slate-40">
