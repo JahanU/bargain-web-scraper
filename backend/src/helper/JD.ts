@@ -35,14 +35,15 @@ function getJDItems(discountLimit: number): Promise<Item[]> {
 
                     items.push({ name, wasPrice, nowPrice, discount, url, imageUrl });
                 });
-                if (!items.length) console.error('No items found from JD');
+
+                // if (!items.length) console.error('No items found from JD');
                 return items;
             }).then(async (items: Item[]) => {
                 const detailedItems = await getStockAndSize(items);
-                if (!detailedItems) console.error('Nothing in stock');
+                // if (!detailedItems) console.error('Nothing in stock');
                 return resolve(detailedItems);
             }).catch((err: Error) => {
-                console.error(err);
+                // console.error(err);
                 return reject(err);
             });
         });
@@ -74,7 +75,7 @@ async function getStockAndSize(items: Item[]): Promise<Item[]> { // get size and
         ).then((items) => {
             return resolve(items.filter((item) => item !== undefined));
         }).catch((err) => {
-            console.error(err);
+            // console.error(err);
             return reject(err);
         });
     });

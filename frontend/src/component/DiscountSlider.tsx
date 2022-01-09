@@ -9,10 +9,7 @@ function DiscountSlider(props: any) {
 
 
     useEffect(() => {
-        const timer = setTimeout(() => {
-            props.onSliderChange(discount);
-        }, 100);
-        return () => clearInterval(timer); // clean up
+        props.onSliderChange(discount);
     }, [discount]);
 
 

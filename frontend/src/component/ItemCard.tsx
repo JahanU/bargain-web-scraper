@@ -1,13 +1,10 @@
-import React, { useEffect, useState } from 'react';
-import Item from '../interfaces/Item';
-
 function ItemCard(props: any) {
 
-    const [url, item] = props.item;
+    const item = props.item;
     const sizes = item.sizes.toString();
 
     return (
-        <div key={url} className="relative">
+        <div key={item.url} className="relative">
             <div className="w-full min-h-80 bg-gray-200 aspect-w-1 aspect-h-1 rounded-md  hover:opacity-75 lg:h-80 lg:aspect-none shadow-lg">
                 <img
                     src={item.imageUrl}
@@ -18,13 +15,13 @@ function ItemCard(props: any) {
             <div className="mt-4 flex justify-between">
                 <div>
                     <h3 className="text-sm text-gray-700">
-                        <a href={url} target="_blank" rel="noreferrer">
+                        <a href={item.url} target="_blank" rel="noreferrer">
                             <span aria-hidden="true" className="absolute inset-0" />
                             {item.name}
                         </a>
                     </h3>
                     <h4 className="text-sm text-gray-700 text-left">
-                        <a href={url} target="_blank" rel="noreferrer">
+                        <a href={item.url} target="_blank" rel="noreferrer">
                             <span aria-hidden="true" className="absolute inset-0" />
                             {sizes}
                         </a>

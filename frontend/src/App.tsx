@@ -14,20 +14,30 @@ export default function App() {
   useEffect(() => {
     setLoading(true);
     getItemsService()
-      .then((items: any) => setItems(items))
+      .then((items: any) => {
+        console.log(items);
+        setItems(items);
+      })
       .catch((err: any) => console.log('err: ', err))
       .finally(() => setLoading(false));
   }, []) // Whenever items change
 
+  useEffect(() => {
+    console.log('fittered Items; ', filteredItems);
+  }, [filteredItems]);
+
+
   const onSliderChange = (discount: number) => {
-    console.log(discount + ' from slider change');
+    console.log('onslider');
     setFilteredItems(items.filter((item: Item) => item.discount >= discount));
   }
 
   return (
     <div className="App">
       <HeaderBar onSliderChange={onSliderChange} />
-      <ItemTable items={filteredItems ? filteredItems : items} isLoading={loading} />
+      {!filteredItems.length && <ItemTable items={items} isLoading={loading} />}
+      {filteredItems.length && <ItemTable items={filteredItems} isLoading={loading} />}
+
     </div>
   );
 }
