@@ -10,6 +10,7 @@ export default function App() {
   const [items, setItems] = useState<Item[]>([]);
   const [filteredItems, setFilteredItems] = useState<Item[]>([]);
   const [loading, setLoading] = useState(true);
+  const [discount, setDiscount] = useState(0);
 
   useEffect(() => {
     setLoading(true);
@@ -22,22 +23,17 @@ export default function App() {
       .finally(() => setLoading(false));
   }, []) // Whenever items change
 
-  useEffect(() => {
-    console.log('fittered Items; ', filteredItems);
-  }, [filteredItems]);
-
 
   const onSliderChange = (discount: number) => {
-    console.log('onslider');
+    setDiscount(discount);
     setFilteredItems(items.filter((item: Item) => item.discount >= discount));
   }
 
   return (
     <div className="App">
       <HeaderBar onSliderChange={onSliderChange} />
-      {!filteredItems.length && <ItemTable items={items} isLoading={loading} />}
-      {filteredItems.length && <ItemTable items={filteredItems} isLoading={loading} />}
-
+      {discount == 0 && <ItemTable items={items} isLoading={loading} />}
+      {discount > 0 && <ItemTable items={filteredItems} isLoading={loading} />}
     </div>
   );
 }

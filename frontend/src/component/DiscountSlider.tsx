@@ -5,7 +5,10 @@ function DiscountSlider(props: any) {
 
     const [discount, setDiscount] = useState(0);
 
-    const handleSlider = (e: any) => setDiscount(e.target.value);
+    const handleSlider = (e: any) => {
+        console.log('slider touched');
+        setDiscount(e.target.value);
+    }
 
 
     useEffect(() => {
