@@ -6,25 +6,21 @@ let allBestItemsMap = new Map<string, Item>(); // <URL, Item>
 let allBestItemsList: Item[] = [];
 let discountLimit = 50; // item discount must be greater than this value
 
-const getBestDeals = () => allBestItemsMap;
-const getBestDealsList = () => allBestItemsList;
-const resetCache = () => allBestItemsMap = new Map();
 
 function main() {
     startScraping();
-    // setInterval(startScraping, 60 * 1000);
-    // setInterval(resetCache, 21600 * 1000); // reset cache every 6h
+    setInterval(startScraping, 300 * 1000); // every 5 minutes
+    setInterval(resetCache, 21600 * 1000); // reset cache every 6h
 }
 
 async function startScraping() {
     try {
         const JDItems = await getJDItems(discountLimit);
-        console.log('JD items', JDItems);
         const newItems = cacheDeals(JDItems);
         sendDeals(newItems);
         setAllBestItemsList();
     } catch (err) {
-        console.log(err, 'error in startScraping()');
+        console.log(err);
     }
 }
 
@@ -41,9 +37,7 @@ function cacheDeals(newBestDeals: Item[]) { // don't send items we have already 
 }
 
 function sendDeals(newDeals: Item[]) {
-    if (newDeals.length === 0) {
-        console.log('no new items');
-    } else {
+    if (newDeals.length) {
         console.log('got new items!: ', newDeals);
         telegram.sendPhotosToUsers(newDeals);
     }
@@ -54,8 +48,10 @@ function setAllBestItemsList() {
         const newItem = { url, ...item }
         allBestItemsList.push(newItem);
     });
-
     console.log('final list: ', allBestItemsList);
 }
+
+const getBestDealsList = () => allBestItemsList;
+const resetCache = () => allBestItemsMap = new Map();
 
 module.exports = { main, getBestDealsList };
