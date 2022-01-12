@@ -1,21 +1,21 @@
 const telegram = require('./telegramService');
-import getJDItems from '../helper/JD';
+import JDMain from '../helper/JD';
 import { Item } from "../interfaces/Item";
 
 let allBestItemsMap = new Map<string, Item>(); // <URL, Item>
 let allBestItemsList: Item[] = [];
-let discountLimit = 50; // item discount must be greater than this value
+let discountLimit = 60; // item discount must be greater than this value
 
 
 function main() {
     startScraping();
     setInterval(startScraping, 300 * 1000); // every 5 minutes
-    setInterval(resetCache, 21600 * 1000); // reset cache every 6h
+    setInterval(resetCache, 10800 * 1000); // reset cache every 3h
 }
 
 async function startScraping() {
     try {
-        const JDItems = await getJDItems(discountLimit);
+        const JDItems = await JDMain(discountLimit);
         const newItems = cacheDeals(JDItems);
         sendDeals(newItems);
         setAllBestItemsList();
