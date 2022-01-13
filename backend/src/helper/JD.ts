@@ -3,7 +3,7 @@ const axios = require('axios');
 const filterData = require('./filterData');
 import { Item } from "../interfaces/Item";
 
-let seenItemsCache = new Set<string>();
+let seenItemsCache = new Set<string>(); // stores url 
 
 const JD = 'https://www.jdsports.co.uk';
 const urls = [ // JD_ALL_MEN, SHOES 
@@ -34,8 +34,10 @@ function getJDItems(discountLimit: number): Promise<Item[]> {
                     const url = JD + $(element).find('a').attr('href');
                     if (seenItemsCache.has(url)) return; // don't add items we've already seen
                     seenItemsCache.add(url);
+                    console.log('!Added, ', seenItemsCache.size);
 
-                    let discount = parseInt($(element).find('.sav').text().trim().substring(5, 7)); // Just get the tenth column number
+                    let discount = parseInt($(element).find('.sav').text().trim().substring(5, 7));
+                    console.log('discount: ', discount);
                     if (discount < discountLimit) return; // don't care about items with less than 50% discount
 
                     const name = $(element).find('.itemTitle').text().trim().toLowerCase();
@@ -63,12 +65,14 @@ function getJDItems(discountLimit: number): Promise<Item[]> {
 
 async function getStockAndSize(items: Item[]): Promise<Item[]> { // get size and if in stock, remove those not in stock
 
+    console.log('getting stock and size: ', items.length);
     return new Promise<Item[]>((resolve, reject) => {
         Promise.all(
             items.map(async (item) => {
                 const html = await axios.get(item.url);
                 const $ = cheerio.load(html.data);
 
+                console.log('getting stock and size: ', item.name);
                 // get stock
                 const metaTag = $('meta')[28] as cheerio.TagElement;
                 const inStock = metaTag.attribs.content;

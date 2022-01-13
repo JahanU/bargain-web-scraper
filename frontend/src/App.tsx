@@ -19,12 +19,14 @@ export default function App() {
         console.log(items);
         setItems(items);
       })
-      .catch((err: any) => console.log('err: ', err))
-      .finally(() => setLoading(false));
+      .catch((err: any) => console.log(': ', err))
+      .finally(() =>
+        setLoading(false));
   }, []) // Whenever items change
 
 
   const onSliderChange = (discount: number) => {
+    console.log('slider - App');
     setDiscount(discount);
     setFilteredItems(items.filter((item: Item) => item.discount >= discount));
   }

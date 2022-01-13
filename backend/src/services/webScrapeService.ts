@@ -4,7 +4,7 @@ import { Item } from "../interfaces/Item";
 
 let allBestItemsMap = new Map<string, Item>(); // <URL, Item>
 let allBestItemsList: Item[] = [];
-let discountLimit = 60; // item discount must be greater than this value
+let discountLimit = 50; // item discount must be greater than this value
 
 
 function main() {
