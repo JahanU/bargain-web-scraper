@@ -8,11 +8,8 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
-const cheerio_1 = __importDefault(require("cheerio"));
+const cheerio = require('cheerio');
 const axios = require('axios');
 const filterData = require('./filterData');
 let seenItemsCache = new Set(); // stores url 
@@ -32,7 +29,7 @@ function getJDItems(discountLimit) {
         Promise.all(urls.map((url) => __awaiter(this, void 0, void 0, function* () {
             console.log('url', url);
             const html = yield axios.get(url);
-            const $ = cheerio_1.default.load(html.data);
+            const $ = cheerio.load(html.data);
             $('.productListItem').each((index, element) => {
                 var _a;
                 const url = JD + $(element).find('a').attr('href');
@@ -83,7 +80,7 @@ function getStockAndSize(items) {
         return new Promise((resolve, reject) => {
             Promise.all(items.map((item) => __awaiter(this, void 0, void 0, function* () {
                 const html = yield axios.get(item.url);
-                const $ = cheerio_1.default.load(html.data);
+                const $ = cheerio.load(html.data);
                 console.log('getting stock and size: ', item.name);
                 // get stock
                 const metaTag = $('meta')[28];

@@ -1,4 +1,4 @@
-import cheerio from 'cheerio';
+const cheerio = require('cheerio');
 const axios = require('axios');
 const filterData = require('./filterData');
 import { Item } from "../interfaces/Item";
