@@ -6,14 +6,13 @@ function DiscountSlider(props: any) {
     const [discount, setDiscount] = useState(10);
 
     const handleSlider = (e: any) => {
-        console.log('slider - slider handler');
-        console.log('slider touched');
         setDiscount(e.target.value);
+        // props.onSliderChange(discount);
     }
 
     useEffect(() => {
-        console.log('slider - slider useEffect');
         props.onSliderChange(discount);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [discount]);
 
     return (

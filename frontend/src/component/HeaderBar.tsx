@@ -6,7 +6,6 @@ import Logo from '../assets/hxh-logo.png';
 function HeaderBar(props: any) {
 
     const onSliderChange = (discount: number) => {
-        console.log('slider - Header');
         props.onSliderChange(discount);
     }
 
