@@ -2,7 +2,10 @@
 
 #### Try it out:  https://t.me/JD_sales_bot
 
-Express Node.js application to find highly discounted JD sale items and notify user via a Telegram Bot.
+application to find highly discounted clothing items, with subsequent optimised HTTP calls to check whether they are truly in stock and get their sizes, and display them to a clean minimal React Web App with a feature packed table. 
+
+Developed Telegram API Bot that handles user sign up, FAQ queries and sends live updates of when new items are found with their relevant details. 
+- Node.js, React.
 
 ## Overview
 Bargain Web Scraper is a Node.js application that polls the JD website every minute, checking items that meet my criteria, with a subsequent asynchronous call to check if that item is in stock and the available sizes. New users are are stored in Firebase (Firestore).
@@ -12,7 +15,6 @@ Bargain Web Scraper is a Node.js application that polls the JD website every min
 ### Frontend
 - React Web App
 - Tailwind CSS
-
 
 ### Backend
 - Firebase/Firestore (add and get users)
