@@ -26,6 +26,7 @@ function getJDItems(discountLimit: number): Promise<Item[]> {
         Promise.all(
             urls.map(async (url) => {
 
+                console.log('url', url);
                 const html = await axios.get(url);
                 const $ = cheerio.load(html.data);
 
@@ -40,8 +41,8 @@ function getJDItems(discountLimit: number): Promise<Item[]> {
                     console.log('discount: ', discount);
                     if (discount < discountLimit) return; // don't care about items with less than 50% discount
 
-                    const name = $(element).find('.itemTitle').text().trim().toLowerCase();
-                    if (filterData(name)) return; // Don't like item, continue searching
+                    const name = $(element).find('.itemTitle').text().trim();
+                    if (filterData(name.toLowerCase())) return; // Don't like item, continue searching
 
                     const imageUrl = $(element).find('source').attr('data-srcset')?.split(' ')[2]; // => [smallImgUrl, 1x, largeImgUrl, 2x];
                     const wasPrice = $(element).find('.was').text().substring(3).trim();
@@ -54,7 +55,7 @@ function getJDItems(discountLimit: number): Promise<Item[]> {
                 return items;
             })
         ).then(async (items: Item[][]) => {
-            const detailedItems = await getStockAndSize(items.flat());
+            const detailedItems = await bufferHandler(items.flat());
             if (!detailedItems.length) reject('Nothing in stock');
             return resolve(detailedItems);
         }).catch((err: Error) => {
@@ -63,9 +64,21 @@ function getJDItems(discountLimit: number): Promise<Item[]> {
     });
 }
 
+async function bufferHandler(items: Item[]): Promise<Item[]> {
+
+    // crashes when trying to make 100s of http calls at once, using buffer to reduce load
+    let totalItems = [];
+    while (items.length) {
+        let buffer = items.splice(0, 50);
+        let bufferItems = await getStockAndSize(buffer);
+        totalItems = totalItems.concat(bufferItems);
+    }
+    return totalItems.sort((a, b) => b.discount - a.discount);
+}
+
 async function getStockAndSize(items: Item[]): Promise<Item[]> { // get size and if in stock, remove those not in stock
 
-    console.log('getting stock and size: ', items.length);
+    console.log('getting stock and size for ', items.length);
     return new Promise<Item[]>((resolve, reject) => {
         Promise.all(
             items.map(async (item) => {

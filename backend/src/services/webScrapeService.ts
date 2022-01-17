@@ -4,12 +4,12 @@ import { Item } from "../interfaces/Item";
 
 let allBestItemsMap = new Map<string, Item>(); // <URL, Item>
 let allBestItemsList: Item[] = [];
-let discountLimit = 50; // item discount must be greater than this value
+let discountLimit = 0; // item discount must be greater than this value
 
 
 function main() {
     startScraping();
-    setInterval(startScraping, 300 * 1000); // every 5 minutes
+    setInterval(startScraping, 600 * 1000); // every 10 minutes
     setInterval(resetCache, 10800 * 1000); // reset cache every 3h
 }
 
