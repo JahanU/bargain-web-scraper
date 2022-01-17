@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 
 function DiscountSlider(props: any) {
 
-    const [discount, setDiscount] = useState(0);
+    const [discount, setDiscount] = useState(10);
 
     const handleSlider = (e: any) => {
         console.log('slider - slider handler');
@@ -22,7 +22,7 @@ function DiscountSlider(props: any) {
                 <label className="m-1 bg-slate-40">
                     Discount: {discount}%
                 </label>
-                <input type="range" min="0" max="100" step="10" className="w-11/12"
+                <input type="range" min="10" max="100" step="10" className="w-11/12"
                     onChange={handleSlider} value={discount}
                 />
             </div>

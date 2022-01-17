@@ -24,6 +24,8 @@ function HeaderBar(props: any) {
                             />
                         </a>
                     </div>
+                    <h1 className="text-4xl font-extrabold tracking-tight text-gray-1200">Bargain Scraper</h1>
+
                     <div className="md:flex items-center justify-end md:flex-1 lg:w-0">
                         <DiscountSlider onSliderChange={onSliderChange} />
                     </div>

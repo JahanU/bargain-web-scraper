@@ -27,7 +27,7 @@ function ItemTable({ items, isLoading }: { items: Item[], isLoading: boolean }) 
                     <span className="text-sm tracking-tight text-gray-800"> ({items.length})</span>
                 </h2>
 
-                <div className="mt-6 grid grid-cols-1 gap-y-10 gap-x-6 sm:grid-cols-2 lg:grid-cols-3 xl:gap-x-8">
+                <div className="mt-4 grid grid-cols-1 gap-y-10 gap-x-6 sm:grid-cols-2 lg:grid-cols-4 xl:gap-x-8">
                     {items.map((item: any) => <ItemCard key={item.url} item={item} />)}
                 </div>
             </div>
