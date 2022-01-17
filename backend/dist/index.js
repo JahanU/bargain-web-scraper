@@ -11,6 +11,7 @@ const app = (0, express_1.default)();
 app.use(logger('dev'));
 app.use(bodyParser.json());
 app.use(cors());
+app.use(express_1.default.static('client'));
 require('dotenv').config();
 const webScrape = require('./services/webScrapeService');
 webScrape.main();
