@@ -3,7 +3,6 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-// const express = require('express');
 const express_1 = __importDefault(require("express"));
 const logger = require('morgan');
 const bodyParser = require('body-parser'); // Parse body data; JSON data
@@ -30,8 +29,6 @@ app.use((req, res, next) => {
     res.status(404);
     next(error);
 });
-// Global error handler
-// eslint-disable-next-line no-unused-vars
 app.use((err, req, res, next) => {
     res.status(res.statusCode || 500);
     res.json({

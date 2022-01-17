@@ -1,4 +1,3 @@
-// const express = require('express');
 import express, { Request, Response, NextFunction } from 'express';
 const logger = require('morgan');
 const bodyParser = require('body-parser'); // Parse body data; JSON data
@@ -33,8 +32,6 @@ app.use((req: Request, res: Response, next: NextFunction) => {
     next(error);
 });
 
-// Global error handler
-// eslint-disable-next-line no-unused-vars
 app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
     res.status(res.statusCode || 500);
     res.json({
