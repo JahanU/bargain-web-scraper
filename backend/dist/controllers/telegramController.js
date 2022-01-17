@@ -17,7 +17,7 @@ const telegramService = require('../services/telegramService');
 exports.getBrands = (telegramUpdate) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         // eslint-disable-next-line no-param-reassign
-        telegramUpdate.response_to_user = URLS.JD_ALL_MEN;
+        telegramUpdate.response_to_user = URLS.JD_ALL_MEN + '\n\n' + URLS.SHOES;
         telegramService.sendMessage(telegramUpdate);
     }
     catch (error) {

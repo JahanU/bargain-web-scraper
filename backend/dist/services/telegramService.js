@@ -14,7 +14,7 @@ const firebaseService = require("../services/firebaseService");
 const api = new TG({ token: process.env.TELEGRAM_API });
 function sendPhotosToUsers(items) {
     return __awaiter(this, void 0, void 0, function* () {
-        // const users = await firebaseService.getUsers(); // TODO cache this, cache items too? User.length * item.length = O(n*m)
+        // const users = await firebaseService.getUsers(); 
         const users = [{
                 telegramId: process.env.CHAT_ID_JAHAN,
                 fullName: 'Jahan',
