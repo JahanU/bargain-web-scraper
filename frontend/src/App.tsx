@@ -5,6 +5,7 @@ import ItemTable from './component/ItemTable';
 import Item from './interfaces/Item';
 import HeaderBar from './component/HeaderBar';
 import Error from './component/Error';
+import ReactGA from 'react-ga';
 
 export default function App() {
 
@@ -12,6 +13,14 @@ export default function App() {
   const [filteredItems, setFilteredItems] = useState<Item[]>([]);
   const [loading, setLoading] = useState(true);
   const [isError, setIsError] = useState(false);
+
+
+  useEffect(() => {
+    console.log('use effect');
+    const TRACKING_ID = 'UA-217469643-1'; // YOUR_OWN_TRACKING_ID
+    ReactGA.initialize(TRACKING_ID);
+    ReactGA.pageview('/');
+  }, []);
 
   useEffect(() => {
     setLoading(true);
