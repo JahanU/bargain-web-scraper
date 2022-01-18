@@ -3,7 +3,7 @@
 
 const getItemsService = async () => {
 
-    const url = 'https://bargain-scraper.herokuapp.com/webscrape/getBestDeals';
+    const url = process.env.REACT_APP_BACKEND_URL + '/webscrape/getBestDeals';
 
     return fetch(url)
         .then((response) => response.json())
