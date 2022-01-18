@@ -14,14 +14,6 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [isError, setIsError] = useState(false);
 
-
-  useEffect(() => {
-    console.log('use effect');
-    const TRACKING_ID = 'UA-217480005-1'; // YOUR_OWN_TRACKING_ID
-    ReactGA.initialize(TRACKING_ID);
-    ReactGA.pageview('/');
-  }, []);
-
   useEffect(() => {
     setLoading(true);
     getItemsService()
