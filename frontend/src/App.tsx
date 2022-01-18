@@ -21,6 +21,7 @@ export default function App() {
           setIsError(true);
         }
         setItems(items);
+        setFilteredItems(items);
       })
       .catch((err: any) => {
         console.log(err);
@@ -39,8 +40,7 @@ export default function App() {
     <div className="App">
       <HeaderBar onSliderChange={onSliderChange} />
       {isError && <Error />}
-      {!isError && !filteredItems.length && <ItemTable items={items} isLoading={loading} />}
-      {!isError && filteredItems.length && <ItemTable items={filteredItems} isLoading={loading} />}
+      {!isError && <ItemTable items={filteredItems} isLoading={loading} />}
     </div>
   );
 }
