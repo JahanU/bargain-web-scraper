@@ -1,5 +1,5 @@
 import express, { Request, Response, NextFunction } from 'express';
-const newrelic = require('newrelic')
+const newrelic = require('newrelic');
 const logger = require('morgan');
 const bodyParser = require('body-parser'); // Parse body data; JSON data
 const cors = require('cors')

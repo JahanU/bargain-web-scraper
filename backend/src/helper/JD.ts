@@ -87,12 +87,12 @@ async function getStockAndSize(items: Item[]): Promise<Item[]> { // get size and
 
                 console.log('getting stock and size: ', item.name);
                 // get stock
-                const metaTag = $('meta')[28] as cheerio.TagElement;
+                const metaTag = $('meta')[28];
                 const inStock = metaTag.attribs.content;
                 if (inStock === 'OUT OF STOCK') return;
 
                 // get sizes
-                const scriptTag = $('script')[3] as cheerio.TagElement;
+                const scriptTag = $('script')[3];
                 const objectStr = scriptTag.children[0].data!;
                 const regex = /name:("\w+")/g;
                 const sizes = [...objectStr.matchAll(regex)].map((i) => i[1].substring(1, i[1].length - 1));
