@@ -18,14 +18,13 @@ function DiscountSlider(props: any) {
     return (
         <div className="relative">
             <div>
-                <label className="m-1 bg-slate-40">
+                <label className="text-sm text-gray-700">
                     Discount: {discount}%
                 </label>
-                <input type="range" min="10" max="100" step="10" className="w-11/12"
+                <input type="range" min="10" max="100" step="10" className="w-11/12 bg-orange-400"
                     onChange={handleSlider} value={discount}
                 />
             </div>
-
         </div>
     );
 }

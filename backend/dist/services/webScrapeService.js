@@ -16,14 +16,15 @@ const telegram = require('./telegramService');
 const JD_1 = __importDefault(require("../helper/JD"));
 let allBestItemsMap = new Map(); // <URL, Item>
 let allBestItemsList = [];
-let discountLimit = 10; // item discount must be greater than this value
+let discountLimit = 40; // item discount must be greater than this value
 function main() {
     startScraping();
-    setInterval(startScraping, 600 * 1000); // every 10 minutes
-    setInterval(resetCache, 10800 * 1000); // reset cache every 3h
+    setInterval(startScraping, 120 * 1000); // every 2 minutes
+    setInterval(resetCache, 3600 * 1000); // every hour
 }
 function startScraping() {
     return __awaiter(this, void 0, void 0, function* () {
+        console.log('start scraping: ' + new Date().getTime().toLocaleString());
         try {
             const JDItems = yield (0, JD_1.default)(discountLimit);
             const newItems = cacheDeals(JDItems);

@@ -12,7 +12,7 @@ const urls = [ // JD_ALL_MEN, SHOES
 ];
 
 function JDMain(discountLimit: number): Promise<Item[]> {
-    setInterval(resetCache, 10800 * 1000); // reset cache every 3h
+    setInterval(resetCache, 3600 * 1000); // reset cache every hour
     return getJDItems(discountLimit);
 }
 
@@ -35,11 +35,9 @@ function getJDItems(discountLimit: number): Promise<Item[]> {
                     const url = JD + $(element).find('a').attr('href');
                     if (seenItemsCache.has(url)) return; // don't add items we've already seen
                     seenItemsCache.add(url);
-                    console.log('!Added, ', seenItemsCache.size);
 
                     let discount = parseInt($(element).find('.sav').text().trim().substring(5, 7));
-                    console.log('discount: ', discount);
-                    if (discount < discountLimit) return; // don't care about items with less than 50% discount
+                    if (discount < discountLimit) return; // don't care about items with less than x% discount
 
                     const name = $(element).find('.itemTitle').text().trim();
                     if (filterData(name.toLowerCase())) return; // Don't like item, continue searching
