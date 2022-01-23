@@ -54,6 +54,10 @@ function setAllBestItemsList() {
 }
 
 const getBestDealsList = () => allBestItemsList;
-const resetCache = () => allBestItemsMap = new Map();
+
+const resetCache = () => {
+    allBestItemsMap = new Map();
+    allBestItemsList = [];
+}
 
 module.exports = { main, getBestDealsList };
