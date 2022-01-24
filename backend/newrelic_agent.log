@@ -57,3 +57,15 @@
 {"v":0,"level":30,"name":"newrelic","hostname":"192.168.1.108","pid":13843,"time":"2022-01-23T22:20:23.805Z","msg":"Agent state changed from stopped to starting."}
 {"v":0,"level":30,"name":"newrelic","hostname":"192.168.1.108","pid":13843,"time":"2022-01-23T22:20:23.910Z","msg":"Starting New Relic for Node.js connection process."}
 {"v":0,"level":30,"name":"newrelic","hostname":"192.168.1.108","pid":13843,"time":"2022-01-23T22:20:23.910Z","msg":"Agent state changed from starting to connecting."}
+{"v":0,"level":30,"name":"newrelic","hostname":"192.168.1.108","pid":6765,"time":"2022-01-24T22:06:36.460Z","msg":"Using New Relic for Node.js. Agent version: 8.7.1; Node version: v14.15.3."}
+{"v":0,"level":30,"name":"newrelic","hostname":"192.168.1.108","pid":6765,"time":"2022-01-24T22:06:36.536Z","msg":"Using LegacyContextManager"}
+{"v":0,"level":40,"name":"newrelic","hostname":"192.168.1.108","pid":6765,"time":"2022-01-24T22:06:36.575Z","msg":"The newrelic module must be the first module required.\nThe following modules were required before newrelic and are not being instrumented:\n\texpress: /Users/jahanulhaque/Code/web-scraper/backend/node_modules/express/index.js\n\tq: /Users/jahanulhaque/Code/web-scraper/backend/node_modules/qs/lib/index.js"}
+{"v":0,"level":30,"name":"newrelic","hostname":"192.168.1.108","pid":6765,"time":"2022-01-24T22:06:36.575Z","msg":"Agent state changed from stopped to starting."}
+{"v":0,"level":30,"name":"newrelic","hostname":"192.168.1.108","pid":6765,"time":"2022-01-24T22:06:36.684Z","msg":"Starting New Relic for Node.js connection process."}
+{"v":0,"level":30,"name":"newrelic","hostname":"192.168.1.108","pid":6765,"time":"2022-01-24T22:06:36.684Z","msg":"Agent state changed from starting to connecting."}
+{"v":0,"level":30,"name":"newrelic","hostname":"192.168.1.108","pid":6765,"time":"2022-01-24T22:06:40.299Z","msg":"Agent state changed from connecting to connected."}
+{"v":0,"level":30,"name":"newrelic","hostname":"192.168.1.108","pid":6765,"time":"2022-01-24T22:06:40.299Z","msg":"Connected to collector-009.newrelic.com:443 with agent run ID BX15xmPposVzADPbBle6iy5h7yNAAAgBAAAnIQEAABptAgRXeS4VAwAFOC43LjEADTE5Mi4xNjguMS4xMDgAD0JhcmdhaW4gU2NyYXBlcg.","component":"collector_api"}
+{"v":0,"level":30,"name":"newrelic","hostname":"192.168.1.108","pid":6765,"time":"2022-01-24T22:06:40.299Z","msg":"Reporting to: https://rpm.newrelic.com/accounts/3398406/applications/1467559445","component":"collector_api"}
+{"v":0,"level":30,"name":"newrelic","hostname":"192.168.1.108","pid":6765,"time":"2022-01-24T22:06:40.300Z","msg":"Valid event_harvest_config received. Updating harvest cycles. {\"report_period_ms\":5000,\"harvest_limits\":{\"error_event_data\":8,\"analytic_event_data\":833,\"custom_event_data\":83}}"}
+{"v":0,"level":30,"name":"newrelic","hostname":"192.168.1.108","pid":6765,"time":"2022-01-24T22:06:40.302Z","msg":"Agent state changed from connected to started."}
+{"v":0,"level":30,"name":"newrelic","hostname":"192.168.1.108","pid":6765,"time":"2022-01-24T22:06:41.374Z","msg":"Starting initial 1000ms harvest."}

@@ -9,13 +9,13 @@ let discountLimit = 10; // item discount must be greater than this value
 
 function main() {
     startScraping();
-    setInterval(startScraping, 120 * 1000); // every 2 minutes
+    setInterval(startScraping, 60 * 1000); // every minute
     setInterval(resetCache, 3600 * 1000); // every hour
 }
 
 async function startScraping() {
     try {
-        const JDItems = await JDMain(discountLimit);
+        const JDItems = await JDMain(discountLimit, resetLists());
         const newItems = cacheDeals(JDItems);
         sendDeals(newItems);
         setAllBestItemsList();
@@ -59,5 +59,8 @@ const resetCache = () => {
     allBestItemsMap = new Map();
     allBestItemsList = [];
 }
+
+// pass this function to JDMain, if list length is 0, then we also want to reset the JD cache
+const resetLists = () => allBestItemsList.length === 0;
 
 module.exports = { main, getBestDealsList };

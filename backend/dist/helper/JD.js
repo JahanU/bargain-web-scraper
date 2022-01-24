@@ -18,11 +18,12 @@ const urls = [
     'https://www.jdsports.co.uk/men/brand/adidas-originals,adidas,nike,under-armour,the-north-face,new-balance,lacoste,tommy-hilfiger,calvin-klein-underwear,levis,columbia,jordan,emporio-armani-ea7,berghaus,polo-ralph-lauren,boss,champion,fred-perry,asics/sale/?sort=price-low-high&max=200',
     'https://www.jdsports.co.uk/men/mens-footwear/brand/adidas-originals,adidas,nike,under-armour,the-north-face,new-balance,lacoste,vans,tommy-hilfiger,calvin-klein-underwear,levis,columbia,reebok,jordan,berghaus,polo-ralph-lauren,boss,champion,fred-perry,asics,converse/sale/?max=100&sort=price-low-high&max=200'
 ];
-function JDMain(discountLimit) {
-    setInterval(resetCache, 3600 * 1000); // reset cache every hour
+function JDMain(discountLimit, resetCache) {
+    if (resetCache)
+        resetList();
     return getJDItems(discountLimit);
 }
-const resetCache = () => seenItemsCache = new Set();
+const resetList = () => seenItemsCache = new Set();
 function getJDItems(discountLimit) {
     const items = [];
     return new Promise((resolve, reject) => {
