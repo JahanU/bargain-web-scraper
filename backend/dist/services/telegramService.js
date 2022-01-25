@@ -14,11 +14,11 @@ const firebaseService = require("../services/firebaseService");
 const api = new TG({ token: process.env.TELEGRAM_API });
 function sendPhotosToUsers(items) {
     return __awaiter(this, void 0, void 0, function* () {
-        // const users = await firebaseService.getUsers(); 
-        const users = [{
-                telegramId: process.env.CHAT_ID_JAHAN,
-                fullName: 'Jahan',
-            }];
+        const users = yield firebaseService.getUsers();
+        // const users = [{
+        //     telegramId: process.env.CHAT_ID_JAHAN,
+        //     fullName: 'Jahan',
+        // }];
         console.log('users: ', users);
         items.forEach((i) => {
             console.log(`sending: ${i.name}`);
