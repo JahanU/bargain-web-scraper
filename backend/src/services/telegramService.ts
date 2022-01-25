@@ -14,9 +14,7 @@ async function sendPhotosToUsers(items: Item[]) {
     //     fullName: 'Jahan',
     // }];
 
-    console.log('users: ', users);
     items.forEach((i) => { // .itemName, .wasPrice, .nowPrice, .discount, .url, .imageUrl, .sizes
-        console.log(`sending: ${i.name}`);
         users.forEach((u) => {
             api.sendPhoto({ // https://core.telegram.org/bots/api#sendphoto
                 chat_id: u.telegramId,

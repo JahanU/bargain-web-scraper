@@ -41,7 +41,7 @@ async function getUsers() {
 
 async function addUser(update: TelegramUpdate) {
     try {
-        await setDoc(doc(db, 'users', update.message?.from.id.toString() + '111'), {
+        await setDoc(doc(db, 'users', update.message?.from.id.toString()), {
             fullName: (update.message?.from.first_name + ' ' + update.message?.from.last_name) || 'No Name Given',
         });
         console.log(`New user added!: ${update.message?.from.first_name + ' ' + update.message?.from.last_name}`);
