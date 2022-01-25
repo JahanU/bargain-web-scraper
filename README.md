@@ -44,5 +44,5 @@ npm start
 cd backend
 npm install
 npm start
-(Need your own Telegram & Firebase API Key)
+(Need your own Telegram & Firebase API Key; Or comment those files from the index.ts as they are not required for solo development)
 ```
