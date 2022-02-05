@@ -47,7 +47,7 @@ function addUser(update) {
     var _a, _b, _c, _d, _e;
     return __awaiter(this, void 0, void 0, function* () {
         try {
-            yield setDoc(doc(db, 'users', ((_a = update.message) === null || _a === void 0 ? void 0 : _a.from.id.toString()) + '111'), {
+            yield setDoc(doc(db, 'users', (_a = update.message) === null || _a === void 0 ? void 0 : _a.from.id.toString()), {
                 fullName: (((_b = update.message) === null || _b === void 0 ? void 0 : _b.from.first_name) + ' ' + ((_c = update.message) === null || _c === void 0 ? void 0 : _c.from.last_name)) || 'No Name Given',
             });
             console.log(`New user added!: ${((_d = update.message) === null || _d === void 0 ? void 0 : _d.from.first_name) + ' ' + ((_e = update.message) === null || _e === void 0 ? void 0 : _e.from.last_name)}`);

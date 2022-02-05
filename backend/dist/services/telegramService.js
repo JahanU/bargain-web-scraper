@@ -19,9 +19,7 @@ function sendPhotosToUsers(items) {
         //     telegramId: process.env.CHAT_ID_JAHAN,
         //     fullName: 'Jahan',
         // }];
-        console.log('users: ', users);
         items.forEach((i) => {
-            console.log(`sending: ${i.name}`);
             users.forEach((u) => {
                 api.sendPhoto({
                     chat_id: u.telegramId,
