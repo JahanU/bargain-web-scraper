@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Popover } from '@headlessui/react'
 import DiscountSlider from './DiscountSlider';
-import Logo from '../assets/hxh-logo.png';
-import NewFeature from './modal/NewFeatures';
+import Logo from '../../assets/hxh-logo.png';
+import NewFeature from '../modal/NewFeatures';
 
 function HeaderBar(props: any) {
 

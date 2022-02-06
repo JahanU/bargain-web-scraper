@@ -1,5 +1,5 @@
 import ItemCard from './ItemCard';
-import Item from '../interfaces/Item';
+import Item from '../../interfaces/Item';
 
 function ItemTable({ items, isLoading }: { items: Item[], isLoading: boolean }) {
 

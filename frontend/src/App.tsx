@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import './App.css';
 import { getItemsService } from './services/webScrape.service'
-import ItemTable from './component/ItemTable';
+import ItemTable from './component/table/ItemTable';
 import Item from './interfaces/Item';
-import HeaderBar from './component/HeaderBar';
-import Error from './component/Error';
+import HeaderBar from './component/header/HeaderBar';
+import Error from './component/modal/Error';
 
 export default function App() {
 
