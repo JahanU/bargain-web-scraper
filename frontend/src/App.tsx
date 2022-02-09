@@ -9,7 +9,6 @@ import Error from './component/modal/Error';
 export default function App() {
 
   const [items, setItems] = useState<Item[]>([]);
-  const [filteredItems, setFilteredItems] = useState<Item[]>([]);
   const [loading, setLoading] = useState(true);
   const [isError, setIsError] = useState(false);
 
@@ -17,11 +16,11 @@ export default function App() {
     setLoading(true);
     getItemsService()
       .then((items: Item[]) => {
-        if (items.length === 0 || items === undefined) {
+        if (!items.length) {
+          console.log(items, ' data is empty');
           setIsError(true);
         }
         setItems(items);
-        setFilteredItems(items);
       })
       .catch((err: any) => {
         console.log(err);
@@ -29,18 +28,18 @@ export default function App() {
       })
       .finally(() =>
         setLoading(false));
-  }, []) // Whenever items change
+  }, [])
 
 
   const onSliderChange = (discount: number) => {
-    setFilteredItems(items.filter((item: Item) => item.discount >= discount));
+    setItems(items.filter((item: Item) => item.discount >= discount));
   }
 
   return (
     <div className="App">
       <HeaderBar onSliderChange={onSliderChange} />
       {isError && <Error />}
-      {!isError && <ItemTable items={filteredItems} isLoading={loading} />}
+      {!isError && <ItemTable items={items} isLoading={loading} />}
     </div>
   );
 }
