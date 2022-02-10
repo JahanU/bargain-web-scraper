@@ -1,3 +1,4 @@
+/* eslint-disable jsx-a11y/anchor-is-valid */
 /* This example requires Tailwind CSS v2.0+ */
 import { Fragment } from 'react'
 import { Menu, Transition } from '@headlessui/react'
@@ -9,7 +10,7 @@ function classNames(...classes: any[]) {
 
 export default function Dropdown() {
     return (
-        <Menu as="div" className="relative inline-block text-left">
+        <Menu as="div" className="relative inline-block text-left z-10">
             <div>
                 <Menu.Button className="inline-flex justify-center w-full rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-100 focus:ring-indigo-500">
                     Options
@@ -37,7 +38,7 @@ export default function Dropdown() {
                                         'block px-4 py-2 text-sm'
                                     )}
                                 >
-                                    Account settings
+                                    Latest
                                 </a>
                             )}
                         </Menu.Item>
@@ -50,7 +51,7 @@ export default function Dropdown() {
                                         'block px-4 py-2 text-sm'
                                     )}
                                 >
-                                    Support
+                                    Discount (High to Low)
                                 </a>
                             )}
                         </Menu.Item>
@@ -63,25 +64,36 @@ export default function Dropdown() {
                                         'block px-4 py-2 text-sm'
                                     )}
                                 >
-                                    License
+                                    Discount (Low to High)
                                 </a>
                             )}
                         </Menu.Item>
-                        <form method="POST" action="#">
-                            <Menu.Item>
-                                {({ active }) => (
-                                    <button
-                                        type="submit"
-                                        className={classNames(
-                                            active ? 'bg-gray-100 text-gray-900' : 'text-gray-700',
-                                            'block w-full text-left px-4 py-2 text-sm'
-                                        )}
-                                    >
-                                        Sign out
-                                    </button>
-                                )}
-                            </Menu.Item>
-                        </form>
+                        <Menu.Item>
+                            {({ active }) => (
+                                <a
+                                    href="#"
+                                    className={classNames(
+                                        active ? 'bg-gray-100 text-gray-900' : 'text-gray-700',
+                                        'block px-4 py-2 text-sm'
+                                    )}
+                                >
+                                    Price (Low to High)
+                                </a>
+                            )}
+                        </Menu.Item>
+                        <Menu.Item>
+                            {({ active }) => (
+                                <a
+                                    href="#"
+                                    className={classNames(
+                                        active ? 'bg-gray-100 text-gray-900' : 'text-gray-700',
+                                        'block px-4 py-2 text-sm'
+                                    )}
+                                >
+                                    Price (High to Low)
+                                </a>
+                            )}
+                        </Menu.Item>
                     </div>
                 </Menu.Items>
             </Transition>
