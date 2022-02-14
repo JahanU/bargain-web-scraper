@@ -1,6 +1,6 @@
 /* eslint-disable jsx-a11y/anchor-is-valid */
 /* This example requires Tailwind CSS v2.0+ */
-import { Fragment } from 'react'
+import { Fragment, useState } from 'react'
 import { Menu, Transition } from '@headlessui/react'
 import { ChevronDownIcon } from '@heroicons/react/solid'
 
@@ -9,6 +9,11 @@ function classNames(...classes: any[]) {
 }
 
 export default function Dropdown() {
+
+    const [discountHighToLow, setDiscountHighToLow] = useState(false);
+
+    const onDiscountHighToLowClick = () => setDiscountHighToLow(!discountHighToLow);
+
     return (
         <Menu as="div" className="relative inline-block text-left z-10">
             <div>
@@ -45,14 +50,19 @@ export default function Dropdown() {
                         <Menu.Item>
                             {({ active }) => (
                                 <a
+
                                     href="#"
                                     className={classNames(
                                         active ? 'bg-gray-100 text-gray-900' : 'text-gray-700',
                                         'block px-4 py-2 text-sm'
                                     )}
                                 >
-                                    Discount (High to Low)
+                                    <button onClick={onDiscountHighToLowClick}>
+                                        Discount (High to Low)
+
+                                    </button>
                                 </a>
+
                             )}
                         </Menu.Item>
                         <Menu.Item>

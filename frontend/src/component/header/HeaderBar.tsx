@@ -13,6 +13,7 @@ function HeaderBar(props: any) {
         props.onSliderChange(discount);
     }
 
+
     return (
         <Popover className="relative bg-white">
             {open && <NewFeature closeModal={setOpen} isOpen={open} />}
