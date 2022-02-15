@@ -3,7 +3,7 @@ import { createSlice } from '@reduxjs/toolkit';
 const initalFilterState = {
     search: '',
     latest: false,
-    discountHighToLow: false,
+    discountHighToLow: true, // Default we sort in Desc Order
     priceHighToLow: false,
 }
 
@@ -17,11 +17,11 @@ const filter = createSlice({
         setLatset: (state) => {
             state.latest = !state.latest;
         },
-        setDiscountHighToLow: (state) => {
-            state.discountHighToLow = !state.discountHighToLow;
+        setDiscountHighToLow: (state, action) => {
+            state.discountHighToLow = action.payload;
         },
-        setPriceHighToLow: (state) => {
-            state.priceHighToLow = !state.priceHighToLow;
+        setPriceHighToLow: (state, action) => {
+            state.priceHighToLow = action.payload;
         }
     },
 });

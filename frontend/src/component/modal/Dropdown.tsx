@@ -1,9 +1,9 @@
 /* eslint-disable jsx-a11y/anchor-is-valid */
 /* This example requires Tailwind CSS v2.0+ */
-import { Fragment, useState } from 'react'
+import { Fragment } from 'react'
 import { Menu, Transition } from '@headlessui/react'
 import { ChevronDownIcon } from '@heroicons/react/solid'
-import { useSelector, useDispatch } from 'react-redux'
+import { useDispatch } from 'react-redux'
 import { filterActions } from '../../store/filterSlice';
 
 function classNames(...classes: any[]) {
@@ -15,8 +15,8 @@ export default function Dropdown() {
     const dispatch = useDispatch(); // Dispatch similar to in useReducer
 
     const onLatestHandler = () => dispatch(filterActions.setLatset());
-    const onDiscountHighToLowHandler = () => dispatch(filterActions.setDiscountHighToLow());
-    const onPriceHighToLowHandler = () => dispatch(filterActions.setPriceHighToLow());
+    const onDiscountHighToLowHandler = (setFilter: boolean) => dispatch(filterActions.setDiscountHighToLow(setFilter));
+    const onPriceHighToLowHandler = (setFilter: boolean) => dispatch(filterActions.setPriceHighToLow(setFilter));
 
     return (
         <Menu as="div" className="relative inline-block text-left z-10">
@@ -38,7 +38,7 @@ export default function Dropdown() {
             >
                 <Menu.Items className="origin-top-right absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 focus:outline-none">
                     <div className="py-1">
-                        <Menu.Item>
+                        <Menu.Item onClick={onLatestHandler}>
                             {({ active }) => (
                                 <a
                                     href="#"
@@ -46,14 +46,11 @@ export default function Dropdown() {
                                         active ? 'bg-gray-100 text-gray-900' : 'text-gray-700',
                                         'block px-4 py-2 text-sm'
                                     )}
-                                >
-                                    <button onClick={onLatestHandler}>
-                                        Latest
-                                    </button>
+                                > Latest
                                 </a>
                             )}
                         </Menu.Item>
-                        <Menu.Item>
+                        <Menu.Item onClick={(() => onDiscountHighToLowHandler(true))}>
                             {({ active }) => (
                                 <a
                                     href="#"
@@ -62,14 +59,12 @@ export default function Dropdown() {
                                         'block px-4 py-2 text-sm'
                                     )}
                                 >
-                                    <button onClick={onDiscountHighToLowHandler}>
-                                        Discount (High to Low)
-                                    </button>
+                                    Discount (High to Low)
                                 </a>
 
                             )}
                         </Menu.Item>
-                        <Menu.Item>
+                        <Menu.Item onClick={(() => onDiscountHighToLowHandler(false))}>
                             {({ active }) => (
                                 <a
                                     href="#"
@@ -78,13 +73,11 @@ export default function Dropdown() {
                                         'block px-4 py-2 text-sm'
                                     )}
                                 >
-                                    <button onClick={onDiscountHighToLowHandler}>
-                                        Discount (Low to High)
-                                    </button>
+                                    Discount (Low to High)
                                 </a>
                             )}
                         </Menu.Item>
-                        <Menu.Item>
+                        <Menu.Item onClick={(() => onPriceHighToLowHandler(true))}>
                             {({ active }) => (
                                 <a
                                     href="#"
@@ -93,13 +86,11 @@ export default function Dropdown() {
                                         'block px-4 py-2 text-sm'
                                     )}
                                 >
-                                    <button onClick={onPriceHighToLowHandler}>
-                                        Price (Low to High)
-                                    </button>
+                                    Price (High to Low)
                                 </a>
                             )}
                         </Menu.Item>
-                        <Menu.Item>
+                        <Menu.Item onClick={(() => onPriceHighToLowHandler(false))}>
                             {({ active }) => (
                                 <a
                                     href="#"
@@ -108,9 +99,7 @@ export default function Dropdown() {
                                         'block px-4 py-2 text-sm'
                                     )}
                                 >
-                                    <button onClick={onPriceHighToLowHandler}>
-                                        Price (High to Low)
-                                    </button>
+                                    Price (Low to High)
                                 </a>
                             )}
                         </Menu.Item>
