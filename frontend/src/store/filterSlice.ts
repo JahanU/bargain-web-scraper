@@ -2,7 +2,7 @@ import { createSlice } from '@reduxjs/toolkit';
 
 const initalFilterState = {
     search: '',
-    sortAscToDesc: false,
+    latest: false,
     discountHighToLow: false,
     priceHighToLow: false,
 }
@@ -14,14 +14,14 @@ const filter = createSlice({
         setSearch: (state, action) => {
             state.search = action.payload;
         },
-        setSortAscToDesc: (state, action) => {
-            state.sortAscToDesc = action.payload;
+        setLatset: (state) => {
+            state.latest = !state.latest;
         },
-        setDiscountHighToLow: (state, action) => {
-            state.discountHighToLow = action.payload;
+        setDiscountHighToLow: (state) => {
+            state.discountHighToLow = !state.discountHighToLow;
         },
-        setPriceHighToLow: (state, action) => {
-            state.priceHighToLow = action.payload;
+        setPriceHighToLow: (state) => {
+            state.priceHighToLow = !state.priceHighToLow;
         }
     },
 });

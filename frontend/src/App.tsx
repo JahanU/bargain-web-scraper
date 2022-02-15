@@ -5,9 +5,11 @@ import ItemTable from './component/table/ItemTable';
 import Item from './interfaces/Item';
 import HeaderBar from './component/header/HeaderBar';
 import Error from './component/modal/Error';
+import { useSelector } from 'react-redux';
 
 export default function App() {
 
+  const filterStore = useSelector((state: any) => state.filterStore);
   const [items, setItems] = useState<Item[]>([]);
   const [loading, setLoading] = useState(true);
   const [isError, setIsError] = useState(false);

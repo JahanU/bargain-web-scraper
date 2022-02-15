@@ -3,6 +3,8 @@
 import { Fragment, useState } from 'react'
 import { Menu, Transition } from '@headlessui/react'
 import { ChevronDownIcon } from '@heroicons/react/solid'
+import { useSelector, useDispatch } from 'react-redux'
+import { filterActions } from '../../store/filterSlice';
 
 function classNames(...classes: any[]) {
     return classes.filter(Boolean).join(' ')
@@ -10,9 +12,11 @@ function classNames(...classes: any[]) {
 
 export default function Dropdown() {
 
-    const [discountHighToLow, setDiscountHighToLow] = useState(false);
+    const dispatch = useDispatch(); // Dispatch similar to in useReducer
 
-    const onDiscountHighToLowClick = () => setDiscountHighToLow(!discountHighToLow);
+    const onLatestHandler = () => dispatch(filterActions.setLatset());
+    const onDiscountHighToLowHandler = () => dispatch(filterActions.setDiscountHighToLow());
+    const onPriceHighToLowHandler = () => dispatch(filterActions.setPriceHighToLow());
 
     return (
         <Menu as="div" className="relative inline-block text-left z-10">
@@ -43,23 +47,23 @@ export default function Dropdown() {
                                         'block px-4 py-2 text-sm'
                                     )}
                                 >
-                                    Latest
+                                    <button onClick={onLatestHandler}>
+                                        Latest
+                                    </button>
                                 </a>
                             )}
                         </Menu.Item>
                         <Menu.Item>
                             {({ active }) => (
                                 <a
-
                                     href="#"
                                     className={classNames(
                                         active ? 'bg-gray-100 text-gray-900' : 'text-gray-700',
                                         'block px-4 py-2 text-sm'
                                     )}
                                 >
-                                    <button onClick={onDiscountHighToLowClick}>
+                                    <button onClick={onDiscountHighToLowHandler}>
                                         Discount (High to Low)
-
                                     </button>
                                 </a>
 
@@ -74,7 +78,9 @@ export default function Dropdown() {
                                         'block px-4 py-2 text-sm'
                                     )}
                                 >
-                                    Discount (Low to High)
+                                    <button onClick={onDiscountHighToLowHandler}>
+                                        Discount (Low to High)
+                                    </button>
                                 </a>
                             )}
                         </Menu.Item>
@@ -87,7 +93,9 @@ export default function Dropdown() {
                                         'block px-4 py-2 text-sm'
                                     )}
                                 >
-                                    Price (Low to High)
+                                    <button onClick={onPriceHighToLowHandler}>
+                                        Price (Low to High)
+                                    </button>
                                 </a>
                             )}
                         </Menu.Item>
@@ -100,7 +108,9 @@ export default function Dropdown() {
                                         'block px-4 py-2 text-sm'
                                     )}
                                 >
-                                    Price (High to Low)
+                                    <button onClick={onPriceHighToLowHandler}>
+                                        Price (High to Low)
+                                    </button>
                                 </a>
                             )}
                         </Menu.Item>
