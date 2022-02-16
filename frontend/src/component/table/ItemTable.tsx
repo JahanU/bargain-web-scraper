@@ -1,5 +1,6 @@
 import ItemCard from './ItemCard';
 import Item from '../../interfaces/Item';
+import Filters from './Filters';
 
 function ItemTable({ items, isLoading }: { items: Item[], isLoading: boolean }) {
 
@@ -22,6 +23,8 @@ function ItemTable({ items, isLoading }: { items: Item[], isLoading: boolean }) 
 
     return (
         <div className="bg-white">
+
+            <Filters />
             <div className="max-w-2xl mx-auto py-8 px-4 sm:py-4 sm:px-6 lg:max-w-7xl lg:px-8">
                 <h2 className="text-2xl font-extrabold tracking-tight text-gray-900">Latest Picks
                     <span className="text-sm tracking-tight text-gray-800"> ({items.length})</span>

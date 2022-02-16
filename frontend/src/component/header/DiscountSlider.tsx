@@ -10,7 +10,7 @@ function DiscountSlider(props: any) {
     }
 
     useEffect(() => {
-        props.onSliderChange(discount);
+        // props.onSliderChange(discount);
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [discount]);
 
