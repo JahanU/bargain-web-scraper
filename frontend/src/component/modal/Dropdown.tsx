@@ -14,7 +14,7 @@ export default function Dropdown() {
 
     const dispatch = useDispatch(); // Dispatch similar to in useReducer
 
-    const onLatestHandler = () => dispatch(filterActions.setLatset());
+    // const onLatestHandler = () => dispatch(filterActions.setLatset());
     const onDiscountHighToLowHandler = (setFilter: boolean) => dispatch(filterActions.setDiscountHighToLow(setFilter));
     const onPriceHighToLowHandler = (setFilter: boolean) => dispatch(filterActions.setPriceHighToLow(setFilter));
 
@@ -38,7 +38,7 @@ export default function Dropdown() {
             >
                 <Menu.Items className="origin-top-right absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 focus:outline-none">
                     <div className="py-1">
-                        <Menu.Item onClick={onLatestHandler}>
+                        {/* <Menu.Item onClick={onLatestHandler}>
                             {({ active }) => (
                                 <a
                                     href="#"
@@ -49,7 +49,7 @@ export default function Dropdown() {
                                 > Latest
                                 </a>
                             )}
-                        </Menu.Item>
+                        </Menu.Item> */}
                         <Menu.Item onClick={(() => onDiscountHighToLowHandler(true))}>
                             {({ active }) => (
                                 <a
