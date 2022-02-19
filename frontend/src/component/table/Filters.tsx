@@ -1,5 +1,4 @@
 import DiscountSlider from "../header/DiscountSlider";
-import SearchBar from "../header/SearchBar";
 import Dropdown from "../modal/Dropdown";
 
 

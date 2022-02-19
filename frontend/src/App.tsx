@@ -12,7 +12,7 @@ import Filters from './component/table/Filters';
 export default function App() {
 
   const filterStore = useSelector((state: any) => state.filterStore);
-  const { search, latest, discount, discountHighToLow, priceHighToLow } = filterStore;
+  const { discount, discountHighToLow, priceHighToLow } = filterStore;
 
   const [items, setItems] = useState<Item[]>([]);
   const [filteredItems, setFilteredItems] = useState<Item[]>([]);
