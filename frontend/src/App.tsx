@@ -7,6 +7,7 @@ import Item from './interfaces/Item';
 import HeaderBar from './component/header/HeaderBar';
 import Error from './component/modal/Error';
 import { useSelector } from 'react-redux';
+import Filters from './component/table/Filters';
 
 export default function App() {
 
@@ -68,6 +69,7 @@ export default function App() {
     <div className="App">
       <HeaderBar />
       {isError && <Error />}
+      <Filters />
       {!isError && <ItemTable items={filteredItems} isLoading={loading} />}
     </div>
   );

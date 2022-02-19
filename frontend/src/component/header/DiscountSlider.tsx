@@ -9,8 +9,8 @@ function DiscountSlider(props: any) {
     const [discount, setDiscount] = useState(10);
 
     const handleSlider = (e: any) => {
-        dispatch(filterActions.setDiscount(e.target.value));
         setDiscount(e.target.value);
+        dispatch(filterActions.setDiscount(e.target.value));
         // props.onSliderChange(discount);
     }
 

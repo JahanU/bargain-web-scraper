@@ -1,11 +1,7 @@
 import { useState } from 'react';
 import { Popover } from '@headlessui/react'
-import DiscountSlider from './DiscountSlider';
-import Dropdown from '../modal/Dropdown';
 import Logo from '../../assets/hxh-logo.png';
 import NewFeature from '../modal/NewFeatures';
-import SearchBar from './SearchBar';
-import Filters from '../table/Filters';
 
 function HeaderBar(props: any) {
 

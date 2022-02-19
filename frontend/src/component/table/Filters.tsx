@@ -32,26 +32,3 @@ function Filters(props: any) {
 }
 
 export default Filters;
-
-
-
-{/* // return (
-    //     <>
-    //         <div classNameName="flex flex-auto items-center flex-col relative">
-    //             <div classNameName="flex flex-auto">
-    //                 <div classNameName="flex-col">
-    //                     <DiscountSlider />
-    //                 </div>
-
-    //                 <div classNameName="">
-    //                     <SearchBar />
-    //                 </div>
-
-    //                 <div classNameName="flex-col">
-    //                     <Dropdown />
-    //                 </div>
-
-    //             </div>
-    //         </div>
-    //     </>
-    // ) */}
