@@ -12,7 +12,9 @@
 ## Features
 ### Frontend
 - [React Web App](https://bargain-scraper.netlify.app/)
+- Redux
 - Tailwind CSS
+- Filtering, Sorting, Search
 
 ### Backend
 - Firebase/Firestore (Store Users)
