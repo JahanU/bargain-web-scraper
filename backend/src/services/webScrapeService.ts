@@ -9,7 +9,7 @@ let discountLimit = 10; // item discount must be greater than this value
 
 function main() {
     startScraping();
-    setInterval(startScraping, 60 * 1000); // every minute
+    setInterval(startScraping, 120 * 1000); // every 2 minutes
     setInterval(resetCache, 7200 * 1000); // every 2 hours
 }
 
