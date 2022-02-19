@@ -11,13 +11,19 @@ import { useSelector } from 'react-redux';
 export default function App() {
 
   const filterStore = useSelector((state: any) => state.filterStore);
-  const { search, latest, discountHighToLow, priceHighToLow } = filterStore;
+  const { search, latest, discount, discountHighToLow, priceHighToLow } = filterStore;
 
   const [items, setItems] = useState<Item[]>([]);
   const [filteredItems, setFilteredItems] = useState<Item[]>([]);
   const [loading, setLoading] = useState(true);
   const [isError, setIsError] = useState(false);
 
+  // Discount Slider
+  useEffect(() => {
+    setFilteredItems(items.filter((item: Item) => item.discount >= discount));
+  }, [discount]);
+
+  // Discount
   useEffect(() => {
     if (discountHighToLow)  // Sort Desc
       setFilteredItems([...filteredItems].sort((a, b) => b.discount - a.discount));
@@ -25,6 +31,7 @@ export default function App() {
       setFilteredItems([...filteredItems].sort((a, b) => a.discount - b.discount))
   }, [discountHighToLow]);
 
+  // Price
   useEffect(() => {
     if (priceHighToLow)  // Sort Desc // TODO: Parse type for quick fix until backend is updated
       setFilteredItems([...filteredItems].sort((a, b) => parseInt(b.nowPrice.substring(1)) - parseInt(a.nowPrice.substring(1))));
@@ -53,13 +60,13 @@ export default function App() {
   }, [])
 
 
-  const onSliderChange = (discount: number) => {
-    setFilteredItems(items.filter((item: Item) => item.discount >= discount));
-  }
+  // const onSliderChange = (discount: number) => {
+  //   setFilteredItems(items.filter((item: Item) => item.discount >= discount));
+  // }
 
   return (
     <div className="App">
-      <HeaderBar onSliderChange={onSliderChange} />
+      <HeaderBar />
       {isError && <Error />}
       {!isError && <ItemTable items={filteredItems} isLoading={loading} />}
     </div>

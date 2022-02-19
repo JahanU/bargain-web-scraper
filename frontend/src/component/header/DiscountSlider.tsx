@@ -1,18 +1,23 @@
 import { useState, useEffect } from 'react';
+import { useDispatch } from 'react-redux';
+import { filterActions } from '../../store/filterSlice';
 
 function DiscountSlider(props: any) {
 
+
+    const dispatch = useDispatch();
     const [discount, setDiscount] = useState(10);
 
     const handleSlider = (e: any) => {
+        dispatch(filterActions.setDiscount(e.target.value));
         setDiscount(e.target.value);
         // props.onSliderChange(discount);
     }
 
-    useEffect(() => {
-        // props.onSliderChange(discount);
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [discount]);
+    // useEffect(() => {
+    //     props.onSliderChange(discount);
+    //     // eslint-disable-next-line react-hooks/exhaustive-deps
+    // }, [discount]);
 
     return (
         <div className="relative">
