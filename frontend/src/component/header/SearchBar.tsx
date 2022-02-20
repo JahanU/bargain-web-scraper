@@ -1,17 +1,13 @@
-import { useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { filterActions } from '../../store/filterSlice';
 
 function SearchBar() {
 
     const dispatch = useDispatch();
-    // const [search, setSearch] = useState('');
-    // const [isLoading, setIsLoading] = useState(false);
 
     const handleSearch = (e: any) => {
         dispatch(filterActions.setSearch(e.target.value));
     }
-
 
     return (
         <div className="flex justify-center">
