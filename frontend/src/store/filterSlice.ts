@@ -16,7 +16,7 @@ const filter = createSlice({
             state.discount = action.payload;
         },
         setSearch: (state, action) => {
-            state.search = action.payload;
+            state.search = action.payload.toLowerCase();
         },
         setLatset: (state) => {
             state.latest = !state.latest;

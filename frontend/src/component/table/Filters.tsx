@@ -1,6 +1,6 @@
 import DiscountSlider from "../header/DiscountSlider";
 import Dropdown from "../modal/Dropdown";
-
+import SearchBar from "../header/SearchBar";
 
 function Filters(props: any) {
 
@@ -12,8 +12,7 @@ function Filters(props: any) {
                     <div className="xl:w-full">
                         <ul className="flex justify-center ">
                             <li className="mr-12"><DiscountSlider /></li>
-                            {/* // TODO */}
-                            {/* <li className="mr-12"><SearchBar /></li> */}
+                            <li className="mr-12"><SearchBar /></li>
                             <li className="mr-12"><Dropdown /></li>
                         </ul>
                     </div>
