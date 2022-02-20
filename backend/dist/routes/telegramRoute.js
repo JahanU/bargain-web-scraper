@@ -36,11 +36,17 @@ api.on('update', (update) => {
 function handleCommands(update) {
     var _a;
     switch ((_a = update.message) === null || _a === void 0 ? void 0 : _a.text) {
-        case '/getbrands':
-            handleGetBrands(update);
-            break;
         case '/start':
             handleSignOnUser(update);
+            break;
+        case '/command1':
+            handleGetBrands(update);
+            break;
+        case '/command2':
+            handleCodeProject(update);
+            break;
+        case '/command3':
+            handleGetWebsite(update);
             break;
         default:
             break;
@@ -52,6 +58,16 @@ function handleGetBrands(update) {
 function handleSignOnUser(update) {
     return __awaiter(this, void 0, void 0, function* () {
         yield telegramController.signOnUser(update);
+    });
+}
+function handleCodeProject(update) {
+    return __awaiter(this, void 0, void 0, function* () {
+        yield telegramController.seeCodeProject(update);
+    });
+}
+function handleGetWebsite(update) {
+    return __awaiter(this, void 0, void 0, function* () {
+        yield telegramController.getWebsite(update);
     });
 }
 module.exports = router; // Export this as a module, so that the router is accessible from index.

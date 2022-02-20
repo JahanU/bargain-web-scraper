@@ -27,11 +27,17 @@ api.on('update', (update: TelegramUpdate) => { // update object is defined at: h
 function handleCommands(update: TelegramUpdate) { // google cloud functions?
 
     switch (update.message?.text) {
-        case '/getbrands':
-            handleGetBrands(update);
-            break;
         case '/start':
             handleSignOnUser(update);
+            break;
+        case '/command1':
+            handleGetBrands(update);
+            break;
+        case '/command2':
+            handleCodeProject(update);
+            break;
+        case '/command3':
+            handleGetWebsite(update);
             break;
         default:
             break;
@@ -45,5 +51,14 @@ function handleGetBrands(update: TelegramUpdate) {
 async function handleSignOnUser(update: TelegramUpdate) {
     await telegramController.signOnUser(update);
 }
+
+async function handleCodeProject(update: TelegramUpdate) {
+    await telegramController.seeCodeProject(update);
+}
+
+async function handleGetWebsite(update: TelegramUpdate) {
+    await telegramController.getWebsite(update);
+}
+
 
 module.exports = router; // Export this as a module, so that the router is accessible from index.
