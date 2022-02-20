@@ -12,7 +12,7 @@ import Filters from './component/table/Filters';
 export default function App() {
 
   const filterStore = useSelector((state: any) => state.filterStore);
-  const { discount, discountHighToLow, priceHighToLow } = filterStore;
+  const { search, discount, discountHighToLow, priceHighToLow } = filterStore;
 
   const [items, setItems] = useState<Item[]>([]);
   const [filteredItems, setFilteredItems] = useState<Item[]>([]);
@@ -39,6 +39,15 @@ export default function App() {
     else
       setFilteredItems([...filteredItems].sort((a, b) => parseInt(a.nowPrice.substring(1)) - parseInt(b.nowPrice.substring(1))));
   }, [priceHighToLow]);
+
+  // Search Input
+  useEffect(() => {
+    if (search)
+      setFilteredItems([...filteredItems].filter((item) => item.name.toLowerCase().includes(search)));
+    else
+      setFilteredItems([...items].filter((item: Item) => item.discount >= discount));
+  }, [search]);
+
 
   // Fetching Data from the API
   useEffect(() => {

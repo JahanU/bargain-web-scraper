@@ -4,7 +4,6 @@ import { filterActions } from '../../store/filterSlice';
 
 function DiscountSlider(props: any) {
 
-
     const dispatch = useDispatch();
     const [discount, setDiscount] = useState(10);
 

@@ -1,9 +1,22 @@
-function searchBar() {
+import { useState } from 'react';
+import { useDispatch } from 'react-redux';
+import { filterActions } from '../../store/filterSlice';
+
+function SearchBar() {
+
+    const dispatch = useDispatch();
+    // const [search, setSearch] = useState('');
+    // const [isLoading, setIsLoading] = useState(false);
+
+    const handleSearch = (e: any) => {
+        dispatch(filterActions.setSearch(e.target.value));
+    }
+
 
     return (
         <div className="flex justify-center">
-
             <input
+                onChange={handleSearch}
                 type="search"
                 className="
                     form-control block w-96 px-3 py-1.5 text-base font-normal text-gray-700
@@ -18,4 +31,4 @@ function searchBar() {
     )
 }
 
-export default searchBar;
+export default SearchBar;
