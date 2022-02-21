@@ -20,7 +20,7 @@ let discountLimit = 10; // item discount must be greater than this value
 function main() {
     startScraping();
     setInterval(startScraping, 120 * 1000); // every 2 minutes
-    setInterval(resetCache, 7200 * 1000); // every 2 hours
+    setInterval(resetCache, 18000 * 1000); // every 5 hours
 }
 function startScraping() {
     return __awaiter(this, void 0, void 0, function* () {
