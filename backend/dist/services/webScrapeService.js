@@ -16,7 +16,7 @@ const telegram = require('./telegramService');
 const JD_1 = __importDefault(require("../helper/JD"));
 let allBestItemsMap = new Map(); // <URL, Item>
 let allBestItemsList = [];
-let discountLimit = 70; // item discount must be greater than this value
+let discountLimit = 10; // item discount must be greater than this value
 function main() {
     startScraping();
     setInterval(startScraping, 120 * 1000); // every 2 minutes
