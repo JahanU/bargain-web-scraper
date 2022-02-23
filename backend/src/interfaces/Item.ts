@@ -7,4 +7,6 @@ export interface Item {
     imageUrl?: string,
     sizes?: string[],
     inStock?: string
+    timestamp: number
+    gender: string
 }

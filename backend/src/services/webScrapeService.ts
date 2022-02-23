@@ -4,13 +4,13 @@ import { Item } from "../interfaces/Item";
 
 let allBestItemsMap = new Map<string, Item>(); // <URL, Item>
 let allBestItemsList: Item[] = [];
-let discountLimit = 10; // item discount must be greater than this value
+let discountLimit = 70; // item discount must be greater than this value
 
 
 function main() {
     startScraping();
     setInterval(startScraping, 120 * 1000); // every 2 minutes
-    setInterval(resetCache, 18000 * 1000); // every 5 hours
+    setInterval(resetCache, 43200 * 1000); // every 12 hours
 }
 
 async function startScraping() {

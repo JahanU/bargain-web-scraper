@@ -15,8 +15,9 @@ const filterData = require('./filterData');
 let seenItemsCache = new Set(); // stores url 
 const JD = 'https://www.jdsports.co.uk';
 const urls = [
-    'https://www.jdsports.co.uk/men/brand/adidas-originals,adidas,nike,under-armour,the-north-face,new-balance,lacoste,tommy-hilfiger,calvin-klein-underwear,levis,columbia,jordan,emporio-armani-ea7,berghaus,polo-ralph-lauren,boss,fred-perry,asics/sale/?sort=price-low-high&max=200',
-    'https://www.jdsports.co.uk/men/mens-footwear/brand/adidas-originals,adidas,nike,under-armour,the-north-face,new-balance,lacoste,vans,tommy-hilfiger,calvin-klein-underwear,levis,columbia,reebok,jordan,berghaus,polo-ralph-lauren,boss,champion,fred-perry,asics,converse/sale/?max=100&sort=price-low-high&max=200'
+    // 'https://www.jdsports.co.uk/men/brand/adidas-originals,adidas,nike,under-armour,the-north-face,new-balance,lacoste,tommy-hilfiger,calvin-klein-underwear,levis,columbia,jordan,emporio-armani-ea7,berghaus,polo-ralph-lauren,boss,fred-perry,asics/sale/?sort=price-low-high&max=200',
+    // 'https://www.jdsports.co.uk/men/mens-footwear/brand/adidas-originals,adidas,nike,under-armour,the-north-face,new-balance,lacoste,vans,tommy-hilfiger,calvin-klein-underwear,levis,columbia,reebok,jordan,berghaus,polo-ralph-lauren,boss,champion,fred-perry,asics,converse/sale/?max=100&sort=price-low-high&max=200'
+    'https://www.jdsports.co.uk/men/mens-footwear/brand/asics'
 ];
 function JDMain(discountLimit, resetCache) {
     if (resetCache)
@@ -31,6 +32,8 @@ function getJDItems(discountLimit) {
             console.log('url', url);
             const html = yield axios.get(url);
             const $ = cheerio.load(html.data);
+            const getGender = (url.includes('men') || url.includes('male'));
+            const gender = getGender ? 'Male' : 'Female';
             $('.productListItem').each((index, element) => {
                 var _a;
                 const url = JD + $(element).find('a').attr('href');
@@ -46,7 +49,8 @@ function getJDItems(discountLimit) {
                 const imageUrl = (_a = $(element).find('source').attr('data-srcset')) === null || _a === void 0 ? void 0 : _a.split(' ')[2]; // => [smallImgUrl, 1x, largeImgUrl, 2x];
                 const wasPrice = $(element).find('.was').text().substring(3).trim();
                 const nowPrice = $(element).find('.now').text().substring(3).trim();
-                items.push({ name, wasPrice, nowPrice, discount, url, imageUrl });
+                const timestamp = Date.now();
+                items.push({ name, wasPrice, nowPrice, discount, url, imageUrl, timestamp, gender });
             });
             if (!items.length)
                 reject('No items found from JD');
