@@ -21,8 +21,20 @@ export default function App() {
 
   // Discount Slider
   useEffect(() => {
-    setFilteredItems(items.filter((item: Item) => item.discount >= discount));
+    if (search) {
+      setFilteredItems(items.filter((item: Item) => item.name.toLowerCase().includes(search) && item.discount >= discount));
+    }
+    else
+      setFilteredItems(items.filter((item: Item) => item.discount >= discount));
   }, [discount]);
+
+  // Search Input
+  useEffect(() => {
+    if (search)
+      setFilteredItems([...filteredItems].filter((item) => item.name.toLowerCase().includes(search)));
+    else
+      setFilteredItems([...items].filter((item: Item) => item.discount >= discount));
+  }, [search]);
 
   // Discount
   useEffect(() => {
@@ -39,15 +51,6 @@ export default function App() {
     else
       setFilteredItems([...filteredItems].sort((a, b) => parseInt(a.nowPrice.substring(1)) - parseInt(b.nowPrice.substring(1))));
   }, [priceHighToLow]);
-
-  // Search Input
-  useEffect(() => {
-    if (search)
-      setFilteredItems([...filteredItems].filter((item) => item.name.toLowerCase().includes(search)));
-    else
-      setFilteredItems([...items].filter((item: Item) => item.discount >= discount));
-  }, [search]);
-
 
   // Fetching Data from the API
   useEffect(() => {
@@ -69,10 +72,6 @@ export default function App() {
         setLoading(false));
   }, [])
 
-
-  // const onSliderChange = (discount: number) => {
-  //   setFilteredItems(items.filter((item: Item) => item.discount >= discount));
-  // }
 
   return (
     <div className="App">
