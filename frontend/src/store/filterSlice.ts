@@ -6,6 +6,7 @@ const initalFilterState = {
     latest: false,
     discountHighToLow: true, // Default we sort in Desc Order
     priceHighToLow: false,
+    gender: true, // true = male, false = female
 }
 
 const filter = createSlice({
@@ -26,6 +27,10 @@ const filter = createSlice({
         },
         setPriceHighToLow: (state, action) => {
             state.priceHighToLow = action.payload;
+        },
+        setGender: (state, action) => {
+            console.log(action.payload)
+            state.gender = action.payload;
         }
     },
 });

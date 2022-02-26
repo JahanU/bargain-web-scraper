@@ -7,7 +7,7 @@ import Item from './interfaces/Item';
 import HeaderBar from './component/header/HeaderBar';
 import Error from './component/modal/Error';
 import { useSelector } from 'react-redux';
-import Filters from './component/header/Filters';
+import Filters from './component/filter/Filters';
 
 export default function App() {
 

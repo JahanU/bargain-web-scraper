@@ -1,5 +1,6 @@
 import DiscountSlider from "./DiscountSlider";
 import Dropdown from "./Dropdown";
+import { Genders } from "./Genders";
 import SearchBar from "./SearchBar";
 
 function Filters(props: any) {
@@ -14,6 +15,7 @@ function Filters(props: any) {
                             <li className="mr-12"><DiscountSlider /></li>
                             <li className="mr-12"><SearchBar /></li>
                             <li className="mr-12"><Dropdown /></li>
+                            <li className="mr-12"><Genders /></li>
                         </ul>
                     </div>
                 </div>
