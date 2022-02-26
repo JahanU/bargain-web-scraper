@@ -37,7 +37,7 @@ function ItemCard(props: any) {
                     <h4 className="text-sm text-gray-700 text-left">
                         <a href={item.url} target="_blank" rel="noreferrer">
                             <span aria-hidden="true" className="absolute inset-0" />
-                            Found {new Date(item.timestamp).toLocaleTimeString()}
+                            Found {new Date(item.timestamp).toLocaleTimeString()} {(new Date(item.timestamp).getHours() < 12 ? 'AM' : 'PM')}
                         </a>
                     </h4>
                 </div>
