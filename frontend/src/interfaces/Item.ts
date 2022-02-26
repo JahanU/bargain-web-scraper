@@ -4,9 +4,11 @@ interface Item {
     nowPrice: string,
     discount: number,
     url: string,
-    imageUrl: string,
-    // inStock?: boolean,
-    sizes?: string[],
+    imageUrl?: string,
+    sizes: string[],
+    inStock?: string
+    timestamp: number
+    gender: string
 }
 
 export default Item;
