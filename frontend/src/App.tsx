@@ -12,7 +12,7 @@ import Filters from './component/filter/Filters';
 export default function App() {
 
   const filterStore = useSelector((state: any) => state.filterStore);
-  const { search, discount, discountHighToLow, priceHighToLow } = filterStore;
+  const { search, discount, discountHighToLow, priceHighToLow, gender } = filterStore;
 
   const [items, setItems] = useState<Item[]>([]);
   const [filteredItems, setFilteredItems] = useState<Item[]>([]);
@@ -51,6 +51,15 @@ export default function App() {
     else
       setFilteredItems([...filteredItems].sort((a, b) => parseInt(a.nowPrice.substring(1)) - parseInt(b.nowPrice.substring(1))));
   }, [priceHighToLow]);
+
+  // Gender -> male = true, female = false
+  useEffect(() => {
+    if (gender)
+      setFilteredItems([...filteredItems].filter((item: Item) => item.gender === 'Male'));
+    else
+      setFilteredItems([...filteredItems].filter((item: Item) => item.gender === 'Female'));
+
+  }, [gender]);
 
   // Fetching Data from the API
   useEffect(() => {
