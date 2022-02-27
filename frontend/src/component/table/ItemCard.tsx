@@ -1,6 +1,8 @@
+import Item from "../../interfaces/Item";
+
 function ItemCard(props: any) {
 
-    const item = props.item;
+    const item = props.item as Item;
     const sizes = item.sizes.toString();
 
     return (
@@ -23,7 +25,19 @@ function ItemCard(props: any) {
                     <h4 className="text-sm text-gray-700 text-left">
                         <a href={item.url} target="_blank" rel="noreferrer">
                             <span aria-hidden="true" className="absolute inset-0" />
+                            {item.gender}
+                        </a>
+                    </h4>
+                    <h4 className="text-sm text-gray-700 text-left">
+                        <a href={item.url} target="_blank" rel="noreferrer">
+                            <span aria-hidden="true" className="absolute inset-0" />
                             {sizes}
+                        </a>
+                    </h4>
+                    <h4 className="text-sm text-gray-700 text-left">
+                        <a href={item.url} target="_blank" rel="noreferrer">
+                            <span aria-hidden="true" className="absolute inset-0" />
+                            Found {new Date(item.timestamp).toLocaleTimeString()} {(new Date(item.timestamp).getHours() < 12 ? 'AM' : 'PM')}
                         </a>
                     </h4>
                 </div>

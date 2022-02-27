@@ -29,6 +29,8 @@ function getJDItems(discountLimit: number): Promise<Item[]> {
                 console.log('url', url);
                 const html = await axios.get(url);
                 const $ = cheerio.load(html.data);
+                const getGender = (url.includes('men') || url.includes('male'));
+                const gender = getGender ? 'Male' : 'Female';
 
                 $('.productListItem').each((index, element) => {
 
@@ -45,8 +47,9 @@ function getJDItems(discountLimit: number): Promise<Item[]> {
                     const imageUrl = $(element).find('source').attr('data-srcset')?.split(' ')[2]; // => [smallImgUrl, 1x, largeImgUrl, 2x];
                     const wasPrice = $(element).find('.was').text().substring(3).trim();
                     const nowPrice = $(element).find('.now').text().substring(3).trim();
+                    const timestamp = Date.now();
 
-                    items.push({ name, wasPrice, nowPrice, discount, url, imageUrl });
+                    items.push({ name, wasPrice, nowPrice, discount, url, imageUrl, timestamp, gender });
                 });
 
                 if (!items.length) reject('No items found from JD');

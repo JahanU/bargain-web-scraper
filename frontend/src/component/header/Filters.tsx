@@ -1,6 +1,6 @@
-import DiscountSlider from "../header/DiscountSlider";
-import Dropdown from "../modal/Dropdown";
-import SearchBar from "../header/SearchBar";
+import DiscountSlider from "./DiscountSlider";
+import Dropdown from "./Dropdown";
+import SearchBar from "./SearchBar";
 
 function Filters(props: any) {
 

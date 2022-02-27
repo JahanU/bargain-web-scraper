@@ -31,6 +31,8 @@ function getJDItems(discountLimit) {
             console.log('url', url);
             const html = yield axios.get(url);
             const $ = cheerio.load(html.data);
+            const getGender = (url.includes('men') || url.includes('male'));
+            const gender = getGender ? 'Male' : 'Female';
             $('.productListItem').each((index, element) => {
                 var _a;
                 const url = JD + $(element).find('a').attr('href');
@@ -46,7 +48,8 @@ function getJDItems(discountLimit) {
                 const imageUrl = (_a = $(element).find('source').attr('data-srcset')) === null || _a === void 0 ? void 0 : _a.split(' ')[2]; // => [smallImgUrl, 1x, largeImgUrl, 2x];
                 const wasPrice = $(element).find('.was').text().substring(3).trim();
                 const nowPrice = $(element).find('.now').text().substring(3).trim();
-                items.push({ name, wasPrice, nowPrice, discount, url, imageUrl });
+                const timestamp = Date.now();
+                items.push({ name, wasPrice, nowPrice, discount, url, imageUrl, timestamp, gender });
             });
             if (!items.length)
                 reject('No items found from JD');

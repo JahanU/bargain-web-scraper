@@ -1,5 +1,5 @@
 const TG = require('telegram-bot-api');
-import { TelegramUpdate, User } from "../interfaces/TelegramUpdate";
+import { TelegramUpdate } from "../interfaces/TelegramUpdate";
 import { Item } from "../interfaces/Item";
 import { FirebaseUser } from "../interfaces/FirebaseUser";
 const firebaseService = require("../services/firebaseService");
@@ -7,6 +7,7 @@ const firebaseService = require("../services/firebaseService");
 const api = new TG({ token: process.env.TELEGRAM_API });
 
 async function sendPhotosToUsers(items: Item[]) {
+
     const users = await firebaseService.getUsers();
 
     // const users = [{
