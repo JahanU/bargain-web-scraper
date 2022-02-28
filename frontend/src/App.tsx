@@ -55,9 +55,9 @@ export default function App() {
   // Gender -> male = true, female = false
   useEffect(() => {
     if (gender)
-      setFilteredItems([...filteredItems].filter((item: Item) => item.gender === 'Male'));
+      setFilteredItems([...items].filter((item: Item) => item.gender === 'Male'));
     else
-      setFilteredItems([...filteredItems].filter((item: Item) => item.gender === 'Female'));
+      setFilteredItems([...items].filter((item: Item) => item.gender === 'Female'));
 
   }, [gender]);
 
