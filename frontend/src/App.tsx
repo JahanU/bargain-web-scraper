@@ -86,7 +86,7 @@ export default function App() {
     <div className="App">
       <HeaderBar />
       {isError && <Error />}
-      <Filters />
+      {!isError && <Filters />}
       {!isError && <ItemTable items={filteredItems} isLoading={loading} />}
     </div>
   );
