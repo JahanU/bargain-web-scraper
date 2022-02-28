@@ -19,7 +19,7 @@ let allBestItemsList = [];
 let discountLimit = 10; // item discount must be greater than this value
 function main() {
     startScraping();
-    setInterval(startScraping, 120 * 1000); // every 2 minutes
+    setInterval(startScraping, 300 * 1000); // every 5 minutes
     setInterval(resetCache, 43200 * 1000); // every 12 hours
 }
 function startScraping() {
