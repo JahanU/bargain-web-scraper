@@ -3,13 +3,13 @@
 #### Try it out:  
 🕊 https://t.me/JD_sales_bot <br> 👕 https://bargain-scraper.netlify.app/
 
-## Overview
+## Overview 🤔
 - Full-stack application to find discounted clothing items, with subsequent optimised HTTP calls to check whether they are truly in stock and get their sizes, display them to a clean minimal React Web App
 - Developed Telegram API Bot that handles user sign up, FAQ queries and sends live updates of when new items are found
 - ```Express, Node.js, Firebase, React.js```
 
 
-## Features
+## Features 🚀
 ### Frontend
 - [React Web App](https://bargain-scraper.netlify.app/)
 - Redux
@@ -25,7 +25,7 @@
 - Asynchronous Programming (Promises, Promise.all)
 - Regex
 
-### Tech
+### Tech 💻
 - Frontend hosted on Netlify 
 - Backend hosted on Heroku with New Relic APM (Application Performance Monitoring) addon
 - CI/CD (Quick automatic deployments from master branch)
