@@ -8,6 +8,13 @@ import HeaderBar from './component/header/HeaderBar';
 import Error from './component/modal/Error';
 import { useSelector } from 'react-redux';
 import Filters from './component/filter/Filters';
+// import { Route, Switch } from 'react-router-dom';
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  Link
+} from "react-router-dom";
 
 export default function App() {
 
@@ -84,7 +91,10 @@ export default function App() {
 
   return (
     <div className="App">
-      <HeaderBar />
+      <nav> <HeaderBar /></nav>
+
+      {/* <Link to="/expenses">Expenses</Link> */}
+
       {isError && <Error />}
       {!isError && <Filters />}
       {!isError && <ItemTable items={filteredItems} isLoading={loading} />}
