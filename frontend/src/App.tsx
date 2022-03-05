@@ -8,15 +8,19 @@ import HeaderBar from './component/header/HeaderBar';
 import Error from './component/modal/Error';
 import { useSelector } from 'react-redux';
 import Filters from './component/filter/Filters';
-// import { Route, Switch } from 'react-router-dom';
 import {
   BrowserRouter,
   Routes,
   Route,
-  Link
+  Link,
+  NavLink,
+  Outlet,
+  useSearchParams,
 } from "react-router-dom";
 
 export default function App() {
+
+
 
   const filterStore = useSelector((state: any) => state.filterStore);
   const { search, discount, discountHighToLow, priceHighToLow, gender } = filterStore;

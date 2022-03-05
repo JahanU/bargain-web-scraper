@@ -14,7 +14,6 @@ export default function Dropdown() {
 
     const dispatch = useDispatch(); // Dispatch similar to in useReducer
 
-    // const onLatestHandler = () => dispatch(filterActions.setLatset());
     const onDiscountHighToLowHandler = (setFilter: boolean) => dispatch(filterActions.setDiscountHighToLow(setFilter));
     const onPriceHighToLowHandler = (setFilter: boolean) => dispatch(filterActions.setPriceHighToLow(setFilter));
 
@@ -53,7 +52,7 @@ export default function Dropdown() {
                         <Menu.Item onClick={(() => onDiscountHighToLowHandler(true))}>
                             {({ active }) => (
                                 <a
-                                    href="#"
+                                    href="discount-high-to-low"
                                     className={classNames(
                                         active ? 'bg-gray-100 text-gray-900' : 'text-gray-700',
                                         'block px-4 py-2 text-sm'
@@ -67,7 +66,7 @@ export default function Dropdown() {
                         <Menu.Item onClick={(() => onDiscountHighToLowHandler(false))}>
                             {({ active }) => (
                                 <a
-                                    href="#"
+                                    href="discount-low-to-high"
                                     className={classNames(
                                         active ? 'bg-gray-100 text-gray-900' : 'text-gray-700',
                                         'block px-4 py-2 text-sm'
@@ -80,7 +79,7 @@ export default function Dropdown() {
                         <Menu.Item onClick={(() => onPriceHighToLowHandler(true))}>
                             {({ active }) => (
                                 <a
-                                    href="#"
+                                    href="price-high-to-low"
                                     className={classNames(
                                         active ? 'bg-gray-100 text-gray-900' : 'text-gray-700',
                                         'block px-4 py-2 text-sm'
@@ -93,7 +92,7 @@ export default function Dropdown() {
                         <Menu.Item onClick={(() => onPriceHighToLowHandler(false))}>
                             {({ active }) => (
                                 <a
-                                    href="#"
+                                    href="price-low-to-high"
                                     className={classNames(
                                         active ? 'bg-gray-100 text-gray-900' : 'text-gray-700',
                                         'block px-4 py-2 text-sm'
