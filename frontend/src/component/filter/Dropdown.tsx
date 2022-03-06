@@ -5,6 +5,7 @@ import { Menu, Transition } from '@headlessui/react'
 import { ChevronDownIcon } from '@heroicons/react/solid'
 import { useDispatch } from 'react-redux'
 import { filterActions } from '../../store/filterSlice';
+import { useSearchParams } from "react-router-dom";
 
 function classNames(...classes: any[]) {
     return classes.filter(Boolean).join(' ')
@@ -12,10 +13,20 @@ function classNames(...classes: any[]) {
 
 export default function Dropdown() {
 
+    let [searchParams, setSearchParams] = useSearchParams(); // eg "/shoes?brand=nike&sort=asc&sortby=price"
     const dispatch = useDispatch(); // Dispatch similar to in useReducer
 
-    const onDiscountHighToLowHandler = (setFilter: boolean) => dispatch(filterActions.setDiscountHighToLow(setFilter));
-    const onPriceHighToLowHandler = (setFilter: boolean) => dispatch(filterActions.setPriceHighToLow(setFilter));
+    const onDiscountHighToLowHandler = (setFilter: boolean) => {
+        const filterParam = setFilter ? 'discount-high-to-low' : 'discount-low-to-high';
+        setSearchParams(filterParam);
+        dispatch(filterActions.setDiscountHighToLow(setFilter));
+    };
+
+    const onPriceHighToLowHandler = (setFilter: boolean) => {
+        const filterParam = setFilter ? 'price-high-to-low' : 'price-low-to-high';
+        setSearchParams(filterParam);
+        dispatch(filterActions.setPriceHighToLow(setFilter));
+    }
 
     return (
         <Menu as="div" className="relative inline-block text-left z-10">
@@ -52,7 +63,6 @@ export default function Dropdown() {
                         <Menu.Item onClick={(() => onDiscountHighToLowHandler(true))}>
                             {({ active }) => (
                                 <a
-                                    href="discount-high-to-low"
                                     className={classNames(
                                         active ? 'bg-gray-100 text-gray-900' : 'text-gray-700',
                                         'block px-4 py-2 text-sm'
@@ -66,7 +76,6 @@ export default function Dropdown() {
                         <Menu.Item onClick={(() => onDiscountHighToLowHandler(false))}>
                             {({ active }) => (
                                 <a
-                                    href="discount-low-to-high"
                                     className={classNames(
                                         active ? 'bg-gray-100 text-gray-900' : 'text-gray-700',
                                         'block px-4 py-2 text-sm'
@@ -79,7 +88,6 @@ export default function Dropdown() {
                         <Menu.Item onClick={(() => onPriceHighToLowHandler(true))}>
                             {({ active }) => (
                                 <a
-                                    href="price-high-to-low"
                                     className={classNames(
                                         active ? 'bg-gray-100 text-gray-900' : 'text-gray-700',
                                         'block px-4 py-2 text-sm'
@@ -92,7 +100,6 @@ export default function Dropdown() {
                         <Menu.Item onClick={(() => onPriceHighToLowHandler(false))}>
                             {({ active }) => (
                                 <a
-                                    href="price-low-to-high"
                                     className={classNames(
                                         active ? 'bg-gray-100 text-gray-900' : 'text-gray-700',
                                         'block px-4 py-2 text-sm'

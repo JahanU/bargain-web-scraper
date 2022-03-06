@@ -20,7 +20,7 @@ import {
 
 export default function App() {
 
-
+  let [searchParams, setSearchParams] = useSearchParams();
 
   const filterStore = useSelector((state: any) => state.filterStore);
   const { search, discount, discountHighToLow, priceHighToLow, gender } = filterStore;
@@ -95,6 +95,23 @@ export default function App() {
 
   return (
     <div className="App">
+
+
+      <label>Input
+        <input style={{ borderWidth: '2px' }}
+          value={searchParams.get("filter") || ""}
+          onChange={(event) => {
+            let filter = event.target.value;
+            console.log(filter);
+            if (filter) {
+              setSearchParams({ filter });
+            } else {
+              setSearchParams({});
+            }
+          }}
+        />
+      </label>
+
       <nav> <HeaderBar /></nav>
 
       {/* <Link to="/expenses">Expenses</Link> */}
