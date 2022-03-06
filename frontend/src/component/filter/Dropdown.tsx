@@ -6,6 +6,7 @@ import { ChevronDownIcon } from '@heroicons/react/solid'
 import { useDispatch } from 'react-redux'
 import { filterActions } from '../../store/filterSlice';
 import { useSearchParams } from "react-router-dom";
+import { Sort } from '../../interfaces/Sort';
 
 function classNames(...classes: any[]) {
     return classes.filter(Boolean).join(' ')
@@ -17,15 +18,17 @@ export default function Dropdown() {
     const dispatch = useDispatch(); // Dispatch similar to in useReducer
 
     const onDiscountHighToLowHandler = (setFilter: boolean) => {
-        const filterParam = setFilter ? 'discount-high-to-low' : 'discount-low-to-high';
-        setSearchParams(filterParam);
+        const sort = setFilter ? Sort.discountHighToLow : Sort.discountLowToHigh;
+        setSearchParams({ sort });
         dispatch(filterActions.setDiscountHighToLow(setFilter));
+        dispatch(filterActions.sortSortParams({ sort }));
     };
 
     const onPriceHighToLowHandler = (setFilter: boolean) => {
-        const filterParam = setFilter ? 'price-high-to-low' : 'price-low-to-high';
-        setSearchParams(filterParam);
+        const sort = setFilter ? Sort.priceHighToLow : Sort.priceLowToHigh;
+        setSearchParams({ sort });
         dispatch(filterActions.setPriceHighToLow(setFilter));
+        dispatch(filterActions.sortSortParams({ sort }));
     }
 
     return (

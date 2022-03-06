@@ -6,24 +6,28 @@ import ItemTable from './component/table/ItemTable';
 import Item from './interfaces/Item';
 import HeaderBar from './component/header/HeaderBar';
 import Error from './component/modal/Error';
-import { useSelector } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import Filters from './component/filter/Filters';
-import {
-  BrowserRouter,
-  Routes,
-  Route,
-  Link,
-  NavLink,
-  Outlet,
-  useSearchParams,
-} from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
+import { filterActions } from './store/filterSlice';
+import { Sort } from './interfaces/Sort';
+
+
+function priceSort(filter: boolean, array: Item[]) {
+  if (filter)   // Sort Desc // TODO: Parse type for quick fix until backend is updated
+    return ([...array].sort((a, b) => parseInt(b.nowPrice.substring(1)) - parseInt(a.nowPrice.substring(1))));
+  else
+    return ([...array].sort((a, b) => parseInt(a.nowPrice.substring(1)) - parseInt(b.nowPrice.substring(1))));
+}
 
 export default function App() {
 
-  let [searchParams, setSearchParams] = useSearchParams();
-
+  const dispatch = useDispatch();
   const filterStore = useSelector((state: any) => state.filterStore);
-  const { search, discount, discountHighToLow, priceHighToLow, gender } = filterStore;
+  const { search, discount, discountHighToLow, priceHighToLow, gender, sort } = filterStore;
+
+  let [searchParams, setSearchParams] = useSearchParams();
+  let urlSort = searchParams.get("sort") || '';
 
   const [items, setItems] = useState<Item[]>([]);
   const [filteredItems, setFilteredItems] = useState<Item[]>([]);
@@ -32,9 +36,8 @@ export default function App() {
 
   // Discount Slider
   useEffect(() => {
-    if (search) {
+    if (search)
       setFilteredItems(items.filter((item: Item) => item.name.toLowerCase().includes(search) && item.discount >= discount));
-    }
     else
       setFilteredItems(items.filter((item: Item) => item.discount >= discount));
   }, [discount]);
@@ -57,10 +60,7 @@ export default function App() {
 
   // Price
   useEffect(() => {
-    if (priceHighToLow)  // Sort Desc // TODO: Parse type for quick fix until backend is updated
-      setFilteredItems([...filteredItems].sort((a, b) => parseInt(b.nowPrice.substring(1)) - parseInt(a.nowPrice.substring(1))));
-    else
-      setFilteredItems([...filteredItems].sort((a, b) => parseInt(a.nowPrice.substring(1)) - parseInt(b.nowPrice.substring(1))));
+    setFilteredItems(priceSort(priceHighToLow, filteredItems));
   }, [priceHighToLow]);
 
   // Gender -> male = true, female = false
@@ -69,8 +69,16 @@ export default function App() {
       setFilteredItems([...items].filter((item: Item) => item.gender === 'Male'));
     else
       setFilteredItems([...items].filter((item: Item) => item.gender === 'Female'));
-
   }, [gender]);
+
+  // For initial loading based on URL input. eg http://localhost:3000/?sort=price-low-to-high
+  function sortFromUrl(url: string) {
+    if (url === Sort.priceHighToLow) dispatch(filterActions.setPriceHighToLow(true)); // state change isn't triggering
+    if (url === Sort.priceLowToHigh) dispatch(filterActions.setPriceHighToLow(false));
+    if (url === Sort.discountHighToLow) dispatch(filterActions.setDiscountHighToLow(true));
+    if (url === Sort.discountLowToHigh) dispatch(filterActions.setDiscountHighToLow(false));
+    dispatch(filterActions.sortSortParams({ sort: url }));
+  };
 
   // Fetching Data from the API
   useEffect(() => {
@@ -82,7 +90,15 @@ export default function App() {
           setIsError(true);
         }
         setItems(items);
-        setFilteredItems(items);
+
+        console.log(urlSort);
+        console.log(sort);
+
+        sortFromUrl(urlSort);
+        setFilteredItems(priceSort(false, items));
+
+        // setFilteredItems(items);
+
       })
       .catch((err: any) => {
         console.log(err);
@@ -90,32 +106,12 @@ export default function App() {
       })
       .finally(() =>
         setLoading(false));
-  }, [])
+  }, []);
 
 
   return (
     <div className="App">
-
-
-      <label>Input
-        <input style={{ borderWidth: '2px' }}
-          value={searchParams.get("filter") || ""}
-          onChange={(event) => {
-            let filter = event.target.value;
-            console.log(filter);
-            if (filter) {
-              setSearchParams({ filter });
-            } else {
-              setSearchParams({});
-            }
-          }}
-        />
-      </label>
-
       <nav> <HeaderBar /></nav>
-
-      {/* <Link to="/expenses">Expenses</Link> */}
-
       {isError && <Error />}
       {!isError && <Filters />}
       {!isError && <ItemTable items={filteredItems} isLoading={loading} />}
