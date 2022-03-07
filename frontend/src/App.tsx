@@ -85,7 +85,6 @@ export default function App() {
 
 
   function initialSortOptions(url: string, items: Item[]) {
-
     // For initial loading based on URL input. eg http://localhost:3000/?sort=price-low-to-high or assign default (discount high to low)
     if (url === Sort.priceHighToLow) {
       setFilteredItems(priceSort(true, items));
