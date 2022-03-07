@@ -14,7 +14,6 @@ import { Sort } from './interfaces/Sort';
 
 
 function priceSort(filter: boolean, items: Item[]) {
-  console.log('price sort: ', items.length);
   if (filter)   // Sort Desc // TODO: Parse type for quick fix until backend is updated
     return ([...items].sort((a, b) => parseInt(b.nowPrice.substring(1)) - parseInt(a.nowPrice.substring(1))));
   else
@@ -50,14 +49,14 @@ export default function App() {
 
   const dispatch = useDispatch();
   const filterStore = useSelector((state: any) => state.filterStore);
-  const { search, discount, discountHighToLow, priceHighToLow, gender, sort } = filterStore;
+  const { search, discount, discountHighToLow, priceHighToLow, gender } = filterStore;
 
   console.log(discountHighToLow);
 
-  let [searchParams, setSearchParams] = useSearchParams();
+  let [searchParams] = useSearchParams();
   let urlSort = searchParams.get("sort") || '';
 
-  const [items, setItems] = useState<Item[]>([]);
+  const [, setItems] = useState<Item[]>([]);
   const [filteredItems, setFilteredItems] = useState<Item[]>([]);
   const [loading, setLoading] = useState(true);
   const [isError, setIsError] = useState(false);
