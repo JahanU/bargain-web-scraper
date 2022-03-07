@@ -21,14 +21,14 @@ export default function Dropdown() {
         const sort = setFilter ? Sort.discountHighToLow : Sort.discountLowToHigh;
         setSearchParams({ sort });
         dispatch(filterActions.setDiscountHighToLow(setFilter));
-        dispatch(filterActions.sortSortParams({ sort }));
+        dispatch(filterActions.sortParams({ sort }));
     };
 
     const onPriceHighToLowHandler = (setFilter: boolean) => {
         const sort = setFilter ? Sort.priceHighToLow : Sort.priceLowToHigh;
         setSearchParams({ sort });
         dispatch(filterActions.setPriceHighToLow(setFilter));
-        dispatch(filterActions.sortSortParams({ sort }));
+        dispatch(filterActions.sortParams({ sort }));
     }
 
     return (

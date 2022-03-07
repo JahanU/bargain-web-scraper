@@ -13,11 +13,37 @@ import { filterActions } from './store/filterSlice';
 import { Sort } from './interfaces/Sort';
 
 
-function priceSort(filter: boolean, array: Item[]) {
+function priceSort(filter: boolean, items: Item[]) {
+  console.log('price sort: ', items.length);
   if (filter)   // Sort Desc // TODO: Parse type for quick fix until backend is updated
-    return ([...array].sort((a, b) => parseInt(b.nowPrice.substring(1)) - parseInt(a.nowPrice.substring(1))));
+    return ([...items].sort((a, b) => parseInt(b.nowPrice.substring(1)) - parseInt(a.nowPrice.substring(1))));
   else
-    return ([...array].sort((a, b) => parseInt(a.nowPrice.substring(1)) - parseInt(b.nowPrice.substring(1))));
+    return ([...items].sort((a, b) => parseInt(a.nowPrice.substring(1)) - parseInt(b.nowPrice.substring(1))));
+}
+function discountSort(discountHighToLow: boolean, items: Item[]) {
+  if (discountHighToLow)  // Sort Desc
+    return ([...items].sort((a, b) => b.discount - a.discount));
+  else
+    return ([...items].sort((a, b) => a.discount - b.discount))
+}
+function genderSort(gender: boolean, items: Item[]) {
+  if (gender) // Gender -> male = true, female = false
+    return ([...items].filter((item: Item) => item.gender === 'Male'));
+  else
+    return ([...items].filter((item: Item) => item.gender === 'Female'));
+}
+function discountSlider(search: string, discount: number, array: Item[]) {
+  // Discount Slider
+  if (search)
+    return ([...array].filter((item: Item) => item.name.toLowerCase().includes(search) && item.discount >= discount));
+  else
+    return ([...array].filter((item: Item) => item.discount >= discount));
+}
+function searchInput(search: string, discount: number, items: Item[]) {
+  if (search)
+    return ([...items].filter((item: Item) => item.name.toLowerCase().includes(search)));
+  else
+    return ([...items].filter((item: Item) => item.discount >= discount));;
 }
 
 export default function App() {
@@ -25,6 +51,8 @@ export default function App() {
   const dispatch = useDispatch();
   const filterStore = useSelector((state: any) => state.filterStore);
   const { search, discount, discountHighToLow, priceHighToLow, gender, sort } = filterStore;
+
+  console.log(discountHighToLow);
 
   let [searchParams, setSearchParams] = useSearchParams();
   let urlSort = searchParams.get("sort") || '';
@@ -34,50 +62,51 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [isError, setIsError] = useState(false);
 
-  // Discount Slider
-  useEffect(() => {
-    if (search)
-      setFilteredItems(items.filter((item: Item) => item.name.toLowerCase().includes(search) && item.discount >= discount));
-    else
-      setFilteredItems(items.filter((item: Item) => item.discount >= discount));
-  }, [discount]);
-
-  // Search Input
-  useEffect(() => {
-    if (search)
-      setFilteredItems([...filteredItems].filter((item) => item.name.toLowerCase().includes(search)));
-    else
-      setFilteredItems([...items].filter((item: Item) => item.discount >= discount));
-  }, [search]);
-
-  // Discount
-  useEffect(() => {
-    if (discountHighToLow)  // Sort Desc
-      setFilteredItems([...filteredItems].sort((a, b) => b.discount - a.discount));
-    else
-      setFilteredItems([...filteredItems].sort((a, b) => a.discount - b.discount))
-  }, [discountHighToLow]);
-
-  // Price
   useEffect(() => {
     setFilteredItems(priceSort(priceHighToLow, filteredItems));
   }, [priceHighToLow]);
 
+  useEffect(() => {
+    setFilteredItems(discountSort(discountHighToLow, filteredItems));
+  }, [discountHighToLow]);
+
   // Gender -> male = true, female = false
   useEffect(() => {
-    if (gender)
-      setFilteredItems([...items].filter((item: Item) => item.gender === 'Male'));
-    else
-      setFilteredItems([...items].filter((item: Item) => item.gender === 'Female'));
+    setFilteredItems(genderSort(gender, filteredItems));
   }, [gender]);
 
-  // For initial loading based on URL input. eg http://localhost:3000/?sort=price-low-to-high
-  function sortFromUrl(url: string) {
-    if (url === Sort.priceHighToLow) dispatch(filterActions.setPriceHighToLow(true)); // state change isn't triggering
-    if (url === Sort.priceLowToHigh) dispatch(filterActions.setPriceHighToLow(false));
-    if (url === Sort.discountHighToLow) dispatch(filterActions.setDiscountHighToLow(true));
-    if (url === Sort.discountLowToHigh) dispatch(filterActions.setDiscountHighToLow(false));
-    dispatch(filterActions.sortSortParams({ sort: url }));
+  useEffect(() => {
+    setFilteredItems(discountSlider(search, discount, filteredItems));
+  }, [discount]);
+
+  useEffect(() => {
+    setFilteredItems(searchInput(search, discount, filteredItems));
+  }, [search]);
+
+
+  function initialSortOptions(url: string, items: Item[]) {
+
+    // For initial loading based on URL input. eg http://localhost:3000/?sort=price-low-to-high or assign default (discount high to low)
+    if (url === Sort.priceHighToLow) {
+      setFilteredItems(priceSort(true, items));
+      dispatch(filterActions.setPriceHighToLow(true));
+    }
+    else if (url === Sort.priceLowToHigh) {
+      setFilteredItems(priceSort(false, items));
+      dispatch(filterActions.setPriceHighToLow(false));
+    }
+    else if (url === Sort.discountHighToLow) {
+      setFilteredItems(discountSort(true, items));
+      dispatch(filterActions.setDiscountHighToLow(true));
+    }
+    else if (url === Sort.discountLowToHigh) {
+      setFilteredItems(discountSort(false, items));
+      dispatch(filterActions.setDiscountHighToLow(false));
+    }
+    else {
+      setFilteredItems(items);
+    }
+    dispatch(filterActions.sortParams({ sort: url }));
   };
 
   // Fetching Data from the API
@@ -90,15 +119,7 @@ export default function App() {
           setIsError(true);
         }
         setItems(items);
-
-        console.log(urlSort);
-        console.log(sort);
-
-        sortFromUrl(urlSort);
-        setFilteredItems(priceSort(false, items));
-
-        // setFilteredItems(items);
-
+        initialSortOptions(urlSort, items);
       })
       .catch((err: any) => {
         console.log(err);

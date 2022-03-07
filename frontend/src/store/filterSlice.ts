@@ -32,7 +32,7 @@ const filter = createSlice({
         setGender: (state, action) => {
             state.gender = action.payload;
         },
-        sortSortParams: (state, action) => {
+        sortParams: (state, action) => {
             state.sort = action.payload;
         }
     },
