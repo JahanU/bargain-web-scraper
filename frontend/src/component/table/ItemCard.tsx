@@ -6,14 +6,14 @@ function ItemCard(props: any) {
     const sizes = item.sizes.toString();
 
     return (
-        <div key={item.url} className="relative">
-            <div className="w-full min-h-80 bg-gray-200 aspect-w-1 aspect-h-1 rounded-md  hover:opacity-75 lg:h-80 lg:aspect-none shadow-lg">
+        <div className="relative">
+            < div className="w-full min-h-80 bg-gray-200 aspect-w-1 aspect-h-1 rounded-md  hover:opacity-75 lg:h-80 lg:aspect-none shadow-lg" >
                 <img
                     src={item.imageUrl}
                     alt={item.name}
                     className="w-full h-full object-center object-cover lg:w-full lg:h-full"
                 />
-            </div>
+            </div >
             <div className="mt-4 flex justify-between">
                 <div>
                     <h3 className="text-sm text-gray-700">
@@ -45,7 +45,7 @@ function ItemCard(props: any) {
                     <p className="text-sm font-medium text-gray-900">{item.nowPrice} ({item.discount}% off)</p>
                 </div>
             </div>
-        </div>
+        </div >
     );
 }
 

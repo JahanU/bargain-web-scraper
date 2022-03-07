@@ -5,6 +5,8 @@ import { Menu, Transition } from '@headlessui/react'
 import { ChevronDownIcon } from '@heroicons/react/solid'
 import { useDispatch } from 'react-redux'
 import { filterActions } from '../../store/filterSlice';
+import { useSearchParams } from "react-router-dom";
+import { Sort } from '../../interfaces/Sort';
 
 function classNames(...classes: any[]) {
     return classes.filter(Boolean).join(' ')
@@ -12,11 +14,22 @@ function classNames(...classes: any[]) {
 
 export default function Dropdown() {
 
+    let [searchParams, setSearchParams] = useSearchParams(); // eg "/shoes?brand=nike&sort=asc&sortby=price"
     const dispatch = useDispatch(); // Dispatch similar to in useReducer
 
-    // const onLatestHandler = () => dispatch(filterActions.setLatset());
-    const onDiscountHighToLowHandler = (setFilter: boolean) => dispatch(filterActions.setDiscountHighToLow(setFilter));
-    const onPriceHighToLowHandler = (setFilter: boolean) => dispatch(filterActions.setPriceHighToLow(setFilter));
+    const onDiscountHighToLowHandler = (setFilter: boolean) => {
+        const sort = setFilter ? Sort.discountHighToLow : Sort.discountLowToHigh;
+        setSearchParams({ sort });
+        dispatch(filterActions.setDiscountHighToLow(setFilter));
+        dispatch(filterActions.sortParams({ sort }));
+    };
+
+    const onPriceHighToLowHandler = (setFilter: boolean) => {
+        const sort = setFilter ? Sort.priceHighToLow : Sort.priceLowToHigh;
+        setSearchParams({ sort });
+        dispatch(filterActions.setPriceHighToLow(setFilter));
+        dispatch(filterActions.sortParams({ sort }));
+    }
 
     return (
         <Menu as="div" className="relative inline-block text-left z-10">
@@ -53,7 +66,6 @@ export default function Dropdown() {
                         <Menu.Item onClick={(() => onDiscountHighToLowHandler(true))}>
                             {({ active }) => (
                                 <a
-                                    href="#"
                                     className={classNames(
                                         active ? 'bg-gray-100 text-gray-900' : 'text-gray-700',
                                         'block px-4 py-2 text-sm'
@@ -67,7 +79,6 @@ export default function Dropdown() {
                         <Menu.Item onClick={(() => onDiscountHighToLowHandler(false))}>
                             {({ active }) => (
                                 <a
-                                    href="#"
                                     className={classNames(
                                         active ? 'bg-gray-100 text-gray-900' : 'text-gray-700',
                                         'block px-4 py-2 text-sm'
@@ -80,7 +91,6 @@ export default function Dropdown() {
                         <Menu.Item onClick={(() => onPriceHighToLowHandler(true))}>
                             {({ active }) => (
                                 <a
-                                    href="#"
                                     className={classNames(
                                         active ? 'bg-gray-100 text-gray-900' : 'text-gray-700',
                                         'block px-4 py-2 text-sm'
@@ -93,7 +103,6 @@ export default function Dropdown() {
                         <Menu.Item onClick={(() => onPriceHighToLowHandler(false))}>
                             {({ active }) => (
                                 <a
-                                    href="#"
                                     className={classNames(
                                         active ? 'bg-gray-100 text-gray-900' : 'text-gray-700',
                                         'block px-4 py-2 text-sm'
