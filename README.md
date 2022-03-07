@@ -15,6 +15,7 @@
 - Redux
 - Tailwind CSS
 - Filtering, Sorting, Search
+- React Router
 
 ### Backend
 - Firebase/Firestore (Store Users)
