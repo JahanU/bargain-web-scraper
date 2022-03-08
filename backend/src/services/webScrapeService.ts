@@ -3,7 +3,7 @@ import JDMain from '../helper/JD';
 import { Item } from "../interfaces/Item";
 
 let allBestItemsMap = new Map<string, Item>(); // <URL, Item>
-let allBestItemsList: Item[] = [];
+let allBestItemsList = new Set<Item>();
 let discountLimit = 10; // item discount must be greater than this value
 
 
@@ -48,7 +48,7 @@ function sendDeals(newDeals: Item[]) {
 function setAllBestItemsList() {
     allBestItemsMap.forEach((item, url) => {
         const newItem = { url, ...item }
-        allBestItemsList.push(newItem);
+        allBestItemsList.add(newItem);
     });
     console.log('final list: ', allBestItemsList);
 }
@@ -57,10 +57,10 @@ const getBestDealsList = () => allBestItemsList;
 
 const resetCache = () => {
     allBestItemsMap = new Map();
-    allBestItemsList = [];
+    allBestItemsList = new Set<Item>();
 }
 
 // pass this function to JDMain, if list length is 0, then we also want to reset the JD cache
-const resetLists = () => allBestItemsList.length === 0;
+const resetLists = () => allBestItemsList.size === 0;
 
 module.exports = { main, getBestDealsList };
