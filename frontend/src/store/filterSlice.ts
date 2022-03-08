@@ -7,7 +7,8 @@ const initalFilterState = {
     discountHighToLow: null, // Default we sort in Desc Order
     priceHighToLow: null,
     gender: null, // true = male, false = female
-    sort: ''
+    sort: '',
+    searchParams: ''
 }
 
 const filter = createSlice({
@@ -34,6 +35,9 @@ const filter = createSlice({
         },
         sortParams: (state, action) => {
             state.sort = action.payload;
+        },
+        searchParams: (state, action) => {
+            state.searchParams = action.payload;
         }
     },
 });
