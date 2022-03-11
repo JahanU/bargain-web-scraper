@@ -14,7 +14,7 @@ function classNames(...classes: any[]) {
 
 export default function Dropdown() {
 
-    let [searchParams, setSearchParams] = useSearchParams(); // eg "/shoes?brand=nike&sort=asc&sortby=price"
+    let [, setSearchParams] = useSearchParams(); // eg "/shoes?brand=nike&sort=asc&sortby=price"
     const dispatch = useDispatch(); // Dispatch similar to in useReducer
 
     const onDiscountHighToLowHandler = (setFilter: boolean) => {

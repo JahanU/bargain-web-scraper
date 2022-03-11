@@ -50,14 +50,12 @@ export default function App() {
 
   const dispatch = useDispatch();
   const filterStore = useSelector((state: any) => state.filterStore);
-  const { search, discount, discountHighToLow, priceHighToLow, gender, sort } = filterStore;
+  const { search, discount, discountHighToLow, priceHighToLow, gender } = filterStore;
 
-  console.log(discountHighToLow);
-
-  let [searchParams, setSearchParams] = useSearchParams();
+  let [searchParams,] = useSearchParams();
   let urlSort = searchParams.get("sort") || '';
 
-  const [items, setItems] = useState<Item[]>([]);
+  const [, setItems] = useState<Item[]>([]);
   const [filteredItems, setFilteredItems] = useState<Item[]>([]);
   const [loading, setLoading] = useState(true);
   const [isError, setIsError] = useState(false);
