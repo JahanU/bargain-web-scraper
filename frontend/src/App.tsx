@@ -14,7 +14,6 @@ import { Sort } from './interfaces/Sort';
 
 
 function priceSort(filter: boolean, items: Item[]) {
-  console.log('price sort: ', items.length);
   if (filter)   // Sort Desc // TODO: Parse type for quick fix until backend is updated
     return ([...items].sort((a, b) => parseInt(b.nowPrice.substring(1)) - parseInt(a.nowPrice.substring(1))));
   else
@@ -32,18 +31,17 @@ function genderSort(gender: boolean, items: Item[]) {
   else
     return ([...items].filter((item: Item) => item.gender === 'Female'));
 }
-function discountSlider(search: string, discount: number, array: Item[]) {
-  // Discount Slider
+function discountSlider(search: string, discount: number, allItems: Item[]) {
   if (search)
-    return ([...array].filter((item: Item) => item.name.toLowerCase().includes(search) && item.discount >= discount));
+    return ([...allItems].filter((item: Item) => item.name.toLowerCase().includes(search) && item.discount >= discount));
   else
-    return ([...array].filter((item: Item) => item.discount >= discount));
+    return ([...allItems].filter((item: Item) => item.discount >= discount));
 }
 function searchInput(search: string, discount: number, items: Item[]) {
   if (search)
     return ([...items].filter((item: Item) => item.name.toLowerCase().includes(search)));
   else
-    return ([...items].filter((item: Item) => item.discount >= discount));;
+    return ([...items].filter((item: Item) => item.discount >= discount));
 }
 
 export default function App() {
@@ -54,8 +52,9 @@ export default function App() {
 
   let [searchParams,] = useSearchParams();
   let urlSort = searchParams.get("sort") || '';
+  let urlSearch = searchParams.get("search") || '';
 
-  const [, setItems] = useState<Item[]>([]);
+  const [items, setItems] = useState<Item[]>([]);
   const [filteredItems, setFilteredItems] = useState<Item[]>([]);
   const [loading, setLoading] = useState(true);
   const [isError, setIsError] = useState(false);
@@ -72,9 +71,9 @@ export default function App() {
   useEffect(() => {
     setFilteredItems(genderSort(gender, filteredItems));
   }, [gender]);
-
+ 
   useEffect(() => {
-    setFilteredItems(discountSlider(search, discount, filteredItems));
+    setFilteredItems(discountSlider(search, discount, items));
   }, [discount]);
 
   useEffect(() => {
@@ -82,28 +81,34 @@ export default function App() {
   }, [search]);
 
 
-  function initialSortOptions(url: string, items: Item[]) {
+  function initialSortOptions(urlSort: string, urlSearch: string, items: Item[]) {
     // For initial loading based on URL input. eg http://localhost:3000/?sort=price-low-to-high or assign default (discount high to low)
-    if (url === Sort.priceHighToLow) {
+    if (urlSearch) {
+      setFilteredItems(searchInput(urlSearch, discount, items));
+      dispatch(filterActions.setSearch(urlSearch));
+    }
+    
+    if (urlSort === Sort.priceHighToLow) {
       setFilteredItems(priceSort(true, items));
       dispatch(filterActions.setPriceHighToLow(true));
     }
-    else if (url === Sort.priceLowToHigh) {
+    else if (urlSort === Sort.priceLowToHigh) {
       setFilteredItems(priceSort(false, items));
       dispatch(filterActions.setPriceHighToLow(false));
     }
-    else if (url === Sort.discountHighToLow) {
+    else if (urlSort === Sort.discountHighToLow) {
       setFilteredItems(discountSort(true, items));
       dispatch(filterActions.setDiscountHighToLow(true));
     }
-    else if (url === Sort.discountLowToHigh) {
+    else if (urlSort === Sort.discountLowToHigh) {
       setFilteredItems(discountSort(false, items));
       dispatch(filterActions.setDiscountHighToLow(false));
     }
     else {
       setFilteredItems(items);
     }
-    dispatch(filterActions.sortParams({ sort: url }));
+
+    dispatch(filterActions.sortParams({ sort: urlSort }));
   };
 
   // Fetching Data from the API
@@ -116,7 +121,7 @@ export default function App() {
           setIsError(true);
         }
         setItems(items);
-        initialSortOptions(urlSort, items);
+        initialSortOptions(urlSort, urlSearch, items);
       })
       .catch((err: any) => {
         console.log(err);

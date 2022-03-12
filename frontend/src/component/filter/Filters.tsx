@@ -15,7 +15,7 @@ function Filters(props: any) {
                             <li className="mr-12"><DiscountSlider /></li>
                             <li className="mr-12"><SearchBar /></li>
                             <li className="mr-12"><Dropdown /></li>
-                            <li className="mr-12"><Genders /></li>
+                            {/* <li className="mr-12"><Genders /></li> */}
                         </ul>
                     </div>
                 </div>
