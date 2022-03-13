@@ -1,15 +1,16 @@
 /* eslint-disable react-hooks/exhaustive-deps */
-import { useEffect, useState } from 'react';
 import './App.css';
+import { useEffect, useState } from 'react';
+import { useSearchParams } from "react-router-dom";
+import { useDispatch, useSelector } from 'react-redux';
 import { getItemsService } from './services/webScrape.service'
-import ItemTable from './component/table/ItemTable';
 import Item from './interfaces/Item';
+import ItemTable from './component/table/ItemTable';
 import HeaderBar from './component/header/HeaderBar';
 import Error from './component/modal/Error';
-import { useDispatch, useSelector } from 'react-redux';
 import Filters from './component/filter/Filters';
-import { useSearchParams } from "react-router-dom";
 import { filterActions } from './store/filterSlice';
+import { paramActions } from './store/paramSlice';
 import { Sort } from './interfaces/Sort';
 
 
@@ -48,7 +49,10 @@ export default function App() {
 
   const dispatch = useDispatch();
   const filterStore = useSelector((state: any) => state.filterStore);
-  const { search, discount, discountHighToLow, priceHighToLow, gender, sortParams, searchInputParams, finalParams } = filterStore;
+  const paramStore = useSelector((state: any) => state.paramStore);
+
+  const { search, discount, discountHighToLow, priceHighToLow, gender} = filterStore;
+  const { sortParams, searchInputParams } = paramStore; // genderParams,  discountParam
 
   let [searchParams, setSearchParams] = useSearchParams();
   let urlSort = searchParams.get("sort") || '';
@@ -81,9 +85,7 @@ export default function App() {
   }, [search]);
 
   useEffect(() => {
-
-    const search = searchInputParams.input || '';
-    const sort = sortParams.sort || '';
+    const [search, sort] = [searchInputParams.input || '', sortParams.sort || ''];
     if (sortParams && searchInputParams) setSearchParams({ search, sort });
     else if (searchInputParams) setSearchParams({ search });
     else if (sortParams) setSearchParams({ sort});
@@ -116,19 +118,6 @@ export default function App() {
     else {
       setFilteredItems(items);
     }
-
-    // dispatch(filterActions.setSortParams({ sort: urlSort })); // update whichever sort param selected
-    
-    // dispatch(filterActions.setFinalParams()); // update final params
-
-    // console.log('final: ', finalParams);
-    // console.log(sortParams, searchInputParams);
-
-    // setSearchParams({filterStore.finalParams}); // update url
-
-    // if (urlSearch && urlSort) setSearchParams({ urlSearch, urlSort });
-    // else if (urlSearch) setSearchParams({ urlSearch });
-    // else if (urlSort) setSearchParams({ urlSort });
   };
 
   // Fetching Data from the API

@@ -5,6 +5,7 @@ import { Menu, Transition } from '@headlessui/react'
 import { ChevronDownIcon } from '@heroicons/react/solid'
 import { useDispatch } from 'react-redux'
 import { filterActions } from '../../store/filterSlice';
+import { paramActions } from '../../store/paramSlice';
 import { useSearchParams } from "react-router-dom";
 import { Sort } from '../../interfaces/Sort';
 
@@ -21,14 +22,14 @@ export default function Dropdown() {
         const sort = setFilter ? Sort.discountHighToLow : Sort.discountLowToHigh;
         // setSortParams({ sort });
         dispatch(filterActions.setDiscountHighToLow(setFilter));
-        dispatch(filterActions.setSortParams({ sort }));
+        dispatch(paramActions.setSortParams({ sort }));
     };
 
     const onPriceHighToLowHandler = (setFilter: boolean) => {
         const sort = setFilter ? Sort.priceHighToLow : Sort.priceLowToHigh;
         // setSortParams({ sort });
         dispatch(filterActions.setPriceHighToLow(setFilter));
-        dispatch(filterActions.setSortParams({ sort }));
+        dispatch(paramActions.setSortParams({ sort }));
     }
 
     return (

@@ -1,6 +1,7 @@
 import { useDispatch } from 'react-redux';
 import { useSearchParams } from 'react-router-dom';
 import { filterActions } from '../../store/filterSlice';
+import { paramActions } from '../../store/paramSlice';
 
 function SearchBar() {
 
@@ -10,7 +11,7 @@ function SearchBar() {
     const handleSearch = (e: any) => {
         let input = e.target.value;
         // setSearchParams({ search: input });
-        dispatch(filterActions.setSearchInputParams({ input }));
+        dispatch(paramActions.setSearchInputParams({ input }));
         dispatch(filterActions.setSearch(input));
     }
 
