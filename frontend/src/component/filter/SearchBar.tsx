@@ -9,8 +9,8 @@ function SearchBar() {
 
     const handleSearch = (e: any) => {
         let input = e.target.value;
-        setSearchParams({ search: input });
-        dispatch(filterActions.searchParams({ input }));
+        // setSearchParams({ search: input });
+        dispatch(filterActions.setSearchInputParams({ input }));
         dispatch(filterActions.setSearch(input));
     }
 

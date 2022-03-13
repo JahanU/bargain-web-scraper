@@ -37,20 +37,20 @@ function discountSlider(search: string, discount: number, allItems: Item[]) {
   else
     return ([...allItems].filter((item: Item) => item.discount >= discount));
 }
-function searchInput(search: string, discount: number, items: Item[]) {
+function searchInput(search: string, discount: number, allItems: Item[]) {
   if (search)
-    return ([...items].filter((item: Item) => item.name.toLowerCase().includes(search)));
+    return ([...allItems].filter((item: Item) => item.name.toLowerCase().includes(search)));
   else
-    return ([...items].filter((item: Item) => item.discount >= discount));
+    return ([...allItems].filter((item: Item) => item.discount >= discount));
 }
 
 export default function App() {
 
   const dispatch = useDispatch();
   const filterStore = useSelector((state: any) => state.filterStore);
-  const { search, discount, discountHighToLow, priceHighToLow, gender } = filterStore;
+  const { search, discount, discountHighToLow, priceHighToLow, gender, sortParams, searchInputParams, finalParams } = filterStore;
 
-  let [searchParams,] = useSearchParams();
+  let [searchParams, setSearchParams] = useSearchParams();
   let urlSort = searchParams.get("sort") || '';
   let urlSearch = searchParams.get("search") || '';
 
@@ -77,9 +77,18 @@ export default function App() {
   }, [discount]);
 
   useEffect(() => {
-    setFilteredItems(searchInput(search, discount, filteredItems));
+    setFilteredItems(searchInput(search, discount, items));
   }, [search]);
 
+  useEffect(() => {
+
+    const search = searchInputParams.input || '';
+    const sort = sortParams.sort || '';
+    if (sortParams && searchInputParams) setSearchParams({ search, sort });
+    else if (searchInputParams) setSearchParams({ search });
+    else if (sortParams) setSearchParams({ sort});
+
+  },[sortParams, searchInputParams]);
 
   function initialSortOptions(urlSort: string, urlSearch: string, items: Item[]) {
     // For initial loading based on URL input. eg http://localhost:3000/?sort=price-low-to-high or assign default (discount high to low)
@@ -108,7 +117,18 @@ export default function App() {
       setFilteredItems(items);
     }
 
-    dispatch(filterActions.sortParams({ sort: urlSort }));
+    // dispatch(filterActions.setSortParams({ sort: urlSort })); // update whichever sort param selected
+    
+    // dispatch(filterActions.setFinalParams()); // update final params
+
+    // console.log('final: ', finalParams);
+    // console.log(sortParams, searchInputParams);
+
+    // setSearchParams({filterStore.finalParams}); // update url
+
+    // if (urlSearch && urlSort) setSearchParams({ urlSearch, urlSort });
+    // else if (urlSearch) setSearchParams({ urlSearch });
+    // else if (urlSort) setSearchParams({ urlSort });
   };
 
   // Fetching Data from the API

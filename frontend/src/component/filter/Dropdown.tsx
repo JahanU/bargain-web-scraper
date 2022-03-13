@@ -14,21 +14,21 @@ function classNames(...classes: any[]) {
 
 export default function Dropdown() {
 
-    let [, setSearchParams] = useSearchParams(); // eg "/shoes?brand=nike&sort=asc&sortby=price"
+    let [, setSortParams] = useSearchParams(); // eg "/shoes?brand=nike&sort=asc&sortby=price"
     const dispatch = useDispatch(); // Dispatch similar to in useReducer
 
     const onDiscountHighToLowHandler = (setFilter: boolean) => {
         const sort = setFilter ? Sort.discountHighToLow : Sort.discountLowToHigh;
-        setSearchParams({ sort });
+        // setSortParams({ sort });
         dispatch(filterActions.setDiscountHighToLow(setFilter));
-        dispatch(filterActions.sortParams({ sort }));
+        dispatch(filterActions.setSortParams({ sort }));
     };
 
     const onPriceHighToLowHandler = (setFilter: boolean) => {
         const sort = setFilter ? Sort.priceHighToLow : Sort.priceLowToHigh;
-        setSearchParams({ sort });
+        // setSortParams({ sort });
         dispatch(filterActions.setPriceHighToLow(setFilter));
-        dispatch(filterActions.sortParams({ sort }));
+        dispatch(filterActions.setSortParams({ sort }));
     }
 
     return (
