@@ -18,7 +18,7 @@ function JDMain(discountLimit: number, resetCache: boolean): Promise<Item[]> {
     return getJDItems(discountLimit);
 }
 
-const resetList = () => seenItemsCache = new Set<string>();
+const resetList = () => seenItemsCache.clear();
 
 function getJDItems(discountLimit: number): Promise<Item[]> {
 

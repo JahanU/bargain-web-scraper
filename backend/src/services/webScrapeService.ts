@@ -27,9 +27,9 @@ async function startScraping() {
 function cacheDeals(newBestDeals: Item[]) { // don't send items we have already seen
     const newItems: Item[] = [];
     newBestDeals.forEach((item) => {
-        if (!allBestItemsMap.has(item.url)) { // found new item!
+        if (!allBestItemsMap.has(item.url)) // found new item!
             newItems.push(item);
-        }
+        else 
         allBestItemsMap.set(item.url, item);
     });
     console.log('all best deals: ', allBestItemsMap);
