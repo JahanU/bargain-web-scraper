@@ -15,7 +15,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const telegram = require('./telegramService');
 const JD_1 = __importDefault(require("../helper/JD"));
 let allBestItemsMap = new Map(); // <URL, Item>
-let allBestItemsList = [];
+let allBestItemsList = new Set();
 let discountLimit = 10; // item discount must be greater than this value
 function main() {
     startScraping();
@@ -57,15 +57,15 @@ function sendDeals(newDeals) {
 function setAllBestItemsList() {
     allBestItemsMap.forEach((item, url) => {
         const newItem = Object.assign({ url }, item);
-        allBestItemsList.push(newItem);
+        allBestItemsList.add(newItem);
     });
     console.log('final list: ', allBestItemsList);
 }
 const getBestDealsList = () => allBestItemsList;
 const resetCache = () => {
     allBestItemsMap = new Map();
-    allBestItemsList = [];
+    allBestItemsList = new Set();
 };
 // pass this function to JDMain, if list length is 0, then we also want to reset the JD cache
-const resetLists = () => allBestItemsList.length === 0;
+const resetLists = () => allBestItemsList.size === 0;
 module.exports = { main, getBestDealsList };

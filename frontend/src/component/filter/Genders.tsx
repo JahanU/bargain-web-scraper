@@ -1,10 +1,16 @@
 import { useDispatch } from 'react-redux';
+import { useSearchParams } from 'react-router-dom';
 import { filterActions } from '../../store/filterSlice';
 
 export const Genders = (props: any) => {
 
+    let [, setSearchParams] = useSearchParams(); 
     const dispatch = useDispatch();
-    const setGenderHandler = (value: boolean) => dispatch(filterActions.setGender(value));
+    const setGenderHandler = (value: boolean) => {
+        const gender = value ? 'Male' : 'Female';
+        setSearchParams({ gender });
+        dispatch(filterActions.setGender(gender));
+    }
 
     return (
         <>

@@ -1,12 +1,18 @@
 import { useDispatch } from 'react-redux';
+import { useSearchParams } from 'react-router-dom';
 import { filterActions } from '../../store/filterSlice';
+import { paramActions } from '../../store/paramSlice';
 
 function SearchBar() {
 
     const dispatch = useDispatch();
+    let [, setSearchParams] = useSearchParams(); // eg "/shoes?brand=nike&sort=asc&sortby=price"
 
     const handleSearch = (e: any) => {
-        dispatch(filterActions.setSearch(e.target.value));
+        let input = e.target.value;
+        // setSearchParams({ search: input });
+        dispatch(paramActions.setSearchInputParams({ input }));
+        dispatch(filterActions.setSearch(input));
     }
 
     return (

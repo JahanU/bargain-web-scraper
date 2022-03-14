@@ -1,15 +1,16 @@
 /* eslint-disable react-hooks/exhaustive-deps */
-import { useEffect, useState } from 'react';
 import './App.css';
+import { useEffect, useState } from 'react';
+import { useSearchParams } from "react-router-dom";
+import { useDispatch, useSelector } from 'react-redux';
 import { getItemsService } from './services/webScrape.service'
-import ItemTable from './component/table/ItemTable';
 import Item from './interfaces/Item';
+import ItemTable from './component/table/ItemTable';
 import HeaderBar from './component/header/HeaderBar';
 import Error from './component/modal/Error';
-import { useDispatch, useSelector } from 'react-redux';
 import Filters from './component/filter/Filters';
-import { useSearchParams } from "react-router-dom";
 import { filterActions } from './store/filterSlice';
+import { paramActions } from './store/paramSlice';
 import { Sort } from './interfaces/Sort';
 
 
@@ -31,30 +32,30 @@ function genderSort(gender: boolean, items: Item[]) {
   else
     return ([...items].filter((item: Item) => item.gender === 'Female'));
 }
-function discountSlider(search: string, discount: number, array: Item[]) {
-  // Discount Slider
+function discountSlider(search: string, discount: number, allItems: Item[]) {
   if (search)
-    return ([...array].filter((item: Item) => item.name.toLowerCase().includes(search) && item.discount >= discount));
+    return ([...allItems].filter((item: Item) => item.name.toLowerCase().includes(search) && item.discount >= discount));
   else
-    return ([...array].filter((item: Item) => item.discount >= discount));
+    return ([...allItems].filter((item: Item) => item.discount >= discount));
 }
-function searchInput(search: string, discount: number, items: Item[]) {
+function searchInput(search: string, discount: number, allItems: Item[]) {
   if (search)
-    return ([...items].filter((item: Item) => item.name.toLowerCase().includes(search)));
+    return ([...allItems].filter((item: Item) => item.name.toLowerCase().includes(search)));
   else
-    return ([...items].filter((item: Item) => item.discount >= discount));;
+    return ([...allItems].filter((item: Item) => item.discount >= discount));
 }
 
 export default function App() {
 
   const dispatch = useDispatch();
   const filterStore = useSelector((state: any) => state.filterStore);
+  const paramStore = useSelector((state: any) => state.paramStore);
   const { search, discount, discountHighToLow, priceHighToLow, gender } = filterStore;
-
-  console.log(discountHighToLow);
+  const { sortParams, searchInputParams } = paramStore; // genderParams,  discountParam
 
   let [searchParams] = useSearchParams();
   let urlSort = searchParams.get("sort") || '';
+  let urlSearch = searchParams.get("search") || '';
 
   const [, setItems] = useState<Item[]>([]);
   const [filteredItems, setFilteredItems] = useState<Item[]>([]);
@@ -73,38 +74,49 @@ export default function App() {
   useEffect(() => {
     setFilteredItems(genderSort(gender, filteredItems));
   }, [gender]);
-
+ 
   useEffect(() => {
-    setFilteredItems(discountSlider(search, discount, filteredItems));
+    setFilteredItems(discountSlider(search, discount, items));
   }, [discount]);
 
   useEffect(() => {
-    setFilteredItems(searchInput(search, discount, filteredItems));
+    setFilteredItems(searchInput(search, discount, items));
   }, [search]);
 
+  useEffect(() => {
+    const [search, sort] = [searchInputParams.input || '', sortParams.sort || ''];
+    if (sortParams && searchInputParams) setSearchParams({ search, sort });
+    else if (searchInputParams) setSearchParams({ search });
+    else if (sortParams) setSearchParams({ sort});
 
-  function initialSortOptions(url: string, items: Item[]) {
+  },[sortParams, searchInputParams]);
+
+  function initialSortOptions(urlSort: string, urlSearch: string, items: Item[]) {
     // For initial loading based on URL input. eg http://localhost:3000/?sort=price-low-to-high or assign default (discount high to low)
-    if (url === Sort.priceHighToLow) {
+    if (urlSearch) {
+      setFilteredItems(searchInput(urlSearch, discount, items));
+      dispatch(filterActions.setSearch(urlSearch));
+    }
+    
+    if (urlSort === Sort.priceHighToLow) {
       setFilteredItems(priceSort(true, items));
       dispatch(filterActions.setPriceHighToLow(true));
     }
-    else if (url === Sort.priceLowToHigh) {
+    else if (urlSort === Sort.priceLowToHigh) {
       setFilteredItems(priceSort(false, items));
       dispatch(filterActions.setPriceHighToLow(false));
     }
-    else if (url === Sort.discountHighToLow) {
+    else if (urlSort === Sort.discountHighToLow) {
       setFilteredItems(discountSort(true, items));
       dispatch(filterActions.setDiscountHighToLow(true));
     }
-    else if (url === Sort.discountLowToHigh) {
+    else if (urlSort === Sort.discountLowToHigh) {
       setFilteredItems(discountSort(false, items));
       dispatch(filterActions.setDiscountHighToLow(false));
     }
     else {
       setFilteredItems(items);
     }
-    dispatch(filterActions.sortParams({ sort: url }));
   };
 
   // Fetching Data from the API
@@ -117,7 +129,7 @@ export default function App() {
           setIsError(true);
         }
         setItems(items);
-        initialSortOptions(urlSort, items);
+        initialSortOptions(urlSort, urlSearch, items);
       })
       .catch((err: any) => {
         console.log(err);
