@@ -38,10 +38,10 @@ function startScraping() {
 function cacheDeals(newBestDeals) {
     const newItems = [];
     newBestDeals.forEach((item) => {
-        if (!allBestItemsMap.has(item.url)) { // found new item!
+        if (!allBestItemsMap.has(item.url)) // found new item!
             newItems.push(item);
-        }
-        allBestItemsMap.set(item.url, item);
+        else
+            allBestItemsMap.set(item.url, item);
     });
     console.log('all best deals: ', allBestItemsMap);
     return newItems;
