@@ -10,7 +10,7 @@ import HeaderBar from './component/header/HeaderBar';
 import Error from './component/modal/Error';
 import Filters from './component/filter/Filters';
 import { filterActions } from './store/filterSlice';
-import { paramActions } from './store/paramSlice';
+// import { paramActions } from './store/paramSlice';
 import { Sort } from './interfaces/Sort';
 
 
@@ -53,11 +53,11 @@ export default function App() {
   const { search, discount, discountHighToLow, priceHighToLow, gender } = filterStore;
   const { sortParams, searchInputParams } = paramStore; // genderParams,  discountParam
 
-  let [searchParams] = useSearchParams();
+  let [searchParams, setSearchParams] = useSearchParams();
   let urlSort = searchParams.get("sort") || '';
   let urlSearch = searchParams.get("search") || '';
 
-  const [, setItems] = useState<Item[]>([]);
+  const [items, setItems] = useState<Item[]>([]);
   const [filteredItems, setFilteredItems] = useState<Item[]>([]);
   const [loading, setLoading] = useState(true);
   const [isError, setIsError] = useState(false);
@@ -88,7 +88,6 @@ export default function App() {
     if (sortParams && searchInputParams) setSearchParams({ search, sort });
     else if (searchInputParams) setSearchParams({ search });
     else if (sortParams) setSearchParams({ sort});
-
   },[sortParams, searchInputParams]);
 
   function initialSortOptions(urlSort: string, urlSearch: string, items: Item[]) {
