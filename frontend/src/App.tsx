@@ -127,8 +127,10 @@ export default function App() {
           console.log(items, ' data is empty');
           setIsError(true);
         }
-        setItems(items);
-        initialSortOptions(urlSort, urlSearch, items);
+        else {
+          setItems(items);
+          initialSortOptions(urlSort, urlSearch, items);
+        }
       })
       .catch((err: any) => {
         console.log(err);

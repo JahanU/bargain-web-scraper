@@ -6,7 +6,7 @@ import { ChevronDownIcon } from '@heroicons/react/solid'
 import { useDispatch } from 'react-redux'
 import { filterActions } from '../../store/filterSlice';
 import { paramActions } from '../../store/paramSlice';
-import { useSearchParams } from "react-router-dom";
+// import { useSearchParams } from "react-router-dom";
 import { Sort } from '../../interfaces/Sort';
 
 function classNames(...classes: any[]) {
@@ -15,7 +15,7 @@ function classNames(...classes: any[]) {
 
 export default function Dropdown() {
 
-    let [, setSortParams] = useSearchParams(); // eg "/shoes?brand=nike&sort=asc&sortby=price"
+    // let [, setSortParams] = useSearchParams(); // eg "/shoes?brand=nike&sort=asc&sortby=price"
     const dispatch = useDispatch(); // Dispatch similar to in useReducer
 
     const onDiscountHighToLowHandler = (setFilter: boolean) => {
