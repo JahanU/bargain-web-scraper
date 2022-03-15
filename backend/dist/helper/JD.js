@@ -71,7 +71,7 @@ function bufferHandler(items) {
         // crashes when trying to make 100s of http calls at once, using buffer to reduce load
         let totalItems = [];
         while (items.length) {
-            let buffer = items.splice(0, 30);
+            let buffer = items.splice(0, 10);
             let bufferItems = yield getStockAndSize(buffer);
             totalItems = totalItems.concat(bufferItems);
         }

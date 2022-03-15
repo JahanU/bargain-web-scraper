@@ -15,12 +15,12 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const telegram = require('./telegramService');
 const JD_1 = __importDefault(require("../helper/JD"));
 let allBestItemsMap = new Map(); // <URL, Item>
-let allBestItemsList = new Set();
+let allBestItemsSet = new Set();
 let discountLimit = 10; // item discount must be greater than this value
 function main() {
-    // startScraping();
-    // setInterval(startScraping, 300 * 1000); // every 5 minutes
-    // setInterval(resetCache, 43200 * 1000); // every 12 hours
+    startScraping();
+    setInterval(startScraping, 300 * 1000); // every 5 minutes
+    setInterval(resetCache, 43200 * 1000); // every 12 hours
 }
 function startScraping() {
     return __awaiter(this, void 0, void 0, function* () {
@@ -28,7 +28,7 @@ function startScraping() {
             const JDItems = yield (0, JD_1.default)(discountLimit, resetLists());
             const newItems = cacheDeals(JDItems);
             sendDeals(newItems);
-            setAllBestItemsList();
+            setallBestItemsSet();
         }
         catch (err) {
             console.log(err);
@@ -40,8 +40,7 @@ function cacheDeals(newBestDeals) {
     newBestDeals.forEach((item) => {
         if (!allBestItemsMap.has(item.url)) // found new item!
             newItems.push(item);
-        else
-            allBestItemsMap.set(item.url, item);
+        allBestItemsMap.set(item.url, item);
     });
     console.log('all best deals: ', allBestItemsMap);
     return newItems;
@@ -49,23 +48,22 @@ function cacheDeals(newBestDeals) {
 function sendDeals(newDeals) {
     if (newDeals.length) {
         console.log('got new items!: ', newDeals);
-        // only send discount items to telegram users
         const discountedItems = newDeals.filter((item) => item.discount > 50);
-        telegram.sendPhotosToUsers(discountedItems);
+        telegram.sendPhotosToUsers(discountedItems); // only send discount items to telegram users
     }
 }
-function setAllBestItemsList() {
+function setallBestItemsSet() {
     allBestItemsMap.forEach((item, url) => {
         const newItem = Object.assign({ url }, item);
-        allBestItemsList.add(newItem);
+        allBestItemsSet.add(newItem);
     });
-    console.log('final list: ', allBestItemsList);
+    console.log('final list: ', allBestItemsSet);
 }
-const getBestDealsList = () => allBestItemsList;
+const getBestDealsList = () => allBestItemsSet;
 const resetCache = () => {
     allBestItemsMap = new Map();
-    allBestItemsList = new Set();
+    allBestItemsSet = new Set();
 };
 // pass this function to JDMain, if list length is 0, then we also want to reset the JD cache
-const resetLists = () => allBestItemsList.size === 0;
+const resetLists = () => allBestItemsSet.size === 0;
 module.exports = { main, getBestDealsList };

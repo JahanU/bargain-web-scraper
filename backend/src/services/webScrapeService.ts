@@ -3,14 +3,14 @@ import JDMain from '../helper/JD';
 import { Item } from "../interfaces/Item";
 
 let allBestItemsMap = new Map<string, Item>(); // <URL, Item>
-let allBestItemsList = new Set<Item>();
+let allBestItemsSet = new Set<Item>();
 let discountLimit = 10; // item discount must be greater than this value
 
 
 function main() {
-    // startScraping();
-    // setInterval(startScraping, 300 * 1000); // every 5 minutes
-    // setInterval(resetCache, 43200 * 1000); // every 12 hours
+    startScraping();
+    setInterval(startScraping, 300 * 1000); // every 5 minutes
+    setInterval(resetCache, 43200 * 1000); // every 12 hours
 }
 
 async function startScraping() {
@@ -18,7 +18,7 @@ async function startScraping() {
         const JDItems = await JDMain(discountLimit, resetLists());
         const newItems = cacheDeals(JDItems);
         sendDeals(newItems);
-        setAllBestItemsList();
+        setallBestItemsSet();
     } catch (err) {
         console.log(err);
     }
@@ -28,8 +28,7 @@ function cacheDeals(newBestDeals: Item[]) { // don't send items we have already 
     const newItems: Item[] = [];
     newBestDeals.forEach((item) => {
         if (!allBestItemsMap.has(item.url)) // found new item!
-            newItems.push(item);
-        else 
+            newItems.push(item); 
         allBestItemsMap.set(item.url, item);
     });
     console.log('all best deals: ', allBestItemsMap);
@@ -39,28 +38,28 @@ function cacheDeals(newBestDeals: Item[]) { // don't send items we have already 
 function sendDeals(newDeals: Item[]) {
     if (newDeals.length) {
         console.log('got new items!: ', newDeals);
-        // only send discount items to telegram users
         const discountedItems = newDeals.filter((item) => item.discount > 50);
-        telegram.sendPhotosToUsers(discountedItems);
+        telegram.sendPhotosToUsers(discountedItems); // only send discount items to telegram users
+
     }
 }
 
-function setAllBestItemsList() {
+function setallBestItemsSet() {
     allBestItemsMap.forEach((item, url) => {
         const newItem = { url, ...item }
-        allBestItemsList.add(newItem);
+        allBestItemsSet.add(newItem);
     });
-    console.log('final list: ', allBestItemsList);
+    console.log('final list: ', allBestItemsSet);
 }
 
-const getBestDealsList = () => allBestItemsList;
+const getBestDealsList = () => allBestItemsSet;
 
 const resetCache = () => {
     allBestItemsMap = new Map();
-    allBestItemsList = new Set<Item>();
+    allBestItemsSet = new Set<Item>();
 }
 
 // pass this function to JDMain, if list length is 0, then we also want to reset the JD cache
-const resetLists = () => allBestItemsList.size === 0;
+const resetLists = () => allBestItemsSet.size === 0;
 
 module.exports = { main, getBestDealsList };
