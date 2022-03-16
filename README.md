@@ -14,7 +14,7 @@
 - [React Web App](https://bargain-scraper.netlify.app/)
 - Redux
 - Tailwind CSS
-- Filtering, Sorting, Search
+- Filtering, Sorting, Search, Toggling
 - React Router (Search Params)
 
 ### Backend
