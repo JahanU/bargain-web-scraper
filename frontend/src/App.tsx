@@ -10,7 +10,6 @@ import HeaderBar from './component/header/HeaderBar';
 import Error from './component/modal/Error';
 import Filters from './component/filter/Filters';
 import { filterActions } from './store/filterSlice';
-// import { paramActions } from './store/paramSlice';
 import { Sort } from './interfaces/Sort';
 
 
@@ -38,10 +37,10 @@ function discountSlider(search: string, discount: number, allItems: Item[]) {
   else
     return ([...allItems].filter((item: Item) => item.discount >= discount));
 }
-function searchInput(search: string, discount: number, allItems: Item[]) {
+function searchInput(search: string, sort: string, discount: number, allItems: Item[], filteredItems: Item[]) {
   if (search)
-    return ([...allItems].filter((item: Item) => item.name.toLowerCase().includes(search)));
-  else
+    return ([...filteredItems].filter((item: Item) => item.name.toLowerCase().includes(search)));
+  else 
     return ([...allItems].filter((item: Item) => item.discount >= discount));
 }
 
@@ -80,7 +79,7 @@ export default function App() {
   }, [discount]);
 
   useEffect(() => {
-    setFilteredItems(searchInput(search, discount, items));
+    setFilteredItems(searchInput(search, sortParams, discount, items, filteredItems));
   }, [search]);
 
   useEffect(() => {
@@ -93,7 +92,7 @@ export default function App() {
   function initialSortOptions(urlSort: string, urlSearch: string, items: Item[]) {
     // For initial loading based on URL input. eg http://localhost:3000/?sort=price-low-to-high or assign default (discount high to low)
     if (urlSearch) {
-      setFilteredItems(searchInput(urlSearch, discount, items));
+      setFilteredItems(searchInput(urlSearch, urlSort, discount, items, filteredItems));
       dispatch(filterActions.setSearch(urlSearch));
     }
     
