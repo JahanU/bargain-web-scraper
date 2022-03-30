@@ -10,7 +10,7 @@ let discountLimit = 10; // item discount must be greater than this value
 function main() {
     startScraping();
     setInterval(startScraping, 300 * 1000); // every 5 minutes
-    setInterval(resetCache, 43200 * 1000); // every 12 hours
+    setInterval(resetCache, 86400 * 1000); // every day
 }
 
 async function startScraping() {
@@ -38,7 +38,7 @@ function cacheDeals(newBestDeals: Item[]) { // don't send items we have already 
 function sendDeals(newDeals: Item[]) {
     if (newDeals.length) {
         console.log('got new items!: ', newDeals);
-        const discountedItems = newDeals.filter((item) => item.discount > 50);
+        const discountedItems = newDeals.filter((item) => item.discount > 55);
         telegram.sendPhotosToUsers(discountedItems); // only send discount items to telegram users
 
     }
