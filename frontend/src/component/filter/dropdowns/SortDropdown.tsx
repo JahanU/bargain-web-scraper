@@ -1,13 +1,10 @@
-/* eslint-disable jsx-a11y/anchor-is-valid */
-/* This example requires Tailwind CSS v2.0+ */
 import { Fragment } from 'react'
 import { Menu, Transition } from '@headlessui/react'
 import { ChevronDownIcon } from '@heroicons/react/solid'
 import { useDispatch } from 'react-redux'
-import { filterActions } from '../../store/filterSlice';
-import { paramActions } from '../../store/paramSlice';
-// import { useSearchParams } from "react-router-dom";
-import { Sort } from '../../interfaces/Sort';
+import { filterActions } from '../../../store/filterSlice';
+import { paramActions } from '../../../store/paramSlice';
+import { Sort } from '../../../interfaces/Sort';
 
 function classNames(...classes: any[]) {
     return classes.filter(Boolean).join(' ')
@@ -15,19 +12,16 @@ function classNames(...classes: any[]) {
 
 export default function Dropdown() {
 
-    // let [, setSortParams] = useSearchParams(); // eg "/shoes?brand=nike&sort=asc&sortby=price"
     const dispatch = useDispatch(); // Dispatch similar to in useReducer
 
     const onDiscountHighToLowHandler = (setFilter: boolean) => {
         const sort = setFilter ? Sort.discountHighToLow : Sort.discountLowToHigh;
-        // setSortParams({ sort });
         dispatch(filterActions.setDiscountHighToLow(setFilter));
         dispatch(paramActions.setSortParams({ sort }));
     };
 
     const onPriceHighToLowHandler = (setFilter: boolean) => {
         const sort = setFilter ? Sort.priceHighToLow : Sort.priceLowToHigh;
-        // setSortParams({ sort });
         dispatch(filterActions.setPriceHighToLow(setFilter));
         dispatch(paramActions.setSortParams({ sort }));
     }
@@ -36,7 +30,7 @@ export default function Dropdown() {
         <Menu as="div" className="relative inline-block text-left z-10">
             <div>
                 <Menu.Button className="inline-flex justify-center w-full rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-100 focus:ring-indigo-500">
-                    Options
+                    Sort
                     <ChevronDownIcon className="-mr-1 ml-2 h-5 w-5" aria-hidden="true" />
                 </Menu.Button>
             </div>
