@@ -28,7 +28,7 @@ function startScraping() {
             const JDItems = yield (0, JD_1.default)(discountLimit, resetLists());
             const newItems = cacheDeals(JDItems);
             sendDeals(newItems);
-            setallBestItemsSet();
+            setAllBestItemsSet();
         }
         catch (err) {
             console.log(err);
@@ -52,8 +52,10 @@ function sendDeals(newDeals) {
         telegram.sendPhotosToUsers(discountedItems); // only send discount items to telegram users
     }
 }
-function setallBestItemsSet() {
+function setAllBestItemsSet() {
     allBestItemsMap.forEach((item, url) => {
+        if (allBestItemsSet.has(item))
+            return;
         const newItem = Object.assign({ url }, item);
         allBestItemsSet.add(newItem);
     });
