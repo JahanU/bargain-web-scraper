@@ -564,3 +564,9 @@
 {"v":0,"level":30,"name":"newrelic","hostname":"192.168.1.233","pid":3492,"time":"2022-04-04T20:11:40.509Z","msg":"Agent state changed from stopped to starting."}
 {"v":0,"level":30,"name":"newrelic","hostname":"192.168.1.233","pid":3492,"time":"2022-04-04T20:11:40.609Z","msg":"Starting New Relic for Node.js connection process."}
 {"v":0,"level":30,"name":"newrelic","hostname":"192.168.1.233","pid":3492,"time":"2022-04-04T20:11:40.609Z","msg":"Agent state changed from starting to connecting."}
+{"v":0,"level":30,"name":"newrelic","hostname":"192.168.1.233","pid":14061,"time":"2022-04-05T22:24:33.507Z","msg":"Using New Relic for Node.js. Agent version: 8.7.1; Node version: v14.15.3."}
+{"v":0,"level":30,"name":"newrelic","hostname":"192.168.1.233","pid":14061,"time":"2022-04-05T22:24:33.587Z","msg":"Using LegacyContextManager"}
+{"v":0,"level":40,"name":"newrelic","hostname":"192.168.1.233","pid":14061,"time":"2022-04-05T22:24:33.626Z","msg":"The newrelic module must be the first module required.\nThe following modules were required before newrelic and are not being instrumented:\n\texpress: /Users/jahanulhaque/Code/web-scraper/backend/node_modules/express/index.js\n\tq: /Users/jahanulhaque/Code/web-scraper/backend/node_modules/qs/lib/index.js"}
+{"v":0,"level":30,"name":"newrelic","hostname":"192.168.1.233","pid":14061,"time":"2022-04-05T22:24:33.626Z","msg":"Agent state changed from stopped to starting."}
+{"v":0,"level":30,"name":"newrelic","hostname":"192.168.1.233","pid":14061,"time":"2022-04-05T22:24:33.740Z","msg":"Starting New Relic for Node.js connection process."}
+{"v":0,"level":30,"name":"newrelic","hostname":"192.168.1.233","pid":14061,"time":"2022-04-05T22:24:33.740Z","msg":"Agent state changed from starting to connecting."}
