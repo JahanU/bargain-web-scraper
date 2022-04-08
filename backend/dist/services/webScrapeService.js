@@ -20,7 +20,7 @@ let discountLimit = 10; // item discount must be greater than this value
 function main() {
     startScraping();
     setInterval(startScraping, 300 * 1000); // every 5 minutes
-    setInterval(resetCache, 172800 * 1000); // every day
+    setInterval(resetCache, 172800 * 1000); // every 2 days
 }
 function startScraping() {
     return __awaiter(this, void 0, void 0, function* () {
@@ -54,9 +54,9 @@ function sendDeals(newDeals) {
 }
 function setAllBestItemsSet() {
     allBestItemsMap.forEach((item, url) => {
-        if (allBestItemsSet.has(item))
-            return;
         const newItem = Object.assign({ url }, item);
+        if (allBestItemsSet.has(newItem))
+            return;
         allBestItemsSet.add(newItem);
     });
     console.log('final list: ', allBestItemsSet);

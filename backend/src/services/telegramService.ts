@@ -8,12 +8,12 @@ const api = new TG({ token: process.env.TELEGRAM_API });
 
 async function sendPhotosToUsers(items: Item[]) {
 
-    const users = await firebaseService.getUsers();
+    // const users = await firebaseService.getUsers();
 
-    // const users = [{
-    //     telegramId: process.env.CHAT_ID_JAHAN,
-    //     fullName: 'Jahan',
-    // }];
+    const users = [{
+        telegramId: process.env.CHAT_ID_JAHAN,
+        fullName: 'Jahan',
+    }];
 
     items.forEach((i) => { // .itemName, .wasPrice, .nowPrice, .discount, .url, .imageUrl, .sizes
         users.forEach((u) => {
