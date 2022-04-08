@@ -37,9 +37,16 @@ function discountSlider(search: string, discount: number, allItems: Item[]) {
   else
     return ([...allItems].filter((item: Item) => item.discount >= discount));
 }
-function searchInput(search: string, sort: string, discount: number, allItems: Item[], filteredItems: Item[]) {
+function searchInput(search: string, discount: number, allItems: Item[], filteredItems: Item[]) {
   if (search)
     return ([...filteredItems].filter((item: Item) => item.name.toLowerCase().includes(search)));
+  else 
+    return ([...allItems].filter((item: Item) => item.discount >= discount));
+}
+
+function sizeFilter(size: string, discount: number, allItems: Item[], filteredItems: Item[]) {
+  if (size)
+    return ([...filteredItems].filter((item: Item) => item.sizes.includes(size)));
   else 
     return ([...allItems].filter((item: Item) => item.discount >= discount));
 }
@@ -49,7 +56,7 @@ export default function App() {
   const dispatch = useDispatch();
   const filterStore = useSelector((state: any) => state.filterStore);
   const paramStore = useSelector((state: any) => state.paramStore);
-  const { search, discount, discountHighToLow, priceHighToLow, gender } = filterStore;
+  const { search, discount, discountHighToLow, priceHighToLow, gender, size } = filterStore;
   const { sortParams, searchInputParams } = paramStore; // genderParams,  discountParam
 
   let [searchParams, setSearchParams] = useSearchParams();
@@ -79,8 +86,12 @@ export default function App() {
   }, [discount]);
 
   useEffect(() => {
-    setFilteredItems(searchInput(search, sortParams, discount, items, filteredItems));
+    setFilteredItems(searchInput(search, discount, items, filteredItems));
   }, [search]);
+
+  useEffect(() => {
+    setFilteredItems(sizeFilter(size, discount, items, filteredItems));
+  }, [size]);
 
   useEffect(() => {
     const [search, sort] = [searchInputParams.input || '', sortParams.sort || ''];
@@ -92,7 +103,7 @@ export default function App() {
   function initialSortOptions(urlSort: string, urlSearch: string, items: Item[]) {
     // For initial loading based on URL input. eg http://localhost:3000/?sort=price-low-to-high or assign default (discount high to low)
     if (urlSearch) {
-      setFilteredItems(searchInput(urlSearch, urlSort, discount, items, filteredItems));
+      setFilteredItems(searchInput(urlSearch, discount, items, filteredItems));
       dispatch(filterActions.setSearch(urlSearch));
     }
     
