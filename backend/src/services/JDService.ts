@@ -13,8 +13,8 @@ const urls = [ // JD_ALL_MEN, SHOES
     // 'https://www.jdsports.co.uk/women/womens-footwear/brand/adidas-originals,adidas,nike,under-armour,the-north-face,new-balance,lacoste,vans,tommy-hilfiger,calvin-klein-underwear,levis,columbia,reebok,jordan,berghaus,polo-ralph-lauren,boss,champion,fred-perry,asics,converse/sale/?max=100&sort=price-low-high&max=200'
 ];
 
-function JDMain(discountLimit: number, resetCache: boolean): Promise<Item[]> {
-    if (resetCache) resetList();
+function JDMain(discountLimit: number, resetCacheFlag: boolean): Promise<Item[]> {
+    if (resetCacheFlag) resetList();
     return getJDItems(discountLimit);
 }
 

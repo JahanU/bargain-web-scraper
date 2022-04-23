@@ -17,18 +17,22 @@ const JDService_1 = __importDefault(require("../services/JDService"));
 let allBestItemsMap = new Map(); // <URL, Item>
 let allBestItemsSet = new Set();
 let discountLimit = 50; // item discount must be greater than this value
+let resetCacheFlag = false;
 function main() {
     startScraping();
     setInterval(startScraping, 300 * 1000); // every 5 minutes
     setInterval(resetCache, 86400 * 1000); // every day
+    // setInterval(startScraping, 30 * 1000); // every 30 seconds
+    // setInterval(resetCache, 180 * 1000); // every 3 minutes
 }
 function startScraping() {
     return __awaiter(this, void 0, void 0, function* () {
         try {
-            const JDItems = yield (0, JDService_1.default)(discountLimit, resetLists());
+            const JDItems = yield (0, JDService_1.default)(discountLimit, resetCacheFlag);
             const newItems = cacheDeals(JDItems);
             sendDeals(newItems);
             setallBestItemsSet();
+            resetCacheFlag = false;
         }
         catch (err) {
             console.log(err);
@@ -61,9 +65,8 @@ function setallBestItemsSet() {
 }
 const getBestDealsList = () => allBestItemsSet;
 const resetCache = () => {
+    resetCacheFlag = true;
     allBestItemsMap = new Map();
     allBestItemsSet = new Set();
 };
-// pass this function to JDMain, if list length is 0, then we also want to reset the JD cache
-const resetLists = () => allBestItemsSet.size === 0;
 module.exports = { main, getBestDealsList };

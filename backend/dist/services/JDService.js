@@ -20,8 +20,8 @@ const urls = [
     'https://www.jdsports.co.uk/men/mens-footwear/brand/adidas-originals,adidas,nike,under-armour,the-north-face,new-balance,lacoste,vans,tommy-hilfiger,calvin-klein-underwear,levis,columbia,reebok,jordan,berghaus,polo-ralph-lauren,boss,champion,fred-perry,asics,converse/sale/?max=100&sort=price-low-high&max=200',
     // 'https://www.jdsports.co.uk/women/womens-footwear/brand/adidas-originals,adidas,nike,under-armour,the-north-face,new-balance,lacoste,vans,tommy-hilfiger,calvin-klein-underwear,levis,columbia,reebok,jordan,berghaus,polo-ralph-lauren,boss,champion,fred-perry,asics,converse/sale/?max=100&sort=price-low-high&max=200'
 ];
-function JDMain(discountLimit, resetCache) {
-    if (resetCache)
+function JDMain(discountLimit, resetCacheFlag) {
+    if (resetCacheFlag)
         resetList();
     return getJDItems(discountLimit);
 }
