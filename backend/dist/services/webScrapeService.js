@@ -13,10 +13,10 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const telegram = require('./telegramService');
-const JD_1 = __importDefault(require("../helper/JD"));
+const JDService_1 = __importDefault(require("../services/JDService"));
 let allBestItemsMap = new Map(); // <URL, Item>
 let allBestItemsSet = new Set();
-let discountLimit = 10; // item discount must be greater than this value
+let discountLimit = 50; // item discount must be greater than this value
 function main() {
     startScraping();
     setInterval(startScraping, 300 * 1000); // every 5 minutes
@@ -25,7 +25,7 @@ function main() {
 function startScraping() {
     return __awaiter(this, void 0, void 0, function* () {
         try {
-            const JDItems = yield (0, JD_1.default)(discountLimit, resetLists());
+            const JDItems = yield (0, JDService_1.default)(discountLimit, resetLists());
             const newItems = cacheDeals(JDItems);
             sendDeals(newItems);
             setallBestItemsSet();

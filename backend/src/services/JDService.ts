@@ -1,6 +1,6 @@
 const cheerio = require('cheerio');
 const axios = require('axios');
-const filterData = require('./filterData');
+const filterData = require('../helper/filterData');
 import { Item } from "../interfaces/Item";
 
 let seenItemsCache = new Set<string>(); // stores url 

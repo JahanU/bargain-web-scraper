@@ -1,10 +1,10 @@
 const telegram = require('./telegramService');
-import JDMain from '../helper/JD';
+import JDService from '../services/JDService';
 import { Item } from "../interfaces/Item";
 
 let allBestItemsMap = new Map<string, Item>(); // <URL, Item>
 let allBestItemsSet = new Set<Item>();
-let discountLimit = 10; // item discount must be greater than this value
+let discountLimit = 50; // item discount must be greater than this value
 
 
 function main() {
@@ -15,7 +15,7 @@ function main() {
 
 async function startScraping() {
     try {
-        const JDItems = await JDMain(discountLimit, resetLists());
+        const JDItems = await JDService(discountLimit, resetLists());
         const newItems = cacheDeals(JDItems);
         sendDeals(newItems);
         setallBestItemsSet();
