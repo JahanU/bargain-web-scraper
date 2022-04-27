@@ -16,23 +16,24 @@ const telegram = require('./telegramService');
 const JDService_1 = __importDefault(require("../services/JDService"));
 let allBestItemsMap = new Map(); // <URL, Item>
 let allBestItemsSet = new Set();
-let discountLimit = 50; // item discount must be greater than this value
+let cachedAllBestItemsSet = new Set(); // when we reset the set, we use this old one for the UI until the new data is fetched
+let discountLimit = 10; // item discount must be greater than this value
 let resetCacheFlag = false;
 function main() {
     startScraping();
     setInterval(startScraping, 300 * 1000); // every 5 minutes
     setInterval(resetCache, 86400 * 1000); // every day
-    // setInterval(startScraping, 30 * 1000); // every 30 seconds
-    // setInterval(resetCache, 180 * 1000); // every 3 minutes
+    // setInterval(startScraping, 5 * 1000); // every 30 seconds
+    // setInterval(resetCache, 20 * 1000); // every 90 seconds
 }
 function startScraping() {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             const JDItems = yield (0, JDService_1.default)(discountLimit, resetCacheFlag);
+            resetCacheFlag = false;
             const newItems = cacheDeals(JDItems);
             sendDeals(newItems);
             setallBestItemsSet();
-            resetCacheFlag = false;
         }
         catch (err) {
             console.log(err);
@@ -63,10 +64,15 @@ function setallBestItemsSet() {
     });
     console.log('final list: ', allBestItemsSet);
 }
-const getBestDealsList = () => allBestItemsSet;
+const getBestDealsList = () => {
+    if (cachedAllBestItemsSet.size > allBestItemsSet.size)
+        return cachedAllBestItemsSet;
+    return allBestItemsSet;
+};
 const resetCache = () => {
+    cachedAllBestItemsSet = new Set(JSON.parse(JSON.stringify([...allBestItemsSet])));
     resetCacheFlag = true;
     allBestItemsMap = new Map();
-    allBestItemsSet = new Set();
+    allBestItemsSet.clear();
 };
 module.exports = { main, getBestDealsList };
