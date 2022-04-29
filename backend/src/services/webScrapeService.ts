@@ -10,7 +10,7 @@ let discountLimit = 10; // item discount must be greater than this value
 let resetCacheFlag = false;
 
 function main() {
-    startScraping();
+    // startScraping();
     setInterval(startScraping, 300 * 1000); // every 5 minutes
     setInterval(resetCache, 86400 * 1000); // every day
     // setInterval(startScraping, 5 * 1000); // every 30 seconds
@@ -57,7 +57,7 @@ function setallBestItemsSet() {
 }
 
 const getBestDealsList = () => {
-    if (cachedAllBestItemsSet.size > allBestItemsSet.size) 
+    if (allBestItemsSet.size === 0) 
         return cachedAllBestItemsSet;
     return allBestItemsSet;
 }
