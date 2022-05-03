@@ -17,14 +17,15 @@ const JDService_1 = __importDefault(require("../services/JDService"));
 let allBestItemsMap = new Map(); // <URL, Item>
 let allBestItemsSet = new Set();
 let cachedAllBestItemsSet = new Set(); // when we reset the set, we use this old one for the UI until the new data is fetched
-let discountLimit = 10; // item discount must be greater than this value
+let discountLimit = 60; // item discount must be greater than this value
 let resetCacheFlag = false;
+let resetCounter = 0;
 function main() {
-    // startScraping();
-    setInterval(startScraping, 300 * 1000); // every 5 minutes
-    setInterval(resetCache, 86400 * 1000); // every day
-    // setInterval(startScraping, 5 * 1000); // every 30 seconds
-    // setInterval(resetCache, 20 * 1000); // every 90 seconds
+    startScraping();
+    // setInterval(startScraping, 300 * 1000); // every 5 minutes
+    // setInterval(resetCache, 86400 * 1000); // every day
+    setInterval(startScraping, 10 * 1000); // every 10 seconds
+    setInterval(resetCache, 20 * 1000); // every 20 seconds
 }
 function startScraping() {
     return __awaiter(this, void 0, void 0, function* () {
@@ -43,11 +44,14 @@ function startScraping() {
 function cacheDeals(newBestDeals) {
     const newItems = [];
     newBestDeals.forEach((item) => {
-        if (!allBestItemsMap.has(item.url)) // found new item!
-            newItems.push(item);
+        if (allBestItemsMap.has(item.url))
+            return;
+        else
+            allBestItemsSet.add(item);
         allBestItemsMap.set(item.url, item);
     });
     console.log('all best deals: ', allBestItemsMap);
+    console.log(newItems);
     return newItems;
 }
 function sendDeals(newDeals) {
@@ -60,6 +64,8 @@ function sendDeals(newDeals) {
 function setallBestItemsSet() {
     allBestItemsMap.forEach((item, url) => {
         const newItem = Object.assign({ url }, item);
+        if (allBestItemsSet.has(newItem))
+            return;
         allBestItemsSet.add(newItem);
     });
     console.log('final list: ', allBestItemsSet);

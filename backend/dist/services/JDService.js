@@ -13,6 +13,7 @@ const cheerio = require('cheerio');
 const axios = require('axios');
 const filterData = require('../helper/filterData');
 let seenItemsCache = new Set(); // stores url 
+let items = [];
 const JD = 'https://www.jdsports.co.uk';
 const urls = [
     'https://www.jdsports.co.uk/men/brand/adidas-originals,adidas,nike,champion,under-armour,the-north-face,new-balance,lacoste,tommy-hilfiger,calvin-klein-underwear,levis,columbia,jordan,emporio-armani-ea7,berghaus,polo-ralph-lauren,boss,fred-perry,asics/sale/?sort=price-low-high&max=200',
@@ -23,13 +24,13 @@ const urls = [
 function JDMain(discountLimit, resetCacheFlag) {
     if (resetCacheFlag) {
         seenItemsCache.clear();
+        items = [];
         return new Promise((resolve, reject) => resolve([]));
     }
     else
         return getJDItems(discountLimit);
 }
 function getJDItems(discountLimit) {
-    const items = [];
     return new Promise((resolve, reject) => {
         Promise.all(urls.map((url) => __awaiter(this, void 0, void 0, function* () {
             console.log('url', url);

@@ -4,6 +4,7 @@ const filterData = require('../helper/filterData');
 import { Item } from "../interfaces/Item";
 
 let seenItemsCache = new Set<string>(); // stores url 
+let items: Item[] = [];
 
 const JD = 'https://www.jdsports.co.uk';
 const urls = [ // JD_ALL_MEN, SHOES 
@@ -16,6 +17,7 @@ const urls = [ // JD_ALL_MEN, SHOES
 function JDMain(discountLimit: number, resetCacheFlag: boolean): Promise<Item[]> {
     if (resetCacheFlag)  {
         seenItemsCache.clear();
+        items = [];
         return new Promise<Item[]>((resolve, reject) => resolve([]));
     }
     else 
@@ -25,7 +27,6 @@ function JDMain(discountLimit: number, resetCacheFlag: boolean): Promise<Item[]>
 
 function getJDItems(discountLimit: number): Promise<Item[]> {
 
-    const items: Item[] = [];
 
     return new Promise<Item[]>((resolve, reject) => {
         Promise.all(
