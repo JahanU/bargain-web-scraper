@@ -17,15 +17,14 @@ const JDService_1 = __importDefault(require("../services/JDService"));
 let allBestItemsMap = new Map(); // <URL, Item>
 let allBestItemsSet = new Set();
 let cachedAllBestItemsSet = new Set(); // when we reset the set, we use this old one for the UI until the new data is fetched
-let discountLimit = 60; // item discount must be greater than this value
+let discountLimit = 10; // item discount must be greater than this value
 let resetCacheFlag = false;
-let resetCounter = 0;
 function main() {
     startScraping();
-    // setInterval(startScraping, 300 * 1000); // every 5 minutes
-    // setInterval(resetCache, 86400 * 1000); // every day
-    setInterval(startScraping, 10 * 1000); // every 10 seconds
-    setInterval(resetCache, 20 * 1000); // every 20 seconds
+    setInterval(startScraping, 300 * 1000); // every 5 minutes
+    setInterval(resetCache, 86400 * 1000); // every day
+    // setInterval(startScraping, 10 * 1000); // every 10 seconds
+    // setInterval(resetCache, 20 * 1000); // every 20 seconds
 }
 function startScraping() {
     return __awaiter(this, void 0, void 0, function* () {
@@ -34,7 +33,6 @@ function startScraping() {
             resetCacheFlag = false;
             const newItems = cacheDeals(JDItems);
             sendDeals(newItems);
-            setallBestItemsSet();
         }
         catch (err) {
             console.log(err);
@@ -42,33 +40,27 @@ function startScraping() {
     });
 }
 function cacheDeals(newBestDeals) {
-    const newItems = [];
     newBestDeals.forEach((item) => {
         if (allBestItemsMap.has(item.url))
             return;
-        else
-            allBestItemsSet.add(item);
+        else {
+            const url = item.url;
+            const newItem = Object.assign({ url }, item);
+            if (allBestItemsSet.has(newItem))
+                return;
+            allBestItemsSet.add(newItem);
+        }
         allBestItemsMap.set(item.url, item);
     });
-    console.log('all best deals: ', allBestItemsMap);
-    console.log(newItems);
-    return newItems;
+    return allBestItemsSet;
 }
 function sendDeals(newDeals) {
-    if (newDeals.length) {
+    if (newDeals.size) {
+        let items = [...newDeals];
         console.log('got new items!: ', newDeals);
-        const discountedItems = newDeals.filter((item) => item.discount > 55);
+        const discountedItems = items.filter((item) => item.discount > 55);
         telegram.sendPhotosToUsers(discountedItems); // only send discount items to telegram users
     }
-}
-function setallBestItemsSet() {
-    allBestItemsMap.forEach((item, url) => {
-        const newItem = Object.assign({ url }, item);
-        if (allBestItemsSet.has(newItem))
-            return;
-        allBestItemsSet.add(newItem);
-    });
-    console.log('final list: ', allBestItemsSet);
 }
 const getBestDealsList = () => {
     if (allBestItemsSet.size === 0)
