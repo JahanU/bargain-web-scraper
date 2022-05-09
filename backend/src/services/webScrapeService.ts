@@ -29,6 +29,9 @@ async function startScraping() {
 }
 
 function cacheDeals(newBestDeals: Item[]) { // don't send items we have already seen
+
+    let newItems: Item[] = [];
+
     newBestDeals.forEach((item: Item) => {
         if (allBestItemsMap.has(item.url)) return;
         else {
@@ -36,17 +39,17 @@ function cacheDeals(newBestDeals: Item[]) { // don't send items we have already 
             const newItem = { url, ...item };
             if (allBestItemsSet.has(newItem)) return;
             allBestItemsSet.add(newItem);  
+            newItems.push(newItem);
         }
         allBestItemsMap.set(item.url, item);
     });
-    return allBestItemsSet;
+    return newItems;
 }
 
-function sendDeals(newDeals: Set<Item>) {
-    if (newDeals.size) {
-        let items = [...newDeals];
+function sendDeals(newDeals: Item[]) {
+    if (newDeals.length) {
         console.log('got new items!: ', newDeals);
-        const discountedItems = items.filter((item) => item.discount > 55);
+        const discountedItems = newDeals.filter((item) => item.discount > 55);
         telegram.sendPhotosToUsers(discountedItems); // only send discount items to telegram users
     }
 }

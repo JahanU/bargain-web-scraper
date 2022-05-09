@@ -40,6 +40,7 @@ function startScraping() {
     });
 }
 function cacheDeals(newBestDeals) {
+    let newItems = [];
     newBestDeals.forEach((item) => {
         if (allBestItemsMap.has(item.url))
             return;
@@ -49,16 +50,16 @@ function cacheDeals(newBestDeals) {
             if (allBestItemsSet.has(newItem))
                 return;
             allBestItemsSet.add(newItem);
+            newItems.push(newItem);
         }
         allBestItemsMap.set(item.url, item);
     });
-    return allBestItemsSet;
+    return newItems;
 }
 function sendDeals(newDeals) {
-    if (newDeals.size) {
-        let items = [...newDeals];
+    if (newDeals.length) {
         console.log('got new items!: ', newDeals);
-        const discountedItems = items.filter((item) => item.discount > 55);
+        const discountedItems = newDeals.filter((item) => item.discount > 55);
         telegram.sendPhotosToUsers(discountedItems); // only send discount items to telegram users
     }
 }
