@@ -81,9 +81,9 @@ export default function App() {
     filterStore;
 
   const { sortParams, searchInputParams } = paramStore; // genderParams,  discountParam
-  let [searchParams, setSearchParams] = useSearchParams();
-  let urlSort = searchParams.get("sort") || "";
-  let urlSearch = searchParams.get("search") || "";
+  let [urlParams, setUrlParams] = useSearchParams();
+  let urlSort = urlParams.get("sort") || "";
+  let urlSearch = urlParams.get("search") || "";
 
   const [items, setItems] = useState<Item[]>([]);
   const [filteredItems, setFilteredItems] = useState<Item[]>([]);
@@ -117,26 +117,32 @@ export default function App() {
 
   useEffect(() => {
     console.log("url changed");
-
     const [search, sort] = [
       searchInputParams.input || "",
       sortParams.sort || "",
     ];
+    console.log("search: ", search, "sort: ", sort);
 
-    console.log(search, sort);
+    const searchPar = urlParams.get("search");
+    if (searchPar) {
+      console.log("we have search par, delete...");
+      urlParams.delete("search");
+      console.log("setting params:", { urlParams: urlParams.toString() });
+      console.dir(urlParams.toString());
+      setUrlParams(urlParams);
+      return;
+    }
 
     if (sortParams && searchInputParams) {
       console.log("both");
-      setSearchParams({ search, sort });
+      setUrlParams({ search, sort });
     } else if (searchInputParams) {
       console.log("search only");
-      setSearchParams({ search });
+      setUrlParams({ search });
     } else if (sortParams) {
       console.log("sort only");
-      setSearchParams({ sort });
+      setUrlParams({ sort });
     }
-
-    searchParams.set("search", "");
   }, [sortParams, searchInputParams]);
 
   function initialSortOptions(
@@ -145,6 +151,8 @@ export default function App() {
     items: Item[]
   ) {
     // For initial loading based on URL input. eg http://localhost:3000/?sort=price-low-to-high or assign default (discount high to low)
+
+    console.log("setting sort...");
 
     console.log(urlSort, urlSearch);
 
@@ -166,6 +174,7 @@ export default function App() {
       setFilteredItems(discountSort(false, items));
       dispatch(filterActions.setDiscountHighToLow(false));
     } else {
+      // TODO check that both search and sort is empty
       setFilteredItems(items);
     }
   }
