@@ -85,6 +85,9 @@ export default function App() {
   let urlSort = urlParams.get("sort") || "";
   let urlSearch = urlParams.get("search") || "";
 
+  console.log("sort params: ", sortParams);
+  console.log("sort: ", urlSort);
+
   const [items, setItems] = useState<Item[]>([]);
   const [filteredItems, setFilteredItems] = useState<Item[]>([]);
   const [loading, setLoading] = useState(true);
@@ -116,33 +119,21 @@ export default function App() {
   }, [size]);
 
   useEffect(() => {
-    console.log("url changed");
     const [search, sort] = [
       searchInputParams.input || "",
       sortParams.sort || "",
     ];
-    console.log("search: ", search, "sort: ", sort);
 
-    const searchPar = urlParams.get("search");
-    if (searchPar) {
-      console.log("we have search par, delete...");
+    if (!search) {
       urlParams.delete("search");
       console.log("setting params:", { urlParams: urlParams.toString() });
-      console.dir(urlParams.toString());
       setUrlParams(urlParams);
       return;
     }
 
-    if (sortParams && searchInputParams) {
-      console.log("both");
-      setUrlParams({ search, sort });
-    } else if (searchInputParams) {
-      console.log("search only");
-      setUrlParams({ search });
-    } else if (sortParams) {
-      console.log("sort only");
-      setUrlParams({ sort });
-    }
+    if (sortParams && searchInputParams) setUrlParams({ search, sort });
+    else if (searchInputParams) setUrlParams({ search });
+    else if (sortParams) setUrlParams({ sort });
   }, [sortParams, searchInputParams]);
 
   function initialSortOptions(
