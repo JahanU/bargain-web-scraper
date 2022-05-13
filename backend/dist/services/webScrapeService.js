@@ -23,9 +23,7 @@ function main() {
     startScraping();
     setInterval(startScraping, 300 * 1000); // every 5 minutes
     setInterval(resetCache, 86400 * 1000); // every day
-    // setInterval(startScraping, 10 * 1000); // every 10 seconds
-    // setInterval(resetCache, 20 * 1000); // every 20 seconds
-}
+  
 function startScraping() {
     return __awaiter(this, void 0, void 0, function* () {
         try {
@@ -33,6 +31,7 @@ function startScraping() {
             resetCacheFlag = false;
             const newItems = cacheDeals(JDItems);
             sendDeals(newItems);
+            setAllBestItemsSet();
         }
         catch (err) {
             console.log(err);
@@ -68,7 +67,19 @@ const getBestDealsList = () => {
         return cachedAllBestItemsSet;
     return allBestItemsSet;
 };
-const resetCache = () => {
+
+function setAllBestItemsSet() {
+    allBestItemsMap.forEach((item, url) => {
+        const newItem = Object.assign({ url }, item);
+        if (allBestItemsSet.has(newItem))
+            return;
+        allBestItemsSet.add(newItem);
+    });
+    console.log('final list: ', allBestItemsSet);
+}
+const getBestDealsList = () => allBestItemsSet;
+
+  const resetCache = () => {
     cachedAllBestItemsSet = new Set(JSON.parse(JSON.stringify([...allBestItemsSet])));
     resetCacheFlag = true;
     allBestItemsMap = new Map();

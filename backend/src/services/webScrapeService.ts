@@ -13,8 +13,6 @@ function main() {
     startScraping();
     setInterval(startScraping, 300 * 1000); // every 5 minutes
     setInterval(resetCache, 86400 * 1000); // every day
-    // setInterval(startScraping, 10 * 1000); // every 10 seconds
-    // setInterval(resetCache, 20 * 1000); // every 20 seconds
 }
 
 async function startScraping() {
@@ -23,6 +21,7 @@ async function startScraping() {
         resetCacheFlag = false;
         const newItems = cacheDeals(JDItems);
         sendDeals(newItems);
+        setAllBestItemsSet();
     } catch (err) {
         console.log(err);
     }
@@ -58,6 +57,14 @@ const getBestDealsList = () => {
     if (allBestItemsSet.size === 0) 
         return cachedAllBestItemsSet;
     return allBestItemsSet;
+
+function setAllBestItemsSet() {
+    allBestItemsMap.forEach((item, url) => { // value, key
+        const newItem = { url, ...item }
+        if (allBestItemsSet.has(newItem)) return; 
+        allBestItemsSet.add(newItem);
+    });
+    console.log('final list: ', allBestItemsSet);
 }
 
 const resetCache = () => {
