@@ -64,7 +64,7 @@ export default function App() {
   let [urlParams, setUrlParams] = useSearchParams();
   let urlSort = urlParams.get("sort") || "";
   let urlSearch = urlParams.get("search") || "";
-  let urlSize = urlParams.get("size") || "";
+  // let urlSize = urlParams.get("size") || "";
 
 
   const [items, setItems] = useState<Item[]>([]);
