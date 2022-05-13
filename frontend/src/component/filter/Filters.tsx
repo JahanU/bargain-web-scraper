@@ -1,12 +1,13 @@
 import DiscountSlider from "./DiscountSlider";
-import Dropdown from "./Dropdown";
+import SortDropdown from "./dropdowns/SortDropdown";
+import SizeDropdown from "./dropdowns/SizeDropdown";
 // import { Genders } from "./Genders";
 import SearchBar from "./SearchBar";
 
 function Filters(props: any) {
 
     return (
-        <section className="bg-white">
+        <section className="bg-gray-100">
             <nav className="flex justify-between p-6 px-4">
                 <div className="flex justify-between items-center w-full">
 
@@ -14,7 +15,8 @@ function Filters(props: any) {
                         <ul className="flex justify-center ">
                             <li className="mr-12"><DiscountSlider /></li>
                             <li className="mr-12"><SearchBar /></li>
-                            <li className="mr-12"><Dropdown /></li>
+                            <li className="mr-12"><SortDropdown /></li>
+                            <li className="mr-12"><SizeDropdown /></li>
                             {/* <li className="mr-12"><Genders /></li> */}
                         </ul>
                     </div>

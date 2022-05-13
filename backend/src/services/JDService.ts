@@ -1,9 +1,10 @@
 const cheerio = require('cheerio');
 const axios = require('axios');
-const filterData = require('./filterData');
+const filterData = require('../helper/filterData');
 import { Item } from "../interfaces/Item";
 
 let seenItemsCache = new Set<string>(); // stores url 
+let items: Item[] = [];
 
 const JD = 'https://www.jdsports.co.uk';
 const urls = [ // JD_ALL_MEN, SHOES 
@@ -13,16 +14,18 @@ const urls = [ // JD_ALL_MEN, SHOES
     // 'https://www.jdsports.co.uk/women/womens-footwear/brand/adidas-originals,adidas,nike,under-armour,the-north-face,new-balance,lacoste,vans,tommy-hilfiger,calvin-klein-underwear,levis,columbia,reebok,jordan,berghaus,polo-ralph-lauren,boss,champion,fred-perry,asics,converse/sale/?max=100&sort=price-low-high&max=200'
 ];
 
-function JDMain(discountLimit: number, resetCache: boolean): Promise<Item[]> {
-    if (resetCache) resetList();
-    return getJDItems(discountLimit);
+function JDMain(discountLimit: number, resetCacheFlag: boolean): Promise<Item[]> {
+    if (resetCacheFlag)  {
+        seenItemsCache.clear();
+        items = [];
+        return new Promise<Item[]>((resolve, reject) => resolve([]));
+    }
+    else 
+        return getJDItems(discountLimit);
 }
 
-const resetList = () => seenItemsCache.clear();
 
 function getJDItems(discountLimit: number): Promise<Item[]> {
-
-    const items: Item[] = [];
 
     return new Promise<Item[]>((resolve, reject) => {
         Promise.all(

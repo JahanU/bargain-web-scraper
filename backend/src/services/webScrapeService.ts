@@ -1,21 +1,24 @@
 const telegram = require('./telegramService');
-import JDMain from '../helper/JD';
+import JDService from '../services/JDService';
 import { Item } from "../interfaces/Item";
 
 let allBestItemsMap = new Map<string, Item>(); // <URL, Item>
 let allBestItemsSet = new Set<Item>();
-let discountLimit = 10; // item discount must be greater than this value
+let cachedAllBestItemsSet = new Set<Item>(); // when we reset the set, we use this old one for the UI until the new data is fetched
 
+let discountLimit = 10; // item discount must be greater than this value
+let resetCacheFlag = false;
 
 function main() {
     startScraping();
     setInterval(startScraping, 300 * 1000); // every 5 minutes
-    setInterval(resetCache, 172800 * 1000); // every 2 days
+    setInterval(resetCache, 86400 * 1000); // every day
 }
 
 async function startScraping() {
-    try {
-        const JDItems = await JDMain(discountLimit, resetLists());
+    try { 
+        const JDItems = await JDService(discountLimit, resetCacheFlag);
+        resetCacheFlag = false;
         const newItems = cacheDeals(JDItems);
         sendDeals(newItems);
         setAllBestItemsSet();
@@ -25,13 +28,20 @@ async function startScraping() {
 }
 
 function cacheDeals(newBestDeals: Item[]) { // don't send items we have already seen
-    const newItems: Item[] = [];
-    newBestDeals.forEach((item) => {
-        if (!allBestItemsMap.has(item.url)) // found new item!
-            newItems.push(item); 
+
+    let newItems: Item[] = [];
+
+    newBestDeals.forEach((item: Item) => {
+        if (allBestItemsMap.has(item.url)) return;
+        else {
+            const url = item.url;
+            const newItem = { url, ...item };
+            if (allBestItemsSet.has(newItem)) return;
+            allBestItemsSet.add(newItem);  
+            newItems.push(newItem);
+        }
         allBestItemsMap.set(item.url, item);
     });
-    console.log('all best deals: ', allBestItemsMap);
     return newItems;
 }
 
@@ -43,6 +53,11 @@ function sendDeals(newDeals: Item[]) {
     }
 }
 
+const getBestDealsList = () => {
+    if (allBestItemsSet.size === 0) 
+        return cachedAllBestItemsSet;
+    return allBestItemsSet;
+
 function setAllBestItemsSet() {
     allBestItemsMap.forEach((item, url) => { // value, key
         const newItem = { url, ...item }
@@ -52,14 +67,11 @@ function setAllBestItemsSet() {
     console.log('final list: ', allBestItemsSet);
 }
 
-const getBestDealsList = () => allBestItemsSet;
-
 const resetCache = () => {
+    cachedAllBestItemsSet = new Set(JSON.parse(JSON.stringify([...allBestItemsSet])))
+    resetCacheFlag = true;
     allBestItemsMap = new Map();
-    allBestItemsSet = new Set<Item>();
+    allBestItemsSet.clear();
 }
-
-// pass this function to JDMain, if list length is 0, then we also want to reset the JD cache
-const resetLists = () => allBestItemsSet.size === 0;
 
 module.exports = { main, getBestDealsList };
