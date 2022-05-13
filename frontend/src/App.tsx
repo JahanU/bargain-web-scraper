@@ -13,80 +13,59 @@ import { filterActions } from "./store/filterSlice";
 import { Sort } from "./interfaces/Sort";
 
 function priceSort(filter: boolean, items: Item[]) {
-  if (filter)
-    // Sort Desc // TODO: Parse type for quick fix until backend is updated
-    return [...items].sort(
-      (a, b) =>
-        parseInt(b.nowPrice.substring(1)) - parseInt(a.nowPrice.substring(1))
-    );
+  if (filter)// Sort Desc // TODO: Parse type for quick fix until backend is updated
+    return [...items].sort((a, b) =>parseInt(b.nowPrice.substring(1)) - parseInt(a.nowPrice.substring(1)));
   else
-    return [...items].sort(
-      (a, b) =>
-        parseInt(a.nowPrice.substring(1)) - parseInt(b.nowPrice.substring(1))
-    );
+    return [...items].sort((a, b) =>parseInt(a.nowPrice.substring(1)) - parseInt(b.nowPrice.substring(1)));
 }
 function discountSort(discountHighToLow: boolean, items: Item[]) {
-  if (discountHighToLow)
-    // Sort Desc
+  if (discountHighToLow)// Sort Desc
     return [...items].sort((a, b) => b.discount - a.discount);
-  else return [...items].sort((a, b) => a.discount - b.discount);
+  else 
+    return [...items].sort((a, b) => a.discount - b.discount);
 }
 function genderSort(gender: boolean, items: Item[]) {
   if (gender)
     // Gender -> male = true, female = false
     return [...items].filter((item: Item) => item.gender === "Male");
-  else return [...items].filter((item: Item) => item.gender === "Female");
+  else 
+    return [...items].filter((item: Item) => item.gender === "Female");
 }
 function discountSlider(search: string, discount: number, allItems: Item[]) {
-  if (search)
-    return [...allItems].filter(
-      (item: Item) =>
-        item.name.toLowerCase().includes(search) && item.discount >= discount
-    );
-  else return [...allItems].filter((item: Item) => item.discount >= discount);
+  if (search) 
+    return [...allItems].filter((item: Item) => item.name.toLowerCase().includes(search) && item.discount >= discount);
+  else
+   return [...allItems].filter((item: Item) => item.discount >= discount);
 }
-function searchInput(
-  search: string,
-  discount: number,
-  allItems: Item[],
-  filteredItems: Item[]
-) {
+function searchInput(search: string, discount: number, allItems: Item[], filteredItems: Item[]) {
   if (search && filteredItems.length > 0)
-    return [...filteredItems].filter((item: Item) =>
-      item.name.toLowerCase().includes(search)
-    );
+    return [...filteredItems].filter((item: Item) => item.name.toLowerCase().includes(search));
   else if (search)
-    return [...allItems].filter((item: Item) =>
-      item.name.toLowerCase().includes(search)
-    );
-  else return [...allItems].filter((item: Item) => item.discount >= discount);
+    return [...allItems].filter((item: Item) => item.name.toLowerCase().includes(search));
+  else
+   return [...allItems].filter((item: Item) => item.discount >= discount);
 }
 
-function sizeFilter(
-  size: string,
-  discount: number,
-  allItems: Item[],
-  filteredItems: Item[]
-) {
+function sizeFilter(size: string, discount: number, allItems: Item[]) {
   if (size)
-    return [...filteredItems].filter((item: Item) => item.sizes.includes(size));
-  else return [...allItems].filter((item: Item) => item.discount >= discount);
+    return [...allItems].filter((item: Item) => item.sizes.includes(size));
+  else 
+    return [...allItems].filter((item: Item) => item.discount >= discount);
 }
 
 export default function App() {
+
   const dispatch = useDispatch();
   const filterStore = useSelector((state: any) => state.filterStore);
   const paramStore = useSelector((state: any) => state.paramStore);
-  const { search, discount, discountHighToLow, priceHighToLow, gender, size } =
-    filterStore;
+  const { search, discount, discountHighToLow, priceHighToLow, gender, size } = filterStore;
 
-  const { sortParams, searchInputParams } = paramStore; // genderParams,  discountParam
+  const { sortParams, searchInputParams, sizeParams } = paramStore; // genderParams,  discountParam
   let [urlParams, setUrlParams] = useSearchParams();
   let urlSort = urlParams.get("sort") || "";
   let urlSearch = urlParams.get("search") || "";
+  let urlSize = urlParams.get("size") || "";
 
-  console.log("sort params: ", sortParams);
-  console.log("sort: ", urlSort);
 
   const [items, setItems] = useState<Item[]>([]);
   const [filteredItems, setFilteredItems] = useState<Item[]>([]);
@@ -115,38 +94,28 @@ export default function App() {
   }, [search]);
 
   useEffect(() => {
-    setFilteredItems(sizeFilter(size, discount, items, filteredItems));
+    setFilteredItems(sizeFilter(size, discount, items));
   }, [size]);
 
   useEffect(() => {
-    const [search, sort] = [
-      searchInputParams.input || "",
-      sortParams.sort || "",
-    ];
+    const [search, sort, size] = [searchInputParams.input || "", sortParams.sort || "", sizeParams.size || ""];
 
-    if (!search) {
+
+    if (!search) { // uesr cleared input search
       urlParams.delete("search");
       console.log("setting params:", { urlParams: urlParams.toString() });
       setUrlParams(urlParams);
-      return;
     }
 
-    if (sortParams && searchInputParams) setUrlParams({ search, sort });
-    else if (searchInputParams) setUrlParams({ search });
-    else if (sortParams) setUrlParams({ sort });
-  }, [sortParams, searchInputParams]);
+    if (search && sort && size) setUrlParams({ search, sort, size });
+    else if (search) setUrlParams({ search });
+    else if (sort) setUrlParams({ sort });
+    else if (size) setUrlParams({ size });
+  }, [sortParams, searchInputParams, sizeParams]);
 
-  function initialSortOptions(
-    urlSort: string,
-    urlSearch: string,
-    items: Item[]
-  ) {
+
+  function initialSortOptions(urlSort: string, urlSearch: string,items: Item[]) {
     // For initial loading based on URL input. eg http://localhost:3000/?sort=price-low-to-high or assign default (discount high to low)
-
-    console.log("setting sort...");
-
-    console.log(urlSort, urlSearch);
-
     if (urlSearch) {
       setFilteredItems(searchInput(urlSearch, discount, items, filteredItems));
       dispatch(filterActions.setSearch(urlSearch));
@@ -165,7 +134,7 @@ export default function App() {
       setFilteredItems(discountSort(false, items));
       dispatch(filterActions.setDiscountHighToLow(false));
     } else {
-      // TODO check that both search and sort is empty
+      // TODO - Maybe: check that both search and sort is empty
       setFilteredItems(items);
     }
   }

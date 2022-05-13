@@ -5,6 +5,7 @@ const initialParamState = {
     sortParams: '',
     searchInputParams: '',
     genderParams: '',
+    sizeParams: ''
 }
 
 const param = createSlice({
@@ -19,6 +20,9 @@ const param = createSlice({
         },
         setSearchInputParams: (state, action) => {
             state.searchInputParams = action.payload;
+        },
+        setSizeParams: (state, action) => {
+            state.sizeParams = action.payload;
         },
         setGenderParams: (state, action) => {
             state.genderParams = action.payload;

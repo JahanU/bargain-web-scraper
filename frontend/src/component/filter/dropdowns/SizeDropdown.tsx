@@ -4,6 +4,7 @@ import { Menu, Transition } from "@headlessui/react";
 import { ChevronDownIcon } from "@heroicons/react/solid";
 import { useDispatch } from "react-redux";
 import { filterActions } from "../../../store/filterSlice";
+import { paramActions } from "../../../store/paramSlice";
 
 const sizes = ["XS", "S", "M", "L", "XL", "XXL"];
 
@@ -14,9 +15,10 @@ function classNames(...classes: any[]) {
 export default function Dropdown() {
   const dispatch = useDispatch(); // Dispatch similar to in useReducer
 
-  const onClickHandler = (size: string) => {
-    console.log(size);
-    dispatch(filterActions.setSize(size));
+  const onClickHandler = (value: string) => {
+    dispatch(filterActions.setSize(value));
+    dispatch(paramActions.setSizeParams({ size: value }));
+
   };
 
   return (
