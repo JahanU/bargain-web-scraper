@@ -7,33 +7,39 @@ const initalFilterState = {
     discountHighToLow: null, // Default we sort in Desc Order
     priceHighToLow: null,
     gender: null, // true = male, false = female
-    size: null,
+    sizes: [],
 }
 
 const filter = createSlice({
     name: 'filter',
     initialState: initalFilterState,
     reducers: {
-        setDiscount: (state, action) => {
+        setDiscount: (state: { discount: any; }, action: { payload: any; }) => {
             state.discount = action.payload;
         },
-        setSearch: (state, action) => {
+        setSearch: (state: { search: string }, action: { payload: string; }) => {
             state.search = action.payload.toLowerCase();
         },
-        setLatset: (state) => {
+        setLatset: (state: { latest: boolean; }) => {
             state.latest = !state.latest;
         },
-        setDiscountHighToLow: (state, action) => {
+        setDiscountHighToLow: (state: { discountHighToLow: any; }, action: { payload: any; }) => {
             state.discountHighToLow = action.payload;
         },
-        setPriceHighToLow: (state, action) => {
+        setPriceHighToLow: (state: { priceHighToLow: any; }, action: { payload: any; }) => {
             state.priceHighToLow = action.payload;
         },
-        setGender: (state, action) => {
+        setGender: (state: { gender: any; }, action: { payload: any; }) => {
             state.gender = action.payload;
         },
-        setSize: (state, action) => {
-            state.size = action.payload;
+        setSize: (state: { sizes: any[]; }, action: { payload: string; }) => {
+            // todo if already in size, we remove. else we add
+            if (state.sizes.includes(action.payload))
+                state.sizes = state.sizes.filter((s: string) => s !== action.payload);
+            else
+                state.sizes.push(action.payload);
+
+            console.log(state.sizes);
         },
     }
 });

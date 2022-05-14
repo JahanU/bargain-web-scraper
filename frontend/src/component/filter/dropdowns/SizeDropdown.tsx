@@ -2,7 +2,7 @@
 import { Fragment } from "react";
 import { Menu, Transition } from "@headlessui/react";
 import { ChevronDownIcon } from "@heroicons/react/solid";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { filterActions } from "../../../store/filterSlice";
 import { paramActions } from "../../../store/paramSlice";
 
@@ -13,13 +13,20 @@ function classNames(...classes: any[]) {
 }
 
 export default function Dropdown() {
+
   const dispatch = useDispatch(); // Dispatch similar to in useReducer
+  const selectedSizes = useSelector((state: any) => state.filterStore.sizes);
+  console.log(selectedSizes);
 
   const onClickHandler = (value: string) => {
+    console.log(value);
     dispatch(filterActions.setSize(value));
     dispatch(paramActions.setSizeParams({ size: value }));
-
   };
+
+  // const getSelectedSize = (size: string) => {
+  //   if (selectedSize.ind)
+  // }
 
   return (
     <Menu as="div" className="relative inline-block text-left z-10">
@@ -39,6 +46,7 @@ export default function Dropdown() {
         leaveFrom="transform opacity-100 scale-100"
         leaveTo="transform opacity-0 scale-95"
       >
+
         <Menu.Items className="origin-top-right absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 focus:outline-none">
           <div className="py-1">
             {sizes.map((size, index) => (
@@ -51,6 +59,7 @@ export default function Dropdown() {
                     )}
                   >
                     {size}
+
                   </a>
                 )}
               </Menu.Item>
