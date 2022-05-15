@@ -1,5 +1,5 @@
 /* eslint-disable jsx-a11y/anchor-is-valid */
-import { Fragment } from "react";
+import { Fragment, useEffect } from "react";
 import { Menu, Transition } from "@headlessui/react";
 import { ChevronDownIcon } from "@heroicons/react/solid";
 import { useDispatch, useSelector } from "react-redux";
@@ -16,12 +16,15 @@ export default function Dropdown() {
 
   const dispatch = useDispatch(); // Dispatch similar to in useReducer
   const selectedSizes = useSelector((state: any) => state.filterStore.sizes);
-  console.log(selectedSizes);
+
+  useEffect(() => {
+    dispatch(paramActions.setSizeParams({ size: selectedSizes }))
+  }, [selectedSizes]);
 
   const onClickHandler = (value: string) => {
     console.log(value);
     dispatch(filterActions.setSize(value));
-    dispatch(paramActions.setSizeParams({ size: value }));
+    dispatch(paramActions.setSizeParams({ size: selectedSizes }));
   };
 
   // const getSelectedSize = (size: string) => {

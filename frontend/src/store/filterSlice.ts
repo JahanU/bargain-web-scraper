@@ -38,8 +38,6 @@ const filter = createSlice({
                 state.sizes = state.sizes.filter((s: string) => s !== action.payload);
             else
                 state.sizes.push(action.payload);
-
-            console.log(state.sizes);
         },
     }
 });
