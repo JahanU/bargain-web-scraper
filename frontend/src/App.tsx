@@ -46,9 +46,13 @@ function searchInput(search: string, discount: number, allItems: Item[], filtere
    return [...allItems].filter((item: Item) => item.discount >= discount);
 }
 
-function sizeFilter(size: string, discount: number, allItems: Item[]) {
-  if (size)
-    return [...allItems].filter((item: Item) => item.sizes.includes(size));
+function sizeFilter(sizes: string[], discount: number, allItems: Item[]) {
+  if (sizes.length > 0) {
+    return [...allItems].filter((item: Item) => item.sizes.includes(sizes.join('')));
+  }
+  // if (sizes.length > 0) {
+  //   return [...allItems].filter((item: Item) => sizes.includes(item.sizes.join()));
+  // }
   else 
     return [...allItems].filter((item: Item) => item.discount >= discount);
 }
@@ -58,7 +62,7 @@ export default function App() {
   const dispatch = useDispatch();
   const filterStore = useSelector((state: any) => state.filterStore);
   const paramStore = useSelector((state: any) => state.paramStore);
-  const { search, discount, discountHighToLow, priceHighToLow, gender, size } = filterStore;
+  const { search, discount, discountHighToLow, priceHighToLow, gender, sizes } = filterStore;
 
   const { sortParams, searchInputParams, sizeParams } = paramStore; // genderParams,  discountParam
   let [urlParams, setUrlParams] = useSearchParams();
@@ -94,8 +98,8 @@ export default function App() {
   }, [search]);
 
   useEffect(() => {
-    setFilteredItems(sizeFilter(size, discount, items));
-  }, [size]);
+    setFilteredItems(sizeFilter(sizes, discount, items));
+  }, [sizes]);
 
   useEffect(() => {
     const [search, sort, size] = [searchInputParams.input || "", sortParams.sort || "", sizeParams.size || ""];

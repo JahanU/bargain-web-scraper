@@ -21,15 +21,12 @@ export default function Dropdown() {
     dispatch(paramActions.setSizeParams({ size: selectedSizes }))
   }, [selectedSizes]);
 
+  
   const onClickHandler = (value: string) => {
     console.log(value);
     dispatch(filterActions.setSize(value));
     dispatch(paramActions.setSizeParams({ size: selectedSizes }));
   };
-
-  // const getSelectedSize = (size: string) => {
-  //   if (selectedSize.ind)
-  // }
 
   return (
     <Menu as="div" className="relative inline-block text-left z-10">
