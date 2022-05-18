@@ -48,11 +48,20 @@ function searchInput(search: string, discount: number, allItems: Item[], filtere
 
 function sizeFilter(sizes: string[], discount: number, allItems: Item[]) {
   if (sizes.length > 0) {
-    return [...allItems].filter((item: Item) => item.sizes.includes(sizes.join('')));
+    let filteredItems: Item[] = [];
+          for (let i = 0; i < allItems.length; i++) {
+            let item = allItems[i];
+              for (let j = 0; j < sizes.length; j++) {
+                let size = sizes[j];
+                if (item.sizes.includes(size)) {
+                  filteredItems.push(item);
+                  break;
+                }
+            };
+        };
+    return filteredItems;
   }
-  // if (sizes.length > 0) {
-  //   return [...allItems].filter((item: Item) => sizes.includes(item.sizes.join()));
-  // }
+
   else 
     return [...allItems].filter((item: Item) => item.discount >= discount);
 }
@@ -103,7 +112,6 @@ export default function App() {
 
   useEffect(() => {
     const [search, sort, size] = [searchInputParams.input || "", sortParams.sort || "", sizeParams.size || ""];
-
 
     if (!search) { // uesr cleared input search
       urlParams.delete("search");
