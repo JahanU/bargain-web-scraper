@@ -28,6 +28,13 @@ export default function Dropdown() {
     dispatch(paramActions.setSizeParams({ size: selectedSizes }));
   };
 
+  function showme() {
+    let x = `text-gray-90" text-gray-700 block px-4 py-2 text-sm bg-gray-50 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-100 focus:bg-indigo-800`;
+    return x;
+    }
+
+    showme();
+
   return (
     <Menu as="div" className="relative inline-block text-left z-10">
       <div>
@@ -53,14 +60,14 @@ export default function Dropdown() {
               <Menu.Item key={index} onClick={() => onClickHandler(size)}>
                 {({ active }) => (
                   <a
-                    className={classNames(
-                      active ? "bg-gray-100 text-gray-900" : "text-gray-700",
-                      "block px-4 py-2 text-sm"
-                    )}
+                    className={
+                      `text-gray-90 text-gray-700 block px-4 py-2 text-sm bg-gray-50 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-100 focus:bg-indigo-800 `
+                      +
+                      classNames(selectedSizes.includes(size) ? "bg-indigo-400 text-white" : "bg-gray-100 text-gray-900 opacity-70")}
                   >
                     {size}
-
                   </a>
+
                 )}
               </Menu.Item>
             ))}
