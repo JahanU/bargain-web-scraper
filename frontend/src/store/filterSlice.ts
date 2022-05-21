@@ -23,11 +23,13 @@ const filter = createSlice({
         setLatset: (state: { latest: boolean; }) => {
             state.latest = !state.latest;
         },
-        setDiscountHighToLow: (state: { discountHighToLow: any; }, action: { payload: any; }) => {
+        setDiscountHighToLow: (state: { discountHighToLow: any; priceHighToLow: any }, action: { payload: any; }) => {
             state.discountHighToLow = action.payload;
+            state.priceHighToLow = null;
         },
-        setPriceHighToLow: (state: { priceHighToLow: any; }, action: { payload: any; }) => {
+        setPriceHighToLow: (state: { priceHighToLow: any; discountHighToLow: any }, action: { payload: any; }) => {
             state.priceHighToLow = action.payload;
+            state.discountHighToLow = null;
         },
         setGender: (state: { gender: any; }, action: { payload: any; }) => {
             state.gender = action.payload;
