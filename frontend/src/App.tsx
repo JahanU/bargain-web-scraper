@@ -71,12 +71,11 @@ export default function App() {
   const paramStore = useSelector((state: any) => state.paramStore);
   const { search, discount, discountHighToLow, priceHighToLow, gender, sizes } = filterStore;
 
-  const { sortParams, searchInputParams, sizeParams } = paramStore; // genderParams,  discountParam
+  const { sortParams, searchInputParams, sizesParams } = paramStore; // genderParams,  discountParam
   let [urlParams, setUrlParams] = useSearchParams();
   let urlSort = urlParams.get("sort") || "";
   let urlSearch = urlParams.get("search") || "";
-  // let urlSize = urlParams.get("size") || "";
-
+  let urlSizes = urlParams.get("sizes") || "";
 
   const [items, setItems] = useState<Item[]>([]);
   const [filteredItems, setFilteredItems] = useState<Item[]>([]);
@@ -109,7 +108,7 @@ export default function App() {
   }, [sizes]);
 
   useEffect(() => {
-    const [search, sort, size] = [searchInputParams.input || "", sortParams.sort || "", sizeParams.size || ""];
+    const [search, sort, sizes] = [searchInputParams.input || "", sortParams.sort || "", sizesParams.sizes || ""];
 
     if (!search) { // uesr cleared input search
       urlParams.delete("search");
@@ -117,19 +116,27 @@ export default function App() {
       setUrlParams(urlParams);
     }
 
-    if (search && sort && size) setUrlParams({ search, sort, size });
+    if (search && sort && sizes) setUrlParams({ search, sort, sizes });
     else if (search) setUrlParams({ search });
     else if (sort) setUrlParams({ sort });
-    else if (size) setUrlParams({ size });
-  }, [sortParams, searchInputParams, sizeParams]);
+    else if (sizes) setUrlParams({ sizes });
+  }, [sortParams, searchInputParams, sizesParams]);
 
 
-  function initialSortOptions(urlSort: string, urlSearch: string,items: Item[]) {
+  function initialSortOptions(urlSort: string, urlSearch: string, urlSizes: string, items: Item[]) {
     // For initial loading based on URL input. eg http://localhost:3000/?sort=price-low-to-high or assign default (discount high to low)
+    console.log(urlSearch);
+    
     if (urlSearch) {
       setFilteredItems(searchInput(urlSearch, discount, items, filteredItems));
       dispatch(filterActions.setSearch(urlSearch));
     }
+
+    // if (urlSizes) {
+    //   console.log(urlSizes);
+    //   setFilteredItems(sizeFilter(urlSize.split(","), discount, items));
+    //   dispatch(filterActions.setSizes(urlSize));
+    // }
 
     if (urlSort === Sort.priceHighToLow) {
       setFilteredItems(priceSort(true, items));
@@ -145,7 +152,7 @@ export default function App() {
       dispatch(filterActions.setDiscountHighToLow(false));
     } else {
       // TODO - Maybe: check that both search and sort is empty
-      setFilteredItems(items);
+      // setFilteredItems(items);
     }
   }
 
@@ -159,7 +166,7 @@ export default function App() {
           setIsError(true);
         } else {
           setItems(items);
-          initialSortOptions(urlSort, urlSearch, items);
+          initialSortOptions(urlSort, urlSearch, urlSizes, items);
         }
       })
       .catch((err: any) => {

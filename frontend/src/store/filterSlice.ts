@@ -34,12 +34,13 @@ const filter = createSlice({
         setGender: (state: { gender: any; }, action: { payload: any; }) => {
             state.gender = action.payload;
         },
-        setSize: (state: { sizes: any[]; }, action: { payload: string; }) => {
+        setSizes: (state: { sizes: any[]; }, action: { payload: string; }) => {
             // todo if already in size, we remove. else we add
             if (state.sizes.includes(action.payload))
                 state.sizes = state.sizes.filter((s: string) => s !== action.payload);
             else
                 state.sizes.push(action.payload);
+
         },
     }
 });

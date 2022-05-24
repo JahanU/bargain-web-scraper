@@ -18,23 +18,17 @@ export default function Dropdown() {
   const selectedSizes = useSelector((state: any) => state.filterStore.sizes);
 
   useEffect(() => {
-    dispatch(paramActions.setSizeParams({ size: selectedSizes }))
+    dispatch(paramActions.setSizesParams({ sizes: selectedSizes }))
   }, [selectedSizes]);
 
   
   const onClickHandler = (value: string) => {
-    console.log(value);
-    dispatch(filterActions.setSize(value));
-    dispatch(paramActions.setSizeParams({ size: selectedSizes }));
+    dispatch(filterActions.setSizes(value));
+    dispatch(paramActions.setSizesParams({ sizes: selectedSizes }));
+    console.log(selectedSizes);
   };
 
-  function showme() {
-    let x = `text-gray-90" text-gray-700 block px-4 py-2 text-sm bg-gray-50 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-100 focus:bg-indigo-800`;
-    return x;
-    }
-
-    showme();
-
+  
   return (
     <Menu as="div" className="relative inline-block text-left z-10">
       <div>
