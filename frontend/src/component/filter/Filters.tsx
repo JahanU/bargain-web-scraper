@@ -1,7 +1,7 @@
 import DiscountSlider from "./DiscountSlider";
 import SortDropdown from "./dropdowns/SortDropdown";
 import SizeDropdown from "./dropdowns/SizeDropdown";
-// import { Genders } from "./Genders";
+import { Genders } from "./Genders";
 import SearchBar from "./SearchBar";
 
 function Filters(props: any) {
@@ -17,7 +17,7 @@ function Filters(props: any) {
                             <li className="mr-12"><SearchBar /></li>
                             <li className="mr-12"><SortDropdown /></li>
                             <li className="mr-12"><SizeDropdown /></li>
-                            {/* <li className="mr-12"><Genders /></li> */}
+                            <li className="mr-12"><Genders /></li>
                         </ul>
                     </div>
                 </div>

@@ -24,12 +24,12 @@ function discountSort(discountHighToLow: boolean, items: Item[]) {
   else 
     return [...items].sort((a, b) => a.discount - b.discount);
 }
-function genderSort(gender: boolean, items: Item[]) {
+function genderSort(gender: boolean, allItems: Item[]) {
   if (gender)
     // Gender -> male = true, female = false
-    return [...items].filter((item: Item) => item.gender === "Male");
+    return [...allItems].filter((item: Item) => item.gender === "Male");
   else 
-    return [...items].filter((item: Item) => item.gender === "Female");
+    return [...allItems].filter((item: Item) => item.gender === "Female");
 }
 function discountSlider(search: string, discount: number, allItems: Item[]) {
   if (search) 
@@ -108,6 +108,11 @@ export default function App() {
   }, [sizes]);
 
   useEffect(() => {
+    console.log(`set gender: ${gender}`);
+    setFilteredItems(genderSort(sizes, items));
+  }, [gender]);
+
+  useEffect(() => {
     const [search, sort, sizes] = [searchInputParams.input || "", sortParams.sort || "", sizesParams.sizes || ""];
 
     if (!search) { // uesr cleared input search
@@ -152,7 +157,7 @@ export default function App() {
       dispatch(filterActions.setDiscountHighToLow(false));
     } else {
       // TODO - Maybe: check that both search and sort is empty
-      // setFilteredItems(items);
+      setFilteredItems(items);
     }
   }
 
