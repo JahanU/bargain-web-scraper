@@ -1,5 +1,5 @@
 import { useDispatch } from 'react-redux';
-import { useSearchParams } from 'react-router-dom';
+// import { useSearchParams } from 'react-router-dom';
 import { filterActions } from '../../store/filterSlice';
 
 export const Genders = (props: any) => {
