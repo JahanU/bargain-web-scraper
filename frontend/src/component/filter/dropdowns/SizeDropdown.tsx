@@ -19,7 +19,7 @@ export default function Dropdown() {
 
   useEffect(() => {
     dispatch(paramActions.setSizesParams({ sizes: selectedSizes }))
-  }, [selectedSizes]);
+  }, [dispatch, selectedSizes]);
 
   
   const onClickHandler = (value: string) => {
