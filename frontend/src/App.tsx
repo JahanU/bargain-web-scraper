@@ -75,7 +75,7 @@ export default function App() {
   let [urlParams, setUrlParams] = useSearchParams();
   let urlSort = urlParams.get("sort") || "";
   let urlSearch = urlParams.get("search") || "";
-  let urlSizes = urlParams.get("sizes") || "";
+  // let urlSizes = urlParams.get("sizes") || "";
 
   const [items, setItems] = useState<Item[]>([]);
   const [filteredItems, setFilteredItems] = useState<Item[]>([]);
@@ -128,7 +128,8 @@ export default function App() {
   }, [sortParams, searchInputParams, sizesParams]);
 
 
-  function initialSortOptions(urlSort: string, urlSearch: string, urlSizes: string, items: Item[]) {
+  // function initialSortOptions(urlSort: string, urlSearch: string, urlSizes: string, items: Item[]) {
+  function initialSortOptions(urlSort: string, urlSearch: string, items: Item[]) {
     // For initial loading based on URL input. eg http://localhost:3000/?sort=price-low-to-high or assign default (discount high to low)
     console.log(urlSearch);
     
@@ -171,7 +172,7 @@ export default function App() {
           setIsError(true);
         } else {
           setItems(items);
-          initialSortOptions(urlSort, urlSearch, urlSizes, items);
+          initialSortOptions(urlSort, urlSearch, items);
         }
       })
       .catch((err: any) => {

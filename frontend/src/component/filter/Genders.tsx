@@ -4,11 +4,11 @@ import { filterActions } from '../../store/filterSlice';
 
 export const Genders = (props: any) => {
 
-    let [, setSearchParams] = useSearchParams(); 
+    // let [, setSearchParams] = useSearchParams(); 
     const dispatch = useDispatch();
 
     const setGenderHandler = (value: boolean) => {
-        const gender = value ? 'Male' : 'Female';
+        // const gender = value ? 'Male' : 'Female';
         // setSearchParams({ gender });
         dispatch(filterActions.setGender(value));
     }
