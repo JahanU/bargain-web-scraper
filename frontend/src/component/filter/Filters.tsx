@@ -1,7 +1,7 @@
 import DiscountSlider from "./DiscountSlider";
 import SortDropdown from "./dropdowns/SortDropdown";
 import SizeDropdown from "./dropdowns/SizeDropdown";
-import { Genders } from "./Genders";
+// import Genders from "./Genders";
 import SearchBar from "./SearchBar";
 
 function Filters(props: any) {
