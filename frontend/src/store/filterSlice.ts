@@ -24,11 +24,25 @@ const filter = createSlice({
             state.latest = !state.latest;
         },
         setDiscountHighToLow: (state: { discountHighToLow: any; priceHighToLow: any }, action: { payload: any; }) => {
-            state.discountHighToLow = action.payload;
+            // already selected, now we unselect it
+            if (state.discountHighToLow && action.payload)
+                state.discountHighToLow = null;
+            else if (state.discountHighToLow === false && !action.payload)
+                state.discountHighToLow = null;
+            else
+                state.discountHighToLow = action.payload;
+
             state.priceHighToLow = null;
         },
         setPriceHighToLow: (state: { priceHighToLow: any; discountHighToLow: any }, action: { payload: any; }) => {
-            state.priceHighToLow = action.payload;
+            // already selected, now we unselect it
+            if (state.priceHighToLow && action.payload)
+                state.priceHighToLow = null;
+            else if (state.priceHighToLow === false && !action.payload)
+                state.priceHighToLow = null;
+            else
+                state.priceHighToLow = action.payload;
+
             state.discountHighToLow = null;
         },
         setGender: (state: { gender: any; }, action: { payload: any; }) => {
@@ -40,7 +54,6 @@ const filter = createSlice({
                 state.sizes = state.sizes.filter((s: string) => s !== action.payload);
             else
                 state.sizes.push(action.payload);
-
         },
     }
 });

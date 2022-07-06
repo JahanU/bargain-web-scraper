@@ -17,7 +17,7 @@ function Filters(props: any) {
                             <li className="mr-12"><SearchBar /></li>
                             <li className="mr-12"><SortDropdown /></li>
                             <li className="mr-12"><SizeDropdown /></li>
-                            <li className="mr-12"><Genders /></li>
+                            {/* <li className="mr-12"><Genders /></li> */}
                         </ul>
                     </div>
                 </div>

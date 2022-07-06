@@ -25,7 +25,6 @@ export default function Dropdown() {
   const onClickHandler = (value: string) => {
     dispatch(filterActions.setSizes(value));
     dispatch(paramActions.setSizesParams({ sizes: selectedSizes }));
-    console.log(selectedSizes);
   };
 
   

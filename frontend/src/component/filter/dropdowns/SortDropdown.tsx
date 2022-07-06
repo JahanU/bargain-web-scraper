@@ -14,18 +14,18 @@ function classNames(...classes: any[]) {
 export default function Dropdown() {
 
     const dispatch = useDispatch(); // Dispatch similar to in useReducer
-    const isDiscountSort = useSelector((state: any) => state.filterStore.discountHighToLow);
     const isPriceSort = useSelector((state: any) => state.filterStore.priceHighToLow);
+    const isDiscountSort = useSelector((state: any) => state.filterStore.discountHighToLow);
 
-    const onDiscountHighToLowHandler = (setFilter: boolean) => {
-        const sort = setFilter ? Sort.discountHighToLow : Sort.discountLowToHigh;
-        dispatch(filterActions.setDiscountHighToLow(setFilter));
+    const onDiscountHighToLowHandler = (filter: boolean) => {
+        const sort = filter ? Sort.discountHighToLow : Sort.discountLowToHigh;
+        dispatch(filterActions.setDiscountHighToLow(filter));
         dispatch(paramActions.setSortParams({ sort }));
     };
 
-    const onPriceHighToLowHandler = (setFilter: boolean) => {
-        const sort = setFilter ? Sort.priceHighToLow : Sort.priceLowToHigh;
-        dispatch(filterActions.setPriceHighToLow(setFilter));
+    const onPriceHighToLowHandler = (filter: boolean) => {
+        const sort = filter ? Sort.priceHighToLow : Sort.priceLowToHigh;
+        dispatch(filterActions.setPriceHighToLow(filter));
         dispatch(paramActions.setSortParams({ sort }));
     }
 
