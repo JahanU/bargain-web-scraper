@@ -32,6 +32,10 @@
 - CI/CD (Quick automatic deployments from master branch)
 - Google Analytics
 
+### Design
+![Web-Scraper-System-Design drawio](https://user-images.githubusercontent.com/34219176/177620459-f9cdb093-a84c-476b-ba8c-939084a710bc.png)
+
+
 ## Example
 ### Telegram
 <p>
