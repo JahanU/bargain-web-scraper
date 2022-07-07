@@ -33,7 +33,11 @@
 - Google Analytics
 
 ### Design
+#### Basic 
 ![Web-Scraper-System-Design drawio](https://user-images.githubusercontent.com/34219176/177620459-f9cdb093-a84c-476b-ba8c-939084a710bc.png)
+
+#### intermediate
+![web-scraper-syste-design-intermediate drawio](https://user-images.githubusercontent.com/34219176/177883186-abcd6a7d-3a0c-40f3-afc7-3d0ff507949a.png)
 
 
 ## Example
