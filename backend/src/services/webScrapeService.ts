@@ -1,5 +1,5 @@
 const telegram = require('./telegramService');
-import JDService from '../services/JDService';
+import JDService from './NikeService';
 import { Item } from "../interfaces/Item";
 
 let allBestItemsMap = new Map<string, Item>(); // <URL, Item>
@@ -16,7 +16,7 @@ function main() {
 }
 
 async function startScraping() {
-    try { 
+    try {
         const JDItems = await JDService(discountLimit, resetCacheFlag);
         resetCacheFlag = false;
         const newItems = cacheDeals(JDItems);
@@ -37,7 +37,7 @@ function cacheDeals(newBestDeals: Item[]) { // don't send items we have already 
             const url = item.url;
             const newItem = { url, ...item };
             if (allBestItemsSet.has(newItem)) return;
-            allBestItemsSet.add(newItem);  
+            allBestItemsSet.add(newItem);
             newItems.push(newItem);
         }
         allBestItemsMap.set(item.url, item);
@@ -54,24 +54,24 @@ function sendDeals(newDeals: Item[]) {
 }
 
 const getBestDealsList = () => {
-    if (allBestItemsSet.size === 0) 
+    if (allBestItemsSet.size === 0)
         return cachedAllBestItemsSet;
     return allBestItemsSet;
 
-function setAllBestItemsSet() {
-    allBestItemsMap.forEach((item, url) => { // value, key
-        const newItem = { url, ...item }
-        if (allBestItemsSet.has(newItem)) return; 
-        allBestItemsSet.add(newItem);
-    });
-    console.log('final list: ', allBestItemsSet);
-}
+    function setAllBestItemsSet() {
+        allBestItemsMap.forEach((item, url) => { // value, key
+            const newItem = { url, ...item }
+            if (allBestItemsSet.has(newItem)) return;
+            allBestItemsSet.add(newItem);
+        });
+        console.log('final list: ', allBestItemsSet);
+    }
 
-const resetCache = () => {
-    cachedAllBestItemsSet = new Set(JSON.parse(JSON.stringify([...allBestItemsSet])))
-    resetCacheFlag = true;
-    allBestItemsMap = new Map();
-    allBestItemsSet.clear();
-}
+    const resetCache = () => {
+        cachedAllBestItemsSet = new Set(JSON.parse(JSON.stringify([...allBestItemsSet])))
+        resetCacheFlag = true;
+        allBestItemsMap = new Map();
+        allBestItemsSet.clear();
+    }
 
-module.exports = { main, getBestDealsList };
+    module.exports = { main, getBestDealsList };
