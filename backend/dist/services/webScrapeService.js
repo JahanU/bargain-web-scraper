@@ -13,7 +13,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const telegram = require('./telegramService');
-const JDService_1 = __importDefault(require("../services/JDService"));
+const JDService_1 = __importDefault(require("./JDService"));
 let allBestItemsMap = new Map(); // <URL, Item>
 let allBestItemsSet = new Set();
 let cachedAllBestItemsSet = new Set(); // when we reset the set, we use this old one for the UI until the new data is fetched
@@ -23,7 +23,7 @@ function main() {
     startScraping();
     setInterval(startScraping, 300 * 1000); // every 5 minutes
     setInterval(resetCache, 86400 * 1000); // every day
-  
+}
 function startScraping() {
     return __awaiter(this, void 0, void 0, function* () {
         try {
@@ -67,7 +67,6 @@ const getBestDealsList = () => {
         return cachedAllBestItemsSet;
     return allBestItemsSet;
 };
-
 function setAllBestItemsSet() {
     allBestItemsMap.forEach((item, url) => {
         const newItem = Object.assign({ url }, item);
@@ -77,9 +76,7 @@ function setAllBestItemsSet() {
     });
     console.log('final list: ', allBestItemsSet);
 }
-const getBestDealsList = () => allBestItemsSet;
-
-  const resetCache = () => {
+const resetCache = () => {
     cachedAllBestItemsSet = new Set(JSON.parse(JSON.stringify([...allBestItemsSet])));
     resetCacheFlag = true;
     allBestItemsMap = new Map();

@@ -1,5 +1,5 @@
 const telegram = require('./telegramService');
-import JDService from './NikeService';
+import JDService from './JDService';
 import { Item } from "../interfaces/Item";
 
 let allBestItemsMap = new Map<string, Item>(); // <URL, Item>
@@ -57,21 +57,22 @@ const getBestDealsList = () => {
     if (allBestItemsSet.size === 0)
         return cachedAllBestItemsSet;
     return allBestItemsSet;
+}
 
-    function setAllBestItemsSet() {
-        allBestItemsMap.forEach((item, url) => { // value, key
-            const newItem = { url, ...item }
-            if (allBestItemsSet.has(newItem)) return;
-            allBestItemsSet.add(newItem);
-        });
-        console.log('final list: ', allBestItemsSet);
-    }
+function setAllBestItemsSet() {
+    allBestItemsMap.forEach((item, url) => { // value, key
+        const newItem = { url, ...item }
+        if (allBestItemsSet.has(newItem)) return;
+        allBestItemsSet.add(newItem);
+    });
+    console.log('final list: ', allBestItemsSet);
+}
 
-    const resetCache = () => {
-        cachedAllBestItemsSet = new Set(JSON.parse(JSON.stringify([...allBestItemsSet])))
-        resetCacheFlag = true;
-        allBestItemsMap = new Map();
-        allBestItemsSet.clear();
-    }
+const resetCache = () => {
+    cachedAllBestItemsSet = new Set(JSON.parse(JSON.stringify([...allBestItemsSet])))
+    resetCacheFlag = true;
+    allBestItemsMap = new Map();
+    allBestItemsSet.clear();
+}
 
-    module.exports = { main, getBestDealsList };
+module.exports = { main, getBestDealsList };
