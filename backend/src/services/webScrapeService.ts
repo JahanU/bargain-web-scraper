@@ -12,7 +12,7 @@ let resetCacheFlag = false;
 function main() {
     startScraping();
     setInterval(startScraping, 300 * 1000); // every 5 minutes
-    setInterval(resetCache, 86400 * 1000); // every day
+    setInterval(resetCache, 1200 * 1000); // every 20 mins
 }
 
 async function startScraping() {
@@ -69,6 +69,7 @@ function setAllBestItemsSet() {
 }
 
 const resetCache = () => {
+    console.log('resetting...')
     cachedAllBestItemsSet = new Set(JSON.parse(JSON.stringify([...allBestItemsSet])))
     resetCacheFlag = true;
     allBestItemsMap = new Map();

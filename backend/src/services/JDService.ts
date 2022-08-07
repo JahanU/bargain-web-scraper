@@ -15,12 +15,12 @@ const urls = [ // JD_ALL_MEN, SHOES
 ];
 
 function JDMain(discountLimit: number, resetCacheFlag: boolean): Promise<Item[]> {
-    if (resetCacheFlag)  {
+    if (resetCacheFlag) {
         seenItemsCache.clear();
         items = [];
         return new Promise<Item[]>((resolve, reject) => resolve([]));
     }
-    else 
+    else
         return getJDItems(discountLimit);
 }
 

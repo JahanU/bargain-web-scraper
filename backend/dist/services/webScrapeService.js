@@ -22,7 +22,7 @@ let resetCacheFlag = false;
 function main() {
     startScraping();
     setInterval(startScraping, 300 * 1000); // every 5 minutes
-    setInterval(resetCache, 86400 * 1000); // every day
+    setInterval(resetCache, 1200 * 1000); // every 20 mins
 }
 function startScraping() {
     return __awaiter(this, void 0, void 0, function* () {
@@ -77,6 +77,7 @@ function setAllBestItemsSet() {
     console.log('final list: ', allBestItemsSet);
 }
 const resetCache = () => {
+    console.log('resetting...');
     cachedAllBestItemsSet = new Set(JSON.parse(JSON.stringify([...allBestItemsSet])));
     resetCacheFlag = true;
     allBestItemsMap = new Map();
