@@ -166,7 +166,7 @@ export default function App() {
   useEffect(() => {
     setLoading(true);
     getItemsService()
-      .then((items: Item[]) => {
+      .then((items: any) => {
         if (!items.length) {
           console.log(items, " data is empty");
           setIsError(true);
