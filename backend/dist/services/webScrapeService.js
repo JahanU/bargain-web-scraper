@@ -22,7 +22,7 @@ let resetCacheFlag = false;
 function main() {
     startScraping();
     setInterval(startScraping, 300 * 1000); // every 5 minutes
-    setInterval(resetCache, 1200 * 1000); // every 20 mins
+    setInterval(resetCache, 1000 * 60 * 60 * 24); // every day
 }
 function startScraping() {
     return __awaiter(this, void 0, void 0, function* () {
