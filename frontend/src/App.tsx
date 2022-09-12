@@ -10,59 +10,8 @@ import HeaderBar from "./component/header/HeaderBar";
 import Error from "./component/modal/Error";
 import Filters from "./component/filter/Filters";
 import { filterActions } from "./store/filterSlice";
-import { Sort } from "./interfaces/Sort";
-
-function priceSort(filter: boolean, items: Item[]) {
-  if (filter)// Sort Desc // TODO: Parse type for quick fix until backend is updated
-    return [...items].sort((a, b) =>parseInt(b.nowPrice.substring(1)) - parseInt(a.nowPrice.substring(1)));
-  else
-    return [...items].sort((a, b) =>parseInt(a.nowPrice.substring(1)) - parseInt(b.nowPrice.substring(1)));
-}
-function discountSort(discountHighToLow: boolean, items: Item[]) {
-  if (discountHighToLow)// Sort Desc
-    return [...items].sort((a, b) => b.discount - a.discount);
-  else 
-    return [...items].sort((a, b) => a.discount - b.discount);
-}
-function genderSort(gender: boolean, allItems: Item[]) {
-  if (gender)
-    // Gender -> male = true, female = false
-    return [...allItems].filter((item: Item) => item.gender === "Male");
-  else 
-    return [...allItems].filter((item: Item) => item.gender === "Female");
-}
-function discountSlider(search: string, discount: number, allItems: Item[]) {
-  if (search) 
-    return [...allItems].filter((item: Item) => item.name.toLowerCase().includes(search) && item.discount >= discount);
-  else
-   return [...allItems].filter((item: Item) => item.discount >= discount);
-}
-function searchInput(search: string, discount: number, allItems: Item[], filteredItems: Item[]) {
-  if (search && filteredItems.length > 0)
-    return [...filteredItems].filter((item: Item) => item.name.toLowerCase().includes(search));
-  else if (search)
-    return [...allItems].filter((item: Item) => item.name.toLowerCase().includes(search));
-  else
-   return [...allItems].filter((item: Item) => item.discount >= discount);
-}
-
-function sizeFilter(sizes: string[], discount: number, allItems: Item[]) {
-  if (sizes.length > 0) {
-    let filteredItems: Item[] = [];
-            for (const item of allItems) {
-              for (const size of sizes) {
-                if (item.sizes.includes(size)) {
-                  filteredItems.push(item);
-                  break;
-                }
-            };
-        };
-    return filteredItems;
-  }
-
-  else 
-    return [...allItems].filter((item: Item) => item.discount >= discount);
-}
+import { Sort as SORT } from "./interfaces/Sort";
+import { priceSort, discountSort, genderSort, discountSlider, searchInput, sizeFilter } from './util/sort';
 
 export default function App() {
 
@@ -144,16 +93,16 @@ export default function App() {
     //   dispatch(filterActions.setSizes(urlSize));
     // }
 
-    if (urlSort === Sort.priceHighToLow) {
+    if (urlSort === SORT.priceHighToLow) {
       setFilteredItems(priceSort(true, items));
       dispatch(filterActions.setPriceHighToLow(true));
-    } else if (urlSort === Sort.priceLowToHigh) {
+    } else if (urlSort === SORT.priceLowToHigh) {
       setFilteredItems(priceSort(false, items));
       dispatch(filterActions.setPriceHighToLow(false));
-    } else if (urlSort === Sort.discountHighToLow) {
+    } else if (urlSort === SORT.discountHighToLow) {
       setFilteredItems(discountSort(true, items));
       dispatch(filterActions.setDiscountHighToLow(true));
-    } else if (urlSort === Sort.discountLowToHigh) {
+    } else if (urlSort === SORT.discountLowToHigh) {
       setFilteredItems(discountSort(false, items));
       dispatch(filterActions.setDiscountHighToLow(false));
     } else {
