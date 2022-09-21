@@ -20,7 +20,7 @@ export default function App() {
   const paramStore = useSelector((state: any) => state.paramStore);
   const { search, discount, discountHighToLow, priceHighToLow, gender, sizes } = filterStore;
 
-  const { sortParams, searchInputParams, sizesParams } = paramStore; // genderParams,  discountParam
+  const { sortParams, searchInputParams, sizesParams } = paramStore; // genderParams, discountParam
   let [urlParams, setUrlParams] = useSearchParams();
   let urlSort = urlParams.get("sort") || "";
   let urlSearch = urlParams.get("search") || "";
@@ -39,8 +39,7 @@ export default function App() {
     setFilteredItems(discountSort(discountHighToLow, filteredItems));
   }, [discountHighToLow]);
 
-  // Gender -> male = true, female = false
-  useEffect(() => {
+  useEffect(() => {   // Gender -> male = true, female = false
     setFilteredItems(genderSort(gender, filteredItems));
   }, [gender]);
 
@@ -57,14 +56,13 @@ export default function App() {
   }, [sizes]);
 
   useEffect(() => {
-    console.log(`set gender: ${gender}`);
     setFilteredItems(genderSort(sizes, items));
   }, [gender]);
 
   useEffect(() => {
     const [search, sort, sizes] = [searchInputParams.input || "", sortParams.sort || "", sizesParams.sizes || ""];
 
-    if (!search) { // uesr cleared input search
+    if (!search) { // User cleared input search
       urlParams.delete("search");
       console.log("setting params:", { urlParams: urlParams.toString() });
       setUrlParams(urlParams);
@@ -131,6 +129,7 @@ export default function App() {
       .finally(() => setLoading(false));
   }, []);
 
+  
   return (
     <div className="App">
       <nav>

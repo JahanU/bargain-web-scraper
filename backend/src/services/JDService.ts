@@ -85,33 +85,33 @@ async function bufferHandler(items: Item[]): Promise<Item[]> {
 async function getStockAndSize(items: Item[]): Promise<Item[]> { // get size and if in stock, remove those not in stock
 
     console.log('getting stock and size for ', items.length);
-    return new Promise<Item[]>((resolve, reject) => {
-        Promise.all(
-            items.map(async (item) => {
-                const html = await axios.get(item.url);
-                const $ = cheerio.load(html.data);
+    // return new Promise<Item[]>((resolve, reject) => {
+    return Promise.all(
+        items.map(async (item) => {
+            const html = await axios.get(item.url);
+            const $ = cheerio.load(html.data);
 
-                console.log('getting stock and size: ', item.name);
-                // get stock
-                const metaTag = $('meta')[28];
-                const inStock = metaTag.attribs.content;
-                if (inStock === 'OUT OF STOCK') return;
+            console.log('getting stock and size: ', item.name);
+            // get stock
+            const metaTag = $('meta')[28];
+            const inStock = metaTag.attribs.content;
+            if (inStock === 'OUT OF STOCK') return;
 
-                // get sizes
-                const scriptTag = $('script')[3];
-                const objectStr = scriptTag.children[0].data!;
-                const regex = /name:("\w+")/g;
-                const sizes = [...objectStr.matchAll(regex)].map((i) => i[1].substring(1, i[1].length - 1));
-                if (!sizes.length) return;
+            // get sizes
+            const scriptTag = $('script')[3];
+            const objectStr = scriptTag.children[0].data!;
+            const regex = /name:("\w+")/g;
+            const sizes = [...objectStr.matchAll(regex)].map((i) => i[1].substring(1, i[1].length - 1));
+            if (!sizes.length) return;
 
-                return { ...item, sizes, inStock };
-            })
-        ).then((items) => {
-            return resolve(items.filter((item) => item !== undefined));
-        }).catch((err) => {
-            return reject(err);
-        });
+            return { ...item, sizes, inStock };
+        })
+    ).then((items) => {
+        return items.filter((item) => item !== undefined);
+    }).catch((err) => {
+        return err;
     });
+    // });
 }
 
 export default JDMain;
