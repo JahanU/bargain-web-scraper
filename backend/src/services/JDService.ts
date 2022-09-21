@@ -85,7 +85,6 @@ async function bufferHandler(items: Item[]): Promise<Item[]> {
 async function getStockAndSize(items: Item[]): Promise<Item[]> { // get size and if in stock, remove those not in stock
 
     console.log('getting stock and size for ', items.length);
-    // return new Promise<Item[]>((resolve, reject) => {
     return Promise.all(
         items.map(async (item) => {
             const html = await axios.get(item.url);
@@ -111,7 +110,6 @@ async function getStockAndSize(items: Item[]): Promise<Item[]> { // get size and
     }).catch((err) => {
         return err;
     });
-    // });
 }
 
 export default JDMain;
