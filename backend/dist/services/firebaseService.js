@@ -30,7 +30,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const userCollection = collection(db, 'users');
-// Get a list t of telegram users from  database
+// Get a list of telegram users from  database
 function getUsers() {
     return __awaiter(this, void 0, void 0, function* () {
         const userSnapshot = yield getDocs(userCollection);

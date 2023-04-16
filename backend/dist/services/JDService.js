@@ -84,7 +84,6 @@ function bufferHandler(items) {
 function getStockAndSize(items) {
     return __awaiter(this, void 0, void 0, function* () {
         console.log('getting stock and size for ', items.length);
-        // return new Promise<Item[]>((resolve, reject) => {
         return Promise.all(items.map((item) => __awaiter(this, void 0, void 0, function* () {
             const html = yield axios.get(item.url);
             const $ = cheerio.load(html.data);
@@ -107,7 +106,6 @@ function getStockAndSize(items) {
         }).catch((err) => {
             return err;
         });
-        // });
     });
 }
 exports.default = JDMain;

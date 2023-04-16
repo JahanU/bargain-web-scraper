@@ -27,7 +27,7 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const userCollection = collection(db, 'users');
 
-// Get a list t of telegram users from  database
+// Get a list of telegram users from  database
 async function getUsers() {
     const userSnapshot = await getDocs(userCollection);
     const users = userSnapshot.docs.map((d: any) => {
