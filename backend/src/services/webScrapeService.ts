@@ -6,7 +6,7 @@ let allBestItemsMap = new Map<string, Item>(); // <URL, Item>
 let allBestItemsSet = new Set<Item>();
 let cachedAllBestItemsSet = new Set<Item>(); // when we reset the set, we use this old one for the UI until the new data is fetched
 
-let discountLimit = 70; // item discount must be greater than this value
+let discountLimit = 10; // item discount must be greater than this value
 let resetCacheFlag = false;
 
 function main() {
