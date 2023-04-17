@@ -1,5 +1,5 @@
 
-const { initializeApp, applicationDefault, cert } = require('firebase-admin/app');
+const { initializeApp } = require('firebase-admin/app');
 const {  getFirestore, getDocs, setDoc, doc }  = require('firebase-admin/firestore');
 
 import { TelegramUpdate } from "../interfaces/TelegramUpdate";
