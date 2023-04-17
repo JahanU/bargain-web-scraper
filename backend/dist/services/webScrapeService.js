@@ -17,7 +17,7 @@ const JDService_1 = __importDefault(require("./JDService"));
 let allBestItemsMap = new Map(); // <URL, Item>
 let allBestItemsSet = new Set();
 let cachedAllBestItemsSet = new Set(); // when we reset the set, we use this old one for the UI until the new data is fetched
-let discountLimit = 10; // item discount must be greater than this value
+let discountLimit = 70; // item discount must be greater than this value
 let resetCacheFlag = false;
 function main() {
     startScraping();
