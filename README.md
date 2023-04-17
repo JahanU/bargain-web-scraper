@@ -1,4 +1,4 @@
-# Bargain Web Scraper
+# Bargain Web Scraper 
 
 #### Try it out:  
 🕊 https://t.me/JD_sales_bot <br> 👕 https://bargain-scraper.netlify.app/
