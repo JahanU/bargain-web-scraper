@@ -3,8 +3,8 @@ import Item from "../../interfaces/Item";
 function ItemCard(props: any) {
 
     const item = props.item as Item;
-    const sizes = item.sizes.toString();
-
+    const sizes = item.sizes?.toString();
+    
     return (
         <div className="relative">
             < div className="w-full min-h-80 bg-gray-200 aspect-w-1 aspect-h-1 rounded-md  hover:opacity-75 lg:h-80 lg:aspect-none shadow-lg" >
