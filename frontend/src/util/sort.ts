@@ -39,12 +39,13 @@ function sizeFilter(sizes: string[], discount: number, allItems: Item[]) {
     if (sizes.length > 0) {
         let filteredItems: Item[] = [];
         for (const item of allItems) {
-            for (const size of sizes) {
-                if (item.sizes.includes(size)) {
-                    filteredItems.push(item);
-                    break;
-                }
-            };
+            if (item.sizes)
+                for (const size of sizes) {
+                    if (item.sizes.includes(size)) {
+                        filteredItems.push(item);
+                        break;
+                    }
+                };
         };
         return filteredItems;
     }
