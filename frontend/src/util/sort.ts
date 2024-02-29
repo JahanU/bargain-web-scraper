@@ -26,14 +26,15 @@ function discountSlider(search: string, discount: number, allItems: Item[]) {
     else
         return [...allItems].filter((item: Item) => item.discount >= discount);
 }
-function searchInput(search: string, discount: number, allItems: Item[], filteredItems: Item[]) {
-    if (search && filteredItems.length > 0)
-        return [...filteredItems].filter((item: Item) => item.name.toLowerCase().includes(search));
-    else if (search)
-        return [...allItems].filter((item: Item) => item.name.toLowerCase().includes(search));
-    else
-        return [...allItems].filter((item: Item) => item.discount >= discount);
-}
+// function searchInput(search: string, discount: number, allItems: Item[], filteredItems: Item[]) {
+//     console.log(search, filteredItems)
+//     if (search && filteredItems.length > 0)
+//         return [...filteredItems].filter((item: Item) => item.name.toLowerCase().includes(search));
+//     else if (search)
+//         return [...allItems].filter((item: Item) => item.name.toLowerCase().includes(search));
+//     else
+//         return [...allItems].filter((item: Item) => item.discount >= discount);
+// }
 
 function sizeFilter(sizes: string[], discount: number, allItems: Item[]) {
     if (sizes.length > 0) {
@@ -54,4 +55,4 @@ function sizeFilter(sizes: string[], discount: number, allItems: Item[]) {
         return [...allItems].filter((item: Item) => item.discount >= discount);
 }
 
-export { priceSort, discountSort, genderSort, discountSlider, searchInput, sizeFilter };
+export { priceSort, discountSort, genderSort, discountSlider, sizeFilter };
