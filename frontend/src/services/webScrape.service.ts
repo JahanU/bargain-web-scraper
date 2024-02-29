@@ -2,7 +2,7 @@ import Item from "../interfaces/Item";
 
 const getItemsService = async () => {
 
-    const url = 'https://bargain-scraper.herokuapp.com/webscrape/getBestDeals';
+    const url = 'https://bargain-scraper-710da0f863f3.herokuapp.com/webscrape/getBestDeals';
     // const url = 'http://localhost:8000/webscrape/getBestDeals';
 
     return fetch(url)
