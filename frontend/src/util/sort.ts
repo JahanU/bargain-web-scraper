@@ -2,6 +2,9 @@
 import Item from "../interfaces/Item";
 
 function priceSort(filter: boolean, items: Item[]) {
+    console.log(items);
+    let g = [...items].sort((a, b) => parseInt(b.nowPrice.substring(1)) - parseInt(a.nowPrice.substring(1)));
+    console.log(g);
     if (filter)// Sort Desc // TODO: Parse type for quick fix until backend is updated
         return [...items].sort((a, b) => parseInt(b.nowPrice.substring(1)) - parseInt(a.nowPrice.substring(1)));
     else
@@ -26,15 +29,14 @@ function discountSlider(search: string, discount: number, allItems: Item[]) {
     else
         return [...allItems].filter((item: Item) => item.discount >= discount);
 }
-// function searchInput(search: string, discount: number, allItems: Item[], filteredItems: Item[]) {
-//     console.log(search, filteredItems)
-//     if (search && filteredItems.length > 0)
-//         return [...filteredItems].filter((item: Item) => item.name.toLowerCase().includes(search));
-//     else if (search)
-//         return [...allItems].filter((item: Item) => item.name.toLowerCase().includes(search));
-//     else
-//         return [...allItems].filter((item: Item) => item.discount >= discount);
-// }
+function searchInput(search: string, discount: number, allItems: Item[], filteredItems: Item[]) {
+    if (search)
+        return [...filteredItems].filter((item: Item) => item.name.toLowerCase().includes(search));
+    else if (search)
+        return [...allItems].filter((item: Item) => item.name.toLowerCase().includes(search));
+    else
+        return [...allItems].filter((item: Item) => item.discount >= discount);
+}
 
 function sizeFilter(sizes: string[], discount: number, allItems: Item[]) {
     if (sizes.length > 0) {
@@ -55,4 +57,4 @@ function sizeFilter(sizes: string[], discount: number, allItems: Item[]) {
         return [...allItems].filter((item: Item) => item.discount >= discount);
 }
 
-export { priceSort, discountSort, genderSort, discountSlider, sizeFilter };
+export { priceSort, discountSort, genderSort, discountSlider, sizeFilter, searchInput };

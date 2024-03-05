@@ -2,7 +2,7 @@ import DiscountSlider from "./DiscountSlider";
 import SortDropdown from "./dropdowns/SortDropdown";
 import SizeDropdown from "./dropdowns/SizeDropdown";
 // import Genders from "./Genders";
-// import SearchBar from "./SearchBar";
+import SearchBar from "./SearchBar";
 
 function Filters(props: any) {
 
@@ -14,7 +14,7 @@ function Filters(props: any) {
                     <div className="xl:w-full">
                         <ul className="flex justify-center ">
                             <li className="mr-12"><DiscountSlider /></li>
-                            {/* <li className="mr-12"><SearchBar /></li> */}
+                            <li className="mr-12"><SearchBar /></li>
                             <li className="mr-12"><SortDropdown /></li>
                             <li className="mr-12"><SizeDropdown /></li>
                             {/* <li className="mr-12"><Genders /></li> */}

@@ -6,10 +6,9 @@ const getItemsService = async () => {
     // const url = 'http://localhost:8000/webscrape/getBestDeals';
 
     return fetch(url)
-        .then((response) => response.json())
-        .then((arr: Item[]) => arr.filter((arr, index, self) => index === self.findIndex((t: Item) => (t.url === arr.url))))
-        .catch((error) => console.error(error));
-
+    .then((response) => response.json())
+    .then((arr: Item[]) => arr.filter((arr, index, self) => index === self.findIndex((t: Item) => (t.url && t.url === arr.url))))
+    .catch((error) => console.error(error));
 };
 
 export { getItemsService };

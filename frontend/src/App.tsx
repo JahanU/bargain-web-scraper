@@ -11,7 +11,7 @@ import Error from "./component/modal/Error";
 import Filters from "./component/filter/Filters";
 import { filterActions } from "./store/filterSlice";
 import { Sort as SORT } from "./interfaces/Sort";
-import { priceSort, discountSort, genderSort, discountSlider, sizeFilter } from './util/sort';
+import { priceSort, discountSort, genderSort, searchInput, discountSlider, sizeFilter } from './util/sort';
 
 export default function App() {
 
@@ -32,32 +32,20 @@ export default function App() {
   const [isError, setIsError] = useState(false);
 
   useEffect(() => {
-    setFilteredItems(priceSort(priceHighToLow, filteredItems));
-  }, [priceHighToLow]);
+    if (priceHighToLow !== null) setFilteredItems(priceSort(priceHighToLow, filteredItems));
+    if (discountHighToLow !== null) setFilteredItems(discountSort(discountHighToLow, filteredItems));
+    if (discount !== 0) setFilteredItems(discountSlider(search, discount, items));
+    if (search !== '') setFilteredItems(searchInput(search, discount, items, filteredItems));
+    if (sizes.length > 0) setFilteredItems(sizeFilter(sizes, discount, items));
+  }, [priceHighToLow, discountHighToLow, discount, search, sizes]);
 
-  useEffect(() => {
-    setFilteredItems(discountSort(discountHighToLow, filteredItems));
-  }, [discountHighToLow]);
-
-  useEffect(() => {   // Gender -> male = true, female = false
-    setFilteredItems(genderSort(gender, filteredItems));
-  }, [gender]);
-
-  useEffect(() => {
-    setFilteredItems(discountSlider(search, discount, items));
-  }, [discount]);
+  // useEffect(() => {   // Gender -> male = true, female = false
+  //   setFilteredItems(genderSort(gender, filteredItems));
+  // }, [gender]);
 
   // useEffect(() => {
-  //   setFilteredItems(searchInput(search, discount, items, filteredItems));
-  // }, [search]);
-
-  useEffect(() => {
-    setFilteredItems(sizeFilter(sizes, discount, items));
-  }, [sizes]);
-
-  useEffect(() => {
-    setFilteredItems(genderSort(sizes, items));
-  }, [gender]);
+  //   setFilteredItems(genderSort(sizes, items));
+  // }, [gender]);
 
   useEffect(() => {
     const [search, sort, sizes] = [searchInputParams.input || "", sortParams.sort || "", sizesParams.sizes || ""];
@@ -80,10 +68,10 @@ export default function App() {
     // For initial loading based on URL input. eg http://localhost:3000/?sort=price-low-to-high or assign default (discount high to low)
     console.log(urlSearch);
     
-    // if (urlSearch) {
-    //   setFilteredItems(searchInput(urlSearch, discount, items, filteredItems));
-    //   dispatch(filterActions.setSearch(urlSearch));
-    // }
+    if (urlSearch) {
+      setFilteredItems(searchInput(urlSearch, discount, items, filteredItems));
+      dispatch(filterActions.setSearch(urlSearch));
+    }
 
     // if (urlSizes) {
     //   console.log(urlSizes);
