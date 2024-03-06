@@ -11,14 +11,14 @@ import Error from "./component/modal/Error";
 import Filters from "./component/filter/Filters";
 import { filterActions } from "./store/filterSlice";
 import { Sort as SORT } from "./interfaces/Sort";
-import { priceSort, discountSort, genderSort, searchInput, discountSlider, sizeFilter } from './util/sort';
+import { priceSort, discountSort, searchInput, discountSlider, sizeFilter } from './util/sort';
 
 export default function App() {
 
   const dispatch = useDispatch();
   const filterStore = useSelector((state: any) => state.filterStore);
   const paramStore = useSelector((state: any) => state.paramStore);
-  const { search, discount, discountHighToLow, priceHighToLow, gender, sizes } = filterStore;
+  const { search, discount, discountHighToLow, priceHighToLow, sizes } = filterStore;
 
   const { sortParams, searchInputParams, sizesParams } = paramStore; // genderParams, discountParam
   let [urlParams, setUrlParams] = useSearchParams();
