@@ -6,7 +6,7 @@ let allBestItemsMap = new Map<string, Item>(); // <URL, Item>
 let allBestItemsSet = new Set<Item>();
 let cachedAllBestItemsSet = new Set<Item>(); // when we reset the set, we use this old one for the UI until the new data is fetched
 
-let discountLimit = 10; // item discount must be greater than this value
+let discountLimit = 30; // item discount must be greater than this value
 let resetCacheFlag = false;
 
 function main() {
@@ -48,7 +48,7 @@ function cacheDeals(newBestDeals: Item[]) { // don't send items we have already 
 function sendDeals(newDeals: Item[]) {
     if (newDeals.length) {
         console.log('got new items!: ', newDeals);
-        const discountedItems = newDeals.filter((item) => item.discount > 55);
+        const discountedItems = newDeals.filter((item) => item.discount > 50);
         telegram.sendPhotosToUsers(discountedItems); // only send discount items to telegram users
     }
 }

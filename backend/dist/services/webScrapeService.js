@@ -17,7 +17,7 @@ const JDService_1 = __importDefault(require("./JDService"));
 let allBestItemsMap = new Map(); // <URL, Item>
 let allBestItemsSet = new Set();
 let cachedAllBestItemsSet = new Set(); // when we reset the set, we use this old one for the UI until the new data is fetched
-let discountLimit = 10; // item discount must be greater than this value
+let discountLimit = 30; // item discount must be greater than this value
 let resetCacheFlag = false;
 function main() {
     startScraping();
@@ -58,7 +58,7 @@ function cacheDeals(newBestDeals) {
 function sendDeals(newDeals) {
     if (newDeals.length) {
         console.log('got new items!: ', newDeals);
-        const discountedItems = newDeals.filter((item) => item.discount > 55);
+        const discountedItems = newDeals.filter((item) => item.discount > 50);
         telegram.sendPhotosToUsers(discountedItems); // only send discount items to telegram users
     }
 }
