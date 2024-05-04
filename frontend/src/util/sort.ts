@@ -2,9 +2,6 @@
 import Item from "../interfaces/Item";
 
 function priceSort(filter: boolean, items: Item[]) {
-    console.log(items);
-    let g = [...items].sort((a, b) => parseInt(b.nowPrice.substring(1)) - parseInt(a.nowPrice.substring(1)));
-    console.log(g);
     if (filter)// Sort Desc // TODO: Parse type for quick fix until backend is updated
         return [...items].sort((a, b) => parseInt(b.nowPrice.substring(1)) - parseInt(a.nowPrice.substring(1)));
     else
