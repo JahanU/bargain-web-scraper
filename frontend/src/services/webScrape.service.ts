@@ -1,4 +1,4 @@
-import Item from "../interfaces/Item";
+// import Item from "../interfaces/Item";
 import mockData from './mock-data.json'; // Import the data 
 
 // const getItemsService = async () => {
