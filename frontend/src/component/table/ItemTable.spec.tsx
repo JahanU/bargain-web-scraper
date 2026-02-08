@@ -4,8 +4,8 @@ import '@testing-library/jest-dom'
 
 // Mock data for items
 const mockItems: any[] = [
-    { id: 1, name: 'Item 1', imageUrl: '...', },
-    { id: 2, name: 'Item 2', imageUrl: '...', },
+    { id: 1, name: 'Item 1', imageUrl: '...', url: 'https://example.com/1' },
+    { id: 2, name: 'Item 2', imageUrl: '...', url: 'https://example.com/2' },
 ];
 
 describe('ItemTable', () => {
