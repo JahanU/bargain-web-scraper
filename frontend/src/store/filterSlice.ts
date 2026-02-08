@@ -1,61 +1,64 @@
-import { createSlice } from '@reduxjs/toolkit';
+import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 
-const initalFilterState = {
-    discount: 0,
-    search: '',
-    latest: false,
-    discountHighToLow: null, // Default we sort in Desc Order
-    priceHighToLow: null,
-    gender: null, // true = male, false = female
-    sizes: [],
+interface FilterState {
+  discount: number;
+  search: string;
+  latest: boolean;
+  discountHighToLow: boolean | null;
+  priceHighToLow: boolean | null;
+  gender: boolean | null;
+  sizes: string[];
+}
+
+const initialFilterState: FilterState = {
+  discount: 0,
+  search: "",
+  latest: false,
+  discountHighToLow: null,
+  priceHighToLow: null,
+  gender: null,
+  sizes: [],
+};
+
+function toggleSortSelection(currentValue: boolean | null, nextValue: boolean): boolean | null {
+  return currentValue === nextValue ? null : nextValue;
 }
 
 const filter = createSlice({
-    name: 'filter',
-    initialState: initalFilterState,
-    reducers: {
-        setDiscount: (state: { discount: any; }, action: { payload: any; }) => {
-            state.discount = action.payload;
-        },
-        setSearch: (state: { search: string }, action: { payload: string; }) => {
-            state.search = action.payload.toLowerCase();
-        },
-        setLatset: (state: { latest: boolean; }) => {
-            state.latest = !state.latest;
-        },
-        setDiscountHighToLow: (state: { discountHighToLow: any; priceHighToLow: any }, action: { payload: any; }) => {
-            // already selected, now we unselect it
-            if (state.discountHighToLow && action.payload)
-                state.discountHighToLow = null;
-            else if (state.discountHighToLow === false && !action.payload)
-                state.discountHighToLow = null;
-            else
-                state.discountHighToLow = action.payload;
-
-            state.priceHighToLow = null;
-        },
-        setPriceHighToLow: (state: { priceHighToLow: any; discountHighToLow: any }, action: { payload: any; }) => {
-            // already selected, now we unselect it
-            if (state.priceHighToLow && action.payload)
-                state.priceHighToLow = null;
-            else if (state.priceHighToLow === false && !action.payload)
-                state.priceHighToLow = null;
-            else
-                state.priceHighToLow = action.payload;
-
-            state.discountHighToLow = null;
-        },
-        setGender: (state: { gender: any; }, action: { payload: any; }) => {
-            state.gender = action.payload;
-        },
-        setSizes: (state: { sizes: any[]; }, action: { payload: string; }) => {
-            // todo if already in size, we remove. else we add
-            if (state.sizes.includes(action.payload))
-                state.sizes = state.sizes.filter((s: string) => s !== action.payload);
-            else
-                state.sizes.push(action.payload);
-        },
-    }
+  name: "filter",
+  initialState: initialFilterState,
+  reducers: {
+    setDiscount: (state, action: PayloadAction<number>) => {
+      state.discount = action.payload;
+    },
+    setSearch: (state, action: PayloadAction<string>) => {
+      state.search = action.payload.toLowerCase();
+    },
+    setLatset: (state) => {
+      state.latest = !state.latest;
+    },
+    setDiscountHighToLow: (state, action: PayloadAction<boolean>) => {
+      state.discountHighToLow = toggleSortSelection(state.discountHighToLow, action.payload);
+      state.priceHighToLow = null;
+    },
+    setPriceHighToLow: (state, action: PayloadAction<boolean>) => {
+      state.priceHighToLow = toggleSortSelection(state.priceHighToLow, action.payload);
+      state.discountHighToLow = null;
+    },
+    setGender: (state, action: PayloadAction<boolean | null>) => {
+      state.gender = action.payload;
+    },
+    setSizes: (state, action: PayloadAction<string>) => {
+      if (state.sizes.includes(action.payload)) {
+        state.sizes = state.sizes.filter((size) => size !== action.payload);
+      } else {
+        state.sizes.push(action.payload);
+      }
+    },
+    setAllSizes: (state, action: PayloadAction<string[]>) => {
+      state.sizes = action.payload;
+    },
+  },
 });
 
 export const filterActions = filter.actions;
