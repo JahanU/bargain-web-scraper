@@ -1,22 +1,18 @@
-import { useState } from 'react';
+import { ChangeEvent, useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { filterActions } from '../../store/filterSlice';
+import { AppDispatch } from '../../store';
 
-function DiscountSlider(props: any) {
+function DiscountSlider() {
 
-    const dispatch = useDispatch();
+    const dispatch = useDispatch<AppDispatch>();
     const [discount, setDiscount] = useState(10);
 
-    const handleSlider = (e: any) => {
-        setDiscount(e.target.value);
-        dispatch(filterActions.setDiscount(e.target.value));
-        // props.onSliderChange(discount);
+    const handleSlider = (event: ChangeEvent<HTMLInputElement>) => {
+        const discountValue = Number.parseInt(event.target.value, 10);
+        setDiscount(discountValue);
+        dispatch(filterActions.setDiscount(discountValue));
     }
-
-    // useEffect(() => {
-    //     props.onSliderChange(discount);
-    //     // eslint-disable-next-line react-hooks/exhaustive-deps
-    // }, [discount]);
 
     return (
         <div className="relative">

@@ -1,6 +1,5 @@
-/* eslint-disable react-hooks/exhaustive-deps */
 import "./App.css";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { getItemsService } from "./services/webScrape.service";
@@ -10,118 +9,152 @@ import HeaderBar from "./component/header/HeaderBar";
 import Error from "./component/modal/Error";
 import Filters from "./component/filter/Filters";
 import { filterActions } from "./store/filterSlice";
-import { Sort as SORT } from "./interfaces/Sort";
-import { priceSort, discountSort, searchInput, discountSlider, sizeFilter } from './util/sort';
+import { Sort } from "./interfaces/Sort";
+import { applyItemFilters } from "./util/sort";
+import { AppDispatch, RootState } from "./store";
 
-export default function App() {
-
-  const dispatch = useDispatch();
-  const filterStore = useSelector((state: any) => state.filterStore);
-  const paramStore = useSelector((state: any) => state.paramStore);
-  const { search, discount, discountHighToLow, priceHighToLow, sizes } = filterStore;
-
-  const { sortParams, searchInputParams, sizesParams } = paramStore; // genderParams, discountParam
-  let [urlParams, setUrlParams] = useSearchParams();
-  let urlSort = urlParams.get("sort") || "";
-  let urlSearch = urlParams.get("search") || "";
-  // let urlSizes = urlParams.get("sizes") || "";
-
-  const [items, setItems] = useState<Item[]>([]);
-  const [filteredItems, setFilteredItems] = useState<Item[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [isError, setIsError] = useState(false);
-
-  useEffect(() => {
-    if (priceHighToLow !== null) setFilteredItems(priceSort(priceHighToLow, filteredItems));
-    if (discountHighToLow !== null) setFilteredItems(discountSort(discountHighToLow, filteredItems));
-    if (discount !== 0) setFilteredItems(discountSlider(search, discount, items));
-    if (search !== '') setFilteredItems(searchInput(search, discount, items, filteredItems));
-    if (sizes.length > 0) setFilteredItems(sizeFilter(sizes, discount, items));
-  }, [priceHighToLow, discountHighToLow, discount, search, sizes]);
-
-  // useEffect(() => {   // Gender -> male = true, female = false
-  //   setFilteredItems(genderSort(gender, filteredItems));
-  // }, [gender]);
-
-  // useEffect(() => {
-  //   setFilteredItems(genderSort(sizes, items));
-  // }, [gender]);
-
-  useEffect(() => {
-    const [search, sort, sizes] = [searchInputParams.input || "", sortParams.sort || "", sizesParams.sizes || ""];
-
-    if (!search) { // User cleared input search
-      urlParams.delete("search");
-      console.log("setting params:", { urlParams: urlParams.toString() });
-      setUrlParams(urlParams);
-    }
-
-    if (search && sort && sizes) setUrlParams({ search, sort, sizes });
-    else if (search) setUrlParams({ search });
-    else if (sort) setUrlParams({ sort });
-    else if (sizes) setUrlParams({ sizes });
-  }, [sortParams, searchInputParams, sizesParams]);
-
-
-  // function initialSortOptions(urlSort: string, urlSearch: string, urlSizes: string, items: Item[]) {
-  function initialSortOptions(urlSort: string, urlSearch: string, items: Item[]) {
-    // For initial loading based on URL input. eg http://localhost:3000/?sort=price-low-to-high or assign default (discount high to low)
-    console.log(urlSearch);
-    
-    if (urlSearch) {
-      setFilteredItems(searchInput(urlSearch, discount, items, filteredItems));
-      dispatch(filterActions.setSearch(urlSearch));
-    }
-
-    // if (urlSizes) {
-    //   console.log(urlSizes);
-    //   setFilteredItems(sizeFilter(urlSize.split(","), discount, items));
-    //   dispatch(filterActions.setSizes(urlSize));
-    // }
-
-    if (urlSort === SORT.priceHighToLow) {
-      setFilteredItems(priceSort(true, items));
-      dispatch(filterActions.setPriceHighToLow(true));
-    } else if (urlSort === SORT.priceLowToHigh) {
-      setFilteredItems(priceSort(false, items));
-      dispatch(filterActions.setPriceHighToLow(false));
-    } else if (urlSort === SORT.discountHighToLow) {
-      setFilteredItems(discountSort(true, items));
-      dispatch(filterActions.setDiscountHighToLow(true));
-    } else if (urlSort === SORT.discountLowToHigh) {
-      setFilteredItems(discountSort(false, items));
-      dispatch(filterActions.setDiscountHighToLow(false));
-    } else {
-      // TODO - Maybe: check that both search and sort is empty
-      setFilteredItems(items);
-    }
+function parseSizesParam(value: string | null): string[] {
+  if (!value) {
+    return [];
   }
 
-  // Fetching Data from the API
+  const sizes = value
+    .split(",")
+    .map((size) => size.trim())
+    .filter(Boolean);
+
+  return Array.from(new Set(sizes));
+}
+
+function getSortParam(
+  priceHighToLow: boolean | null,
+  discountHighToLow: boolean | null
+): Sort | "" {
+  if (priceHighToLow !== null) {
+    return priceHighToLow ? Sort.priceHighToLow : Sort.priceLowToHigh;
+  }
+
+  if (discountHighToLow !== null) {
+    return discountHighToLow ? Sort.discountHighToLow : Sort.discountLowToHigh;
+  }
+
+  return "";
+}
+
+export default function App() {
+  const dispatch = useDispatch<AppDispatch>();
+  const [urlParams, setUrlParams] = useSearchParams();
+
+  const { search, discount, discountHighToLow, priceHighToLow, sizes } = useSelector(
+    (state: RootState) => state.filterStore
+  );
+
+  const [initialParams] = useState(() => ({
+    search: urlParams.get("search") ?? "",
+    sort: urlParams.get("sort") ?? "",
+    sizes: parseSizesParam(urlParams.get("sizes")),
+  }));
+
+  const [items, setItems] = useState<Item[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [isError, setIsError] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(false);
+
   useEffect(() => {
+    let isMounted = true;
+
     setLoading(true);
     getItemsService()
-      .then((items: any) => {
-        if (!items.length) {
-          console.log(items, " data is empty");
+      .then((responseItems: Item[]) => {
+        if (!isMounted) {
+          return;
+        }
+
+        if (!Array.isArray(responseItems) || responseItems.length === 0) {
           setIsError(true);
-        } else {
-          setItems(items);
-          initialSortOptions(urlSort, urlSearch, items);
+          return;
+        }
+
+        setItems(responseItems);
+
+        if (initialParams.search) {
+          dispatch(filterActions.setSearch(initialParams.search));
+        }
+
+        initialParams.sizes.forEach((size) => {
+          dispatch(filterActions.setSizes(size));
+        });
+
+        if (initialParams.sort === Sort.priceHighToLow) {
+          dispatch(filterActions.setPriceHighToLow(true));
+        } else if (initialParams.sort === Sort.priceLowToHigh) {
+          dispatch(filterActions.setPriceHighToLow(false));
+        } else if (initialParams.sort === Sort.discountHighToLow) {
+          dispatch(filterActions.setDiscountHighToLow(true));
+        } else if (initialParams.sort === Sort.discountLowToHigh) {
+          dispatch(filterActions.setDiscountHighToLow(false));
         }
       })
-      .catch((err: any) => {
-        console.log(err);
-        setIsError(true);
+      .catch(() => {
+        if (isMounted) {
+          setIsError(true);
+        }
       })
-      .finally(() => setLoading(false));
-  }, []);
+      .finally(() => {
+        if (isMounted) {
+          setLoading(false);
+          setIsInitialized(true);
+        }
+      });
 
-  
+    return () => {
+      isMounted = false;
+    };
+  }, [dispatch, initialParams]);
+
+  const filteredItems = useMemo(
+    () =>
+      applyItemFilters(items, {
+        search,
+        minDiscount: discount,
+        sizes,
+        priceHighToLow,
+        discountHighToLow,
+      }),
+    [items, search, discount, sizes, priceHighToLow, discountHighToLow]
+  );
+
+  const activeSortParam = getSortParam(priceHighToLow, discountHighToLow);
+  const currentParamString = urlParams.toString();
+
+  useEffect(() => {
+    if (!isInitialized) {
+      return;
+    }
+
+    const nextParams = new URLSearchParams();
+
+    if (search) {
+      nextParams.set("search", search);
+    }
+
+    if (activeSortParam) {
+      nextParams.set("sort", activeSortParam);
+    }
+
+    if (sizes.length) {
+      nextParams.set("sizes", sizes.join(","));
+    }
+
+    const nextParamString = nextParams.toString();
+    if (nextParamString !== currentParamString) {
+      setUrlParams(nextParams);
+    }
+  }, [isInitialized, search, activeSortParam, sizes, currentParamString, setUrlParams]);
+
   return (
     <div className="App">
       <nav>
-        {" "}
         <HeaderBar />
       </nav>
       {isError && <Error />}
