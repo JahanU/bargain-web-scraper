@@ -9,8 +9,6 @@ import { AppDispatch, RootState } from "../../../store";
 interface SortMenuOption {
   id: Sort;
   label: string;
-  isActive: boolean;
-  onSelect: () => void;
 }
 
 const menuItemBaseClasses =
@@ -18,37 +16,16 @@ const menuItemBaseClasses =
 const activeMenuItemClasses = "bg-indigo-400 text-white";
 const inactiveMenuItemClasses = "bg-gray-100 text-gray-900 opacity-70 hover:bg-gray-200";
 
+const sortOptions: SortMenuOption[] = [
+  { id: Sort.discountHighToLow, label: "Discount (High to Low)" },
+  { id: Sort.discountLowToHigh, label: "Discount (Low to High)" },
+  { id: Sort.priceHighToLow, label: "Price (High to Low)" },
+  { id: Sort.priceLowToHigh, label: "Price (Low to High)" },
+];
+
 export default function SortDropdown() {
   const dispatch = useDispatch<AppDispatch>();
-  const isPriceSort = useSelector((state: RootState) => state.filterStore.priceHighToLow);
-  const isDiscountSort = useSelector((state: RootState) => state.filterStore.discountHighToLow);
-
-  const sortOptions: SortMenuOption[] = [
-    {
-      id: Sort.discountHighToLow,
-      label: "Discount (High to Low)",
-      isActive: isDiscountSort === true,
-      onSelect: () => dispatch(filterActions.setDiscountHighToLow(true)),
-    },
-    {
-      id: Sort.discountLowToHigh,
-      label: "Discount (Low to High)",
-      isActive: isDiscountSort === false,
-      onSelect: () => dispatch(filterActions.setDiscountHighToLow(false)),
-    },
-    {
-      id: Sort.priceHighToLow,
-      label: "Price (High to Low)",
-      isActive: isPriceSort === true,
-      onSelect: () => dispatch(filterActions.setPriceHighToLow(true)),
-    },
-    {
-      id: Sort.priceLowToHigh,
-      label: "Price (Low to High)",
-      isActive: isPriceSort === false,
-      onSelect: () => dispatch(filterActions.setPriceHighToLow(false)),
-    },
-  ];
+  const selectedSort = useSelector((state: RootState) => state.filterStore.sort);
 
   return (
     <Menu as="div" className="relative inline-block text-left z-10">
@@ -76,9 +53,9 @@ export default function SortDropdown() {
                   <button
                     type="button"
                     className={`${menuItemBaseClasses} ${
-                      option.isActive ? activeMenuItemClasses : inactiveMenuItemClasses
+                      selectedSort === option.id ? activeMenuItemClasses : inactiveMenuItemClasses
                     }`}
-                    onClick={option.onSelect}
+                    onClick={() => dispatch(filterActions.setSort(option.id))}
                   >
                     {option.label}
                   </button>

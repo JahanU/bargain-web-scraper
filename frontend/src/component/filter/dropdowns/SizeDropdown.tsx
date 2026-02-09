@@ -17,7 +17,7 @@ export default function SizeDropdown() {
   const selectedSizes = useSelector((state: RootState) => state.filterStore.sizes);
 
   const onClickHandler = (value: string) => {
-    dispatch(filterActions.setSizes(value));
+    dispatch(filterActions.toggleSize(value));
   };
 
   return (
