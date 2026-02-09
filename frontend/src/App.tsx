@@ -13,6 +13,15 @@ import { Sort } from "./interfaces/Sort";
 import { applyItemFilters } from "./util/sort";
 import { AppDispatch, RootState } from "./store";
 
+const SEARCH_PARAM_DEBOUNCE_MS = 300;
+const VALID_SORTS = new Set(Object.values(Sort));
+
+interface QueryFilterState {
+  search: string;
+  sort: Sort | null;
+  sizes: string[];
+}
+
 function parseSizesParam(value: string | null): string[] {
   if (!value) {
     return [];
@@ -26,39 +35,75 @@ function parseSizesParam(value: string | null): string[] {
   return Array.from(new Set(sizes));
 }
 
-function getSortParam(
-  priceHighToLow: boolean | null,
-  discountHighToLow: boolean | null
-): Sort | "" {
-  if (priceHighToLow !== null) {
-    return priceHighToLow ? Sort.priceHighToLow : Sort.priceLowToHigh;
+function parseSortParam(value: string | null): Sort | null {
+  if (value && VALID_SORTS.has(value as Sort)) {
+    return value as Sort;
   }
 
-  if (discountHighToLow !== null) {
-    return discountHighToLow ? Sort.discountHighToLow : Sort.discountLowToHigh;
+  return null;
+}
+
+function parseQueryFilterState(urlParams: URLSearchParams): QueryFilterState {
+  return {
+    search: urlParams.get("search") ?? "",
+    sort: parseSortParam(urlParams.get("sort")),
+    sizes: parseSizesParam(urlParams.get("sizes")),
+  };
+}
+
+function toUrlSearchParams(filters: QueryFilterState): URLSearchParams {
+  const nextParams = new URLSearchParams();
+
+  if (filters.search) {
+    nextParams.set("search", filters.search);
   }
 
-  return "";
+  if (filters.sort) {
+    nextParams.set("sort", filters.sort);
+  }
+
+  if (filters.sizes.length) {
+    nextParams.set("sizes", filters.sizes.join(","));
+  }
+
+  return nextParams;
+}
+
+function areStringArraysEqual(a: string[], b: string[]): boolean {
+  if (a.length !== b.length) {
+    return false;
+  }
+
+  return a.every((value, index) => value === b[index]);
 }
 
 export default function App() {
   const dispatch = useDispatch<AppDispatch>();
   const [urlParams, setUrlParams] = useSearchParams();
 
-  const { search, discount, discountHighToLow, priceHighToLow, sizes } = useSelector(
-    (state: RootState) => state.filterStore
-  );
-
-  const [initialParams] = useState(() => ({
-    search: urlParams.get("search") ?? "",
-    sort: urlParams.get("sort") ?? "",
-    sizes: parseSizesParam(urlParams.get("sizes")),
-  }));
+  const { search, discount, sort, sizes } = useSelector((state: RootState) => state.filterStore);
 
   const [items, setItems] = useState<Item[]>([]);
   const [loading, setLoading] = useState(true);
   const [isError, setIsError] = useState(false);
-  const [isInitialized, setIsInitialized] = useState(false);
+  const [hasHydratedFromUrl, setHasHydratedFromUrl] = useState(false);
+
+  const queryFilters = useMemo(() => parseQueryFilterState(urlParams), [urlParams]);
+
+  useEffect(() => {
+    const queryMatchesStore =
+      queryFilters.search === search &&
+      queryFilters.sort === sort &&
+      areStringArraysEqual(queryFilters.sizes, sizes);
+
+    if (!queryMatchesStore) {
+      dispatch(filterActions.hydrateFromQuery(queryFilters));
+    }
+
+    if (!hasHydratedFromUrl) {
+      setHasHydratedFromUrl(true);
+    }
+  }, [dispatch, queryFilters, search, sort, sizes, hasHydratedFromUrl]);
 
   useEffect(() => {
     let isMounted = true;
@@ -76,24 +121,6 @@ export default function App() {
         }
 
         setItems(responseItems);
-
-        if (initialParams.search) {
-          dispatch(filterActions.setSearch(initialParams.search));
-        }
-
-        initialParams.sizes.forEach((size) => {
-          dispatch(filterActions.setSizes(size));
-        });
-
-        if (initialParams.sort === Sort.priceHighToLow) {
-          dispatch(filterActions.setPriceHighToLow(true));
-        } else if (initialParams.sort === Sort.priceLowToHigh) {
-          dispatch(filterActions.setPriceHighToLow(false));
-        } else if (initialParams.sort === Sort.discountHighToLow) {
-          dispatch(filterActions.setDiscountHighToLow(true));
-        } else if (initialParams.sort === Sort.discountLowToHigh) {
-          dispatch(filterActions.setDiscountHighToLow(false));
-        }
       })
       .catch(() => {
         if (isMounted) {
@@ -103,14 +130,47 @@ export default function App() {
       .finally(() => {
         if (isMounted) {
           setLoading(false);
-          setIsInitialized(true);
         }
       });
 
     return () => {
       isMounted = false;
     };
-  }, [dispatch, initialParams]);
+  }, []);
+
+  useEffect(() => {
+    if (!hasHydratedFromUrl) {
+      return;
+    }
+
+    const nextQueryFilters: QueryFilterState = { search, sort, sizes };
+    const nextParams = toUrlSearchParams(nextQueryFilters);
+    const nextQueryString = nextParams.toString();
+
+    const currentQueryFilters = parseQueryFilterState(urlParams);
+    const currentQueryString = toUrlSearchParams(currentQueryFilters).toString();
+
+    if (nextQueryString === currentQueryString) {
+      return;
+    }
+
+    const shouldDebounceSearchUpdate =
+      sort === currentQueryFilters.sort &&
+      areStringArraysEqual(sizes, currentQueryFilters.sizes) &&
+      search !== currentQueryFilters.search;
+
+    if (shouldDebounceSearchUpdate) {
+      const timeoutId = window.setTimeout(() => {
+        setUrlParams(nextParams, { replace: true });
+      }, SEARCH_PARAM_DEBOUNCE_MS);
+
+      return () => {
+        window.clearTimeout(timeoutId);
+      };
+    }
+
+    setUrlParams(nextParams, { replace: true });
+  }, [hasHydratedFromUrl, search, sort, sizes, urlParams, setUrlParams]);
 
   const filteredItems = useMemo(
     () =>
@@ -118,39 +178,10 @@ export default function App() {
         search,
         minDiscount: discount,
         sizes,
-        priceHighToLow,
-        discountHighToLow,
+        sort,
       }),
-    [items, search, discount, sizes, priceHighToLow, discountHighToLow]
+    [items, search, discount, sizes, sort]
   );
-
-  const activeSortParam = getSortParam(priceHighToLow, discountHighToLow);
-  const currentParamString = urlParams.toString();
-
-  useEffect(() => {
-    if (!isInitialized) {
-      return;
-    }
-
-    const nextParams = new URLSearchParams();
-
-    if (search) {
-      nextParams.set("search", search);
-    }
-
-    if (activeSortParam) {
-      nextParams.set("sort", activeSortParam);
-    }
-
-    if (sizes.length) {
-      nextParams.set("sizes", sizes.join(","));
-    }
-
-    const nextParamString = nextParams.toString();
-    if (nextParamString !== currentParamString) {
-      setUrlParams(nextParams);
-    }
-  }, [isInitialized, search, activeSortParam, sizes, currentParamString, setUrlParams]);
 
   return (
     <div className="App">
