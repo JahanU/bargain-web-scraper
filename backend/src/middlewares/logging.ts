@@ -1,6 +1,6 @@
-import { Request, Response, NextFunction } from "express";
+import type { Context, Next } from 'hono';
 
-module.exports = (req: Request, res: Response, next: NextFunction) => {
+export const loggingMiddleware = async (c: Context, next: Next) => {
     console.log(`Request was made at: ${new Date().toLocaleString()}`);
-    next();
+    await next();
 };

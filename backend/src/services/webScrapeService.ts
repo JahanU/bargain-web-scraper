@@ -1,4 +1,4 @@
-const telegram = require('./telegramService');
+import * as telegramService from './telegramService';
 import JDService from './JDService';
 import { Item } from '../interfaces/Item';
 
@@ -15,7 +15,7 @@ let isScrapeRunning = false;
 /**
  * Boots the scraper loop and schedules periodic scraping and cache reset.
  */
-function main() {
+export function main() {
     // Kick off immediately so the service does not wait for the first interval tick.
     void startScraping();
     setInterval(() => {
@@ -97,7 +97,7 @@ function sendDeals(newDeals: Item[]) {
 /**
  * Returns active cache if available, otherwise returns the previous snapshot.
  */
-const getBestDealsList = (): Item[] => {
+export const getBestDealsList = (): Item[] => {
     if (allBestItemsMap.size === 0) {
         return cachedAllBestItems;
     }
@@ -127,5 +127,3 @@ function cloneItem(item: Item): Item {
         sizes: item.sizes ? [...item.sizes] : undefined,
     };
 }
-
-module.exports = { main, getBestDealsList };

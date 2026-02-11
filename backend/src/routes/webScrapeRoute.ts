@@ -1,13 +1,10 @@
-import express, { Request, Response } from 'express';
+import { Hono } from 'hono';
+import * as webScrapeController from '../controllers/webScrapeController';
 
-const router = express.Router();
-const webScrapeController = require('../controllers/webScrapeController');
+export const webScrapeRoute = new Hono();
 
-router.get('/', (req: Request, res: Response) => {
-    res.send('on webScrape home');
+webScrapeRoute.get('/', (c) => {
+    return c.text('on webScrape home');
 });
 
-router.get('/getBestDeals', webScrapeController.getBestDealsList);
-
-
-module.exports = router; // Export this as a module, so that the router is accessible from index.
+webScrapeRoute.get('/getBestDeals', webScrapeController.getBestDealsList);

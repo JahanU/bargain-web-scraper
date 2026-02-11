@@ -1,12 +1,13 @@
-const TG = require('telegram-bot-api');
-import { TelegramUpdate } from "../interfaces/TelegramUpdate";
-import { Item } from "../interfaces/Item";
-import { FirebaseUser } from "../interfaces/FirebaseUser";
-const firebaseService = require("../services/firebaseService");
+// @ts-ignore — telegram-bot-api has no type declarations
+import TG from 'telegram-bot-api';
+import { TelegramUpdate } from '../interfaces/TelegramUpdate';
+import { Item } from '../interfaces/Item';
+import { FirebaseUser } from '../interfaces/FirebaseUser';
+import * as firebaseService from './firebaseService';
 
 const api = new TG({ token: process.env.TELEGRAM_API });
 
-async function sendPhotosToUsers(items: Item[]) {
+export async function sendPhotosToUsers(items: Item[]) {
 
     // const users = await firebaseService.getUsers();
 
@@ -26,11 +27,9 @@ async function sendPhotosToUsers(items: Item[]) {
     });
 }
 
-function sendMessage(telegramUpdate: TelegramUpdate) {
+export function sendMessage(telegramUpdate: TelegramUpdate) {
     api.sendMessage({
         chat_id: telegramUpdate.message?.from.id,
         text: telegramUpdate.response_to_user,
     }).catch((err: Error) => console.log(err));
 }
-
-module.exports = { sendPhotosToUsers, sendMessage };
