@@ -1,4 +1,3 @@
-import * as telegramService from './telegramService';
 import JDService from './JDService';
 import type { Item } from '../interfaces/Item';
 

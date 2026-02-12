@@ -2,8 +2,6 @@
 import TG from 'telegram-bot-api';
 import type { TelegramUpdate } from '../interfaces/TelegramUpdate';
 import type { Item } from '../interfaces/Item';
-import type { FirebaseUser } from '../interfaces/FirebaseUser';
-import * as firebaseService from './firebaseService';
 
 const api = new TG({ token: process.env.TELEGRAM_API });
 
