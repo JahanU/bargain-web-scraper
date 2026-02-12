@@ -1,7 +1,7 @@
-import { Request, Response } from 'express';
-const webScrapeService = require('../services/webScrapeService');
+import type { Context } from 'hono';
+import { getBestDealsList as getDeals } from '../services/webScrapeService';
 
-exports.getBestDealsList = (req: Request, res: Response) => {
-    const items = webScrapeService.getBestDealsList();
-    res.send(items);
+export const getBestDealsList = (c: Context) => {
+    const items = getDeals();
+    return c.json([...items]);
 };

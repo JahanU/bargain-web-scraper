@@ -1,50 +1,52 @@
-import express, { Request, Response, NextFunction } from 'express';
-const newrelic = require('newrelic');
-const logger = require('morgan');
-const bodyParser = require('body-parser'); // Parse body data; JSON data
-const cors = require('cors')
+import { Hono } from 'hono';
+import { cors } from 'hono/cors';
+import { logger } from 'hono/logger';
+import { serveStatic } from 'hono/bun';
+import 'dotenv/config';
 
+import { firebaseRoute } from './routes/firebaseRoute';
+import { webScrapeRoute } from './routes/webScrapeRoute';
+import { telegramRoute } from './routes/telegramRoute';
+import { loggingMiddleware } from './middlewares/logging';
+import { main as startWebScraper } from './services/webScrapeService';
 
-const app = express();
-app.use(logger('dev'));
-app.use(bodyParser.json());
-app.use(cors());
-app.use(express.static('client'));
+const app = new Hono();
 
-require('dotenv').config();
+// Middleware
+app.use('*', logger());
+app.use('*', cors());
+app.use('*', loggingMiddleware);
 
-const webScrape = require('./services/webScrapeService');
-webScrape.main();
-
-const firebaseRoute = require('./routes/firebaseRoute');
-const webScrapeRoute = require('./routes/webScrapeRoute')
-const telegramRoute = require('./routes/telegramRoute');
-const loggingMiddleware = require('./middlewares/logging');
-
-app.use('/firebase', firebaseRoute);
-app.use('/webscrape', webScrapeRoute);
-app.use(telegramRoute);
-
-app.use(loggingMiddleware);
+// Static files
+app.use('/client/*', serveStatic({ root: './' }));
 
 // Default route
-app.get('/', (req: Request, res: Response) => res.send('on home'));
+app.get('/', (c) => c.text('on home'));
 
-app.use((req: Request, res: Response, next: NextFunction) => {
-    const error = new Error('Not Found');
-    res.status(404);
-    next(error);
+// Routes
+app.route('/firebase', firebaseRoute);
+app.route('/webscrape', webScrapeRoute);
+app.route('/telegram', telegramRoute);
+
+// 404 handler
+app.notFound((c) => {
+    return c.json({ error: { message: 'Not Found', code: 404 } }, 404);
 });
 
-app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
-    res.status(res.statusCode || 500);
-    res.json({
-        error: {
-            message: err.message,
-            code: res.statusCode
-        },
-    });
+// Error handler
+app.onError((err, c) => {
+    const status = 500;
+    return c.json({ error: { message: err.message, code: status } }, status);
 });
 
-const PORT = process.env.PORT || 8000;
-app.listen(PORT, () => console.log(`listening on port: ${PORT}`));
+// Start web scraper
+startWebScraper();
+
+const PORT = Number(process.env.PORT) || 8000;
+
+export default {
+    port: PORT,
+    fetch: app.fetch,
+};
+
+console.log(`listening on port: ${PORT}`);

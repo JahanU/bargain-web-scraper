@@ -1,31 +1,34 @@
-import express, { Request, Response, NextFunction } from 'express';
-import { TelegramUpdate } from "../interfaces/TelegramUpdate";
+import { Hono } from 'hono';
+import type { TelegramUpdate } from '../interfaces/TelegramUpdate';
+import * as telegramController from '../controllers/telegramController';
 
-const router = express.Router();
-const TG = require('telegram-bot-api');
-const telegramController = require('../controllers/telegramController');
+// @ts-ignore — telegram-bot-api has no type declarations
+import TG from 'telegram-bot-api';
+
+export const telegramRoute = new Hono();
+
 const api = new TG({ token: process.env.TELEGRAM_API });
-const mp = new TG.GetUpdateMessageProvider(); // Define your message provider
+const mp = new TG.GetUpdateMessageProvider();
 
-router.get('/', (req, res) => {
-    res.send('on telegram home');
+telegramRoute.get('/', (c) => {
+    return c.text('on telegram home');
 });
 
-api.setMessageProvider(mp); // Set message provider and start API
+api.setMessageProvider(mp);
 api.start()
     .then(() => {
         console.log('Telegram Message handler API started');
     })
     .catch((err: Error) => console.log(err));
+
 // Receive messages via event callback
-api.on('update', (update: TelegramUpdate) => { // update object is defined at: https://core.telegram.org/bots/api#update
+api.on('update', (update: TelegramUpdate) => {
     console.log('update: ', update);
-    handleCommands(update); // handle all telegram bot commands
+    handleCommands(update);
 });
 
 /* eslint-disable indent */
-function handleCommands(update: TelegramUpdate) { // google cloud functions?
-
+function handleCommands(update: TelegramUpdate) {
     switch (update.message?.text) {
         case '/start':
             handleSignOnUser(update);
@@ -59,6 +62,3 @@ async function handleCodeProject(update: TelegramUpdate) {
 async function handleGetWebsite(update: TelegramUpdate) {
     await telegramController.getWebsite(update);
 }
-
-
-module.exports = router; // Export this as a module, so that the router is accessible from index.

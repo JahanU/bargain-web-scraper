@@ -1,14 +1,21 @@
-import express, { Request, Response, NextFunction } from 'express';
-const firebaseService = require('../services/firebaseService');
+import type { Context } from 'hono';
+import * as firebaseService from '../services/firebaseService';
 
-exports.getUsers = async (req: Request, res: Response, next: NextFunction) => {
-    firebaseService.getUsers()
-        .then((users: any) => res.status(200).json(users))
-        .catch((err: Error) => next(err));
+export const getUsers = async (c: Context) => {
+    try {
+        const users = await firebaseService.getUsers();
+        return c.json(users, 200);
+    } catch (err) {
+        return c.json({ error: { message: (err as Error).message } }, 500);
+    }
 };
 
-exports.addUser = (req: Request, res: Response, next: NextFunction) => {
-    firebaseService.addUser(req.body)
-        .then((users: any) => res.status(200).json(users))
-        .catch((err: Error) => next(err));
+export const addUser = async (c: Context) => {
+    try {
+        const body = await c.req.json();
+        await firebaseService.addUser(body);
+        return c.json({ message: 'User added successfully' }, 200);
+    } catch (err) {
+        return c.json({ error: { message: (err as Error).message } }, 500);
+    }
 };

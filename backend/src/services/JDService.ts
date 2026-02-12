@@ -1,7 +1,6 @@
-const cheerio = require('cheerio');
-import axios, { AxiosInstance } from 'axios';
-const filterData = require('../helper/filterData');
-import { Item } from '../interfaces/Item';
+import * as cheerio from 'cheerio';
+import { filterData } from '../helper/filterData';
+import type { Item } from '../interfaces/Item';
 
 const JD_BASE_URL = 'https://www.jdsports.co.uk';
 const LISTING_URLS = [
@@ -15,13 +14,9 @@ const REQUEST_TIMEOUT_MS = 15000;
 
 const seenItemsCache = new Set<string>();
 
-// Axios HTTP client for JD requests
-const httpClient: AxiosInstance = axios.create({
-    timeout: REQUEST_TIMEOUT_MS,
-    headers: {
-        'User-Agent': 'Mozilla/5.0 (compatible; bargain-web-scraper/1.0)',
-    },
-});
+const defaultHeaders = {
+    'User-Agent': 'Mozilla/5.0 (compatible; bargain-web-scraper/1.0)',
+};
 
 /**
  * Entry point for JD scraping:
@@ -68,13 +63,24 @@ async function collectListingItems(discountLimit: number): Promise<Item[]> {
 }
 
 /**
+ * Fetches a URL with timeout and custom headers using native fetch.
+ */
+async function fetchWithTimeout(url: string): Promise<string> {
+    const response = await fetch(url, {
+        headers: defaultHeaders,
+        signal: (AbortSignal as any).timeout(REQUEST_TIMEOUT_MS),
+    });
+    return response.text();
+}
+
+/**
  * Extracts candidate items from a single listing page.
  */
 async function scrapeListingPage(url: string, discountLimit: number): Promise<Item[]> {
     try {
         console.log(`[JDService] Scraping listing page: ${url}`);
-        const response = await httpClient.get(url);
-        const $ = cheerio.load(response.data);
+        const html = await fetchWithTimeout(url);
+        const $ = cheerio.load(html);
         const gender = getGenderFromUrl(url);
         const pageItems: Item[] = [];
 
@@ -145,8 +151,8 @@ function parseListingItem(
  */
 async function getStockAndSize(item: Item): Promise<Item | undefined> {
     try {
-        const response = await httpClient.get(item.url);
-        const $ = cheerio.load(response.data);
+        const html = await fetchWithTimeout(item.url);
+        const $ = cheerio.load(html);
 
         const inStock = extractStockStatus($);
         const sizes = extractSizes($);
@@ -219,9 +225,11 @@ function extractSizes($: any): string[] {
             // Iteratively execute regex to collect multiple matches from a single script blob.
             let match = pattern.exec(scriptText);
             while (match) {
-                const value = match[1].trim();
-                if (isValidSize(value)) {
-                    sizes.add(value);
+                if (match[1]) {
+                    const value = match[1].trim();
+                    if (isValidSize(value)) {
+                        sizes.add(value);
+                    }
                 }
                 match = pattern.exec(scriptText);
             }
@@ -340,7 +348,7 @@ function normalizeAvailability(value: unknown): string {
  */
 function extractDiscount(text: string): number {
     const match = text.match(/(\d{1,3})\s*%/);
-    return match ? parseInt(match[1], 10) : 0;
+    return (match && match[1]) ? parseInt(match[1], 10) : 0;
 }
 
 /**
@@ -435,7 +443,10 @@ async function mapConcurrent<TInput, TOutput>(
                 break;
             }
 
-            output[currentIndex] = await mapper(input[currentIndex]);
+            const currentInput = input[currentIndex];
+            if (currentInput !== undefined) {
+                output[currentIndex] = await mapper(currentInput);
+            }
         }
     });
 
