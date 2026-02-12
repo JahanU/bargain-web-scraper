@@ -1,6 +1,6 @@
 import * as telegramService from './telegramService';
 import JDService from './JDService';
-import { Item } from '../interfaces/Item';
+import type { Item } from '../interfaces/Item';
 
 const SCRAPE_INTERVAL_MS = 5 * 60 * 1000;
 const CACHE_RESET_INTERVAL_MS = 24 * 60 * 60 * 1000;

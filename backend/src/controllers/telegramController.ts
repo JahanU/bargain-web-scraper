@@ -1,4 +1,4 @@
-import { TelegramUpdate } from '../interfaces/TelegramUpdate';
+import type { TelegramUpdate } from '../interfaces/TelegramUpdate';
 import { URLS } from '../helper/urls';
 import * as firebaseService from '../services/firebaseService';
 import * as telegramService from '../services/telegramService';

@@ -1,6 +1,6 @@
 import * as cheerio from 'cheerio';
 import { filterData } from '../helper/filterData';
-import { Item } from '../interfaces/Item';
+import type { Item } from '../interfaces/Item';
 
 const JD_BASE_URL = 'https://www.jdsports.co.uk';
 const LISTING_URLS = [
@@ -68,7 +68,7 @@ async function collectListingItems(discountLimit: number): Promise<Item[]> {
 async function fetchWithTimeout(url: string): Promise<string> {
     const response = await fetch(url, {
         headers: defaultHeaders,
-        signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+        signal: (AbortSignal as any).timeout(REQUEST_TIMEOUT_MS),
     });
     return response.text();
 }
@@ -225,9 +225,11 @@ function extractSizes($: any): string[] {
             // Iteratively execute regex to collect multiple matches from a single script blob.
             let match = pattern.exec(scriptText);
             while (match) {
-                const value = match[1].trim();
-                if (isValidSize(value)) {
-                    sizes.add(value);
+                if (match[1]) {
+                    const value = match[1].trim();
+                    if (isValidSize(value)) {
+                        sizes.add(value);
+                    }
                 }
                 match = pattern.exec(scriptText);
             }
@@ -346,7 +348,7 @@ function normalizeAvailability(value: unknown): string {
  */
 function extractDiscount(text: string): number {
     const match = text.match(/(\d{1,3})\s*%/);
-    return match ? parseInt(match[1], 10) : 0;
+    return (match && match[1]) ? parseInt(match[1], 10) : 0;
 }
 
 /**
@@ -441,7 +443,10 @@ async function mapConcurrent<TInput, TOutput>(
                 break;
             }
 
-            output[currentIndex] = await mapper(input[currentIndex]);
+            const currentInput = input[currentIndex];
+            if (currentInput !== undefined) {
+                output[currentIndex] = await mapper(currentInput);
+            }
         }
     });
 

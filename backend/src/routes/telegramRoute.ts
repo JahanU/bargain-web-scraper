@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { TelegramUpdate } from '../interfaces/TelegramUpdate';
+import type { TelegramUpdate } from '../interfaces/TelegramUpdate';
 import * as telegramController from '../controllers/telegramController';
 
 // @ts-ignore — telegram-bot-api has no type declarations

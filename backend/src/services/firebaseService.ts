@@ -1,6 +1,6 @@
 import { initializeApp } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
-import { TelegramUpdate } from '../interfaces/TelegramUpdate';
+import type { TelegramUpdate } from '../interfaces/TelegramUpdate';
 
 // TODO: Add SDKs for Firebase products that you want to use
 // https://firebase.google.com/docs/web/setup#available-libraries

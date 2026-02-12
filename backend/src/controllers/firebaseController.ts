@@ -13,8 +13,8 @@ export const getUsers = async (c: Context) => {
 export const addUser = async (c: Context) => {
     try {
         const body = await c.req.json();
-        const result = await firebaseService.addUser(body);
-        return c.json(result, 200);
+        await firebaseService.addUser(body);
+        return c.json({ message: 'User added successfully' }, 200);
     } catch (err) {
         return c.json({ error: { message: (err as Error).message } }, 500);
     }

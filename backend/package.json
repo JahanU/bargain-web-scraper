@@ -19,6 +19,7 @@
     "telegram-bot-api": "^2.0.1"
   },
   "devDependencies": {
-    "@types/bun": "latest"
+    "@types/bun": "latest",
+    "typescript": "latest"
   }
 }
