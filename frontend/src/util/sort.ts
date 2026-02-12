@@ -1,61 +1,78 @@
-
 import Item from "../interfaces/Item";
+import { Sort } from "../interfaces/Sort";
 
-function priceSort(filter: boolean, items: Item[]) {
-    if (filter)// Sort Desc // TODO: Parse type for quick fix until backend is updated
-        return [...items].sort((a, b) => parseInt(b.nowPrice.substring(1)) - parseInt(a.nowPrice.substring(1)));
-    else
-        return [...items].sort((a, b) => parseInt(a.nowPrice.substring(1)) - parseInt(b.nowPrice.substring(1)));
+export interface ItemFilterOptions {
+  search: string;
+  minDiscount: number;
+  sizes: string[];
+  sort: Sort | null;
 }
 
-function discountSort(discountHighToLow: boolean, items: Item[]) {
-    if (discountHighToLow)// Sort Desc
-        return [...items].sort((a, b) => b.discount - a.discount);
-    else
-        return [...items].sort((a, b) => a.discount - b.discount);
+function normalizeSearchTerm(value: string): string {
+  return value.trim().toLowerCase();
 }
 
-function genderSort(gender: boolean, allItems: Item[]) {
-    if (gender)
-        // Gender -> male = true, female = false
-        return [...allItems].filter((item: Item) => item.gender === "Male");
-    else
-        return [...allItems].filter((item: Item) => item.gender === "Female");
+function getPriceValue(value: string): number {
+  const normalizedPrice = value.replace(/[^0-9.]+/g, "");
+  return Number.parseFloat(normalizedPrice) || 0;
 }
 
-function discountSlider(search: string, discount: number, allItems: Item[]) {
-    if (search)
-        return [...allItems].filter((item: Item) => item.name.toLowerCase().includes(search) && item.discount >= discount);
-    else
-        return [...allItems].filter((item: Item) => item.discount >= discount);
+function filterBySearch(items: Item[], search: string): Item[] {
+  const normalizedSearch = normalizeSearchTerm(search);
+
+  if (!normalizedSearch) {
+    return [...items];
+  }
+
+  return items.filter((item: Item) => item.name.toLowerCase().includes(normalizedSearch));
 }
 
-function searchInput(search: string, discount: number, allItems: Item[], filteredItems: Item[]) {
-    if (search)
-        return [...filteredItems].filter((item: Item) => item.name.toLowerCase().includes(search));
-    else if (search)
-        return [...allItems].filter((item: Item) => item.name.toLowerCase().includes(search));
-    else
-        return [...allItems].filter((item: Item) => item.discount >= discount);
+function filterByDiscount(items: Item[], minDiscount: number): Item[] {
+  return items.filter((item: Item) => item.discount >= minDiscount);
 }
 
-function sizeFilter(sizes: string[], discount: number, allItems: Item[]) {
-    if (sizes.length > 0) {
-        let filteredItems: Item[] = [];
-        for (const item of allItems) {
-            if (item.sizes)
-                for (const size of sizes) {
-                    if (item.sizes.includes(size)) {
-                        filteredItems.push(item);
-                        break;
-                    }
-                };
-        };
-        return filteredItems;
-    }
+function filterBySizes(items: Item[], sizes: string[]): Item[] {
+  if (sizes.length === 0) {
+    return [...items];
+  }
 
-    else
-        return [...allItems].filter((item: Item) => item.discount >= discount);
+  const selectedSizes = new Set(sizes);
+  return items.filter((item: Item) => item.sizes?.some((size) => selectedSizes.has(size)));
 }
 
-export { priceSort, discountSort, genderSort, discountSlider, sizeFilter, searchInput };
+function priceSort(highToLow: boolean, items: Item[]) {
+  if (highToLow) {
+    return [...items].sort((a, b) => getPriceValue(b.nowPrice) - getPriceValue(a.nowPrice));
+  }
+
+  return [...items].sort((a, b) => getPriceValue(a.nowPrice) - getPriceValue(b.nowPrice));
+}
+
+function discountSort(highToLow: boolean, items: Item[]) {
+  if (highToLow) {
+    return [...items].sort((a, b) => b.discount - a.discount);
+  }
+
+  return [...items].sort((a, b) => a.discount - b.discount);
+}
+
+function applyItemFilters(items: Item[], options: ItemFilterOptions): Item[] {
+  let filteredItems = filterBySearch(items, options.search);
+  filteredItems = filterByDiscount(filteredItems, options.minDiscount);
+  filteredItems = filterBySizes(filteredItems, options.sizes);
+
+  switch (options.sort) {
+    case Sort.priceHighToLow:
+      return priceSort(true, filteredItems);
+    case Sort.priceLowToHigh:
+      return priceSort(false, filteredItems);
+    case Sort.discountHighToLow:
+      return discountSort(true, filteredItems);
+    case Sort.discountLowToHigh:
+      return discountSort(false, filteredItems);
+    default:
+      return filteredItems;
+  }
+}
+
+export { priceSort, discountSort, applyItemFilters };

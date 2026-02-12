@@ -1,13 +1,13 @@
+import { ChangeEvent } from "react";
 import { useDispatch } from "react-redux";
 import { filterActions } from "../../store/filterSlice";
-import { paramActions } from "../../store/paramSlice";
+import { AppDispatch } from "../../store";
 
 function SearchBar() {
-  const dispatch = useDispatch();
-  // eg "/shoes?brand=nike&sort=asc&sortby=price"
-  const handleSearch = (e: any) => {
-    let input = e.target.value;
-    dispatch(paramActions.setSearchInputParams({ input }));
+  const dispatch = useDispatch<AppDispatch>();
+
+  const handleSearch = (event: ChangeEvent<HTMLInputElement>) => {
+    const input = event.target.value;
     dispatch(filterActions.setSearch(input));
   };
 

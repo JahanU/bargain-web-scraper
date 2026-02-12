@@ -1,61 +1,59 @@
-import { createSlice } from '@reduxjs/toolkit';
+import { createSlice, PayloadAction } from "@reduxjs/toolkit";
+import { Sort } from "../interfaces/Sort";
 
-const initalFilterState = {
-    discount: 0,
-    search: '',
-    latest: false,
-    discountHighToLow: null, // Default we sort in Desc Order
-    priceHighToLow: null,
-    gender: null, // true = male, false = female
-    sizes: [],
+interface QueryFilterState {
+  search: string;
+  sort: Sort | null;
+  sizes: string[];
 }
 
+interface FilterState extends QueryFilterState {
+  discount: number;
+  gender: boolean | null;
+}
+
+const initialFilterState: FilterState = {
+  discount: 0,
+  search: "",
+  sort: null,
+  gender: null,
+  sizes: [],
+};
+
 const filter = createSlice({
-    name: 'filter',
-    initialState: initalFilterState,
-    reducers: {
-        setDiscount: (state: { discount: any; }, action: { payload: any; }) => {
-            state.discount = action.payload;
-        },
-        setSearch: (state: { search: string }, action: { payload: string; }) => {
-            state.search = action.payload.toLowerCase();
-        },
-        setLatset: (state: { latest: boolean; }) => {
-            state.latest = !state.latest;
-        },
-        setDiscountHighToLow: (state: { discountHighToLow: any; priceHighToLow: any }, action: { payload: any; }) => {
-            // already selected, now we unselect it
-            if (state.discountHighToLow && action.payload)
-                state.discountHighToLow = null;
-            else if (state.discountHighToLow === false && !action.payload)
-                state.discountHighToLow = null;
-            else
-                state.discountHighToLow = action.payload;
+  name: "filter",
+  initialState: initialFilterState,
+  reducers: {
+    setDiscount: (state, action: PayloadAction<number>) => {
+      state.discount = action.payload;
+    },
+    setSearch: (state, action: PayloadAction<string>) => {
+      state.search = action.payload;
+    },
+    setSort: (state, action: PayloadAction<Sort | null>) => {
+      if (action.payload === null) {
+        state.sort = null;
+        return;
+      }
 
-            state.priceHighToLow = null;
-        },
-        setPriceHighToLow: (state: { priceHighToLow: any; discountHighToLow: any }, action: { payload: any; }) => {
-            // already selected, now we unselect it
-            if (state.priceHighToLow && action.payload)
-                state.priceHighToLow = null;
-            else if (state.priceHighToLow === false && !action.payload)
-                state.priceHighToLow = null;
-            else
-                state.priceHighToLow = action.payload;
-
-            state.discountHighToLow = null;
-        },
-        setGender: (state: { gender: any; }, action: { payload: any; }) => {
-            state.gender = action.payload;
-        },
-        setSizes: (state: { sizes: any[]; }, action: { payload: string; }) => {
-            // todo if already in size, we remove. else we add
-            if (state.sizes.includes(action.payload))
-                state.sizes = state.sizes.filter((s: string) => s !== action.payload);
-            else
-                state.sizes.push(action.payload);
-        },
-    }
+      state.sort = state.sort === action.payload ? null : action.payload;
+    },
+    setGender: (state, action: PayloadAction<boolean | null>) => {
+      state.gender = action.payload;
+    },
+    toggleSize: (state, action: PayloadAction<string>) => {
+      if (state.sizes.includes(action.payload)) {
+        state.sizes = state.sizes.filter((size) => size !== action.payload);
+      } else {
+        state.sizes.push(action.payload);
+      }
+    },
+    hydrateFromQuery: (state, action: PayloadAction<QueryFilterState>) => {
+      state.search = action.payload.search;
+      state.sort = action.payload.sort;
+      state.sizes = action.payload.sizes;
+    },
+  },
 });
 
 export const filterActions = filter.actions;

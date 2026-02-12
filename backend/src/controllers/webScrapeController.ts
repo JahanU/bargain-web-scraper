@@ -1,8 +1,7 @@
-import express, { Request, Response, NextFunction } from 'express';
+import { Request, Response } from 'express';
 const webScrapeService = require('../services/webScrapeService');
 
-exports.getBestDealsList = (req: Request, res: Response, next: NextFunction) => {
-    let items = webScrapeService.getBestDealsList();
-    res.send([...items]);
+exports.getBestDealsList = (req: Request, res: Response) => {
+    const items = webScrapeService.getBestDealsList();
+    res.send(items);
 };
-

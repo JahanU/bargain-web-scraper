@@ -1,33 +1,25 @@
-/* eslint-disable jsx-a11y/anchor-is-valid */
-import { Fragment, useEffect } from "react";
+import { Fragment } from "react";
 import { Menu, Transition } from "@headlessui/react";
 import { ChevronDownIcon } from "@heroicons/react/solid";
 import { useDispatch, useSelector } from "react-redux";
 import { filterActions } from "../../../store/filterSlice";
-import { paramActions } from "../../../store/paramSlice";
+import { AppDispatch, RootState } from "../../../store";
 
-const sizes = ["XS", "S", "M", "L", "XL", "XXL"];
+const AVAILABLE_SIZES = ["XS", "S", "M", "L", "XL", "XXL"];
 
-function classNames(...classes: any[]) {
-  return classes.filter(Boolean).join(" ");
-}
+const menuItemBaseClasses =
+  "block w-full px-4 py-2 text-left text-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-100";
+const activeMenuItemClasses = "bg-indigo-400 text-white";
+const inactiveMenuItemClasses = "bg-gray-100 text-gray-900 opacity-70 hover:bg-gray-200";
 
-export default function Dropdown() {
+export default function SizeDropdown() {
+  const dispatch = useDispatch<AppDispatch>();
+  const selectedSizes = useSelector((state: RootState) => state.filterStore.sizes);
 
-  const dispatch = useDispatch(); // Dispatch similar to in useReducer
-  const selectedSizes = useSelector((state: any) => state.filterStore.sizes);
-
-  useEffect(() => {
-    dispatch(paramActions.setSizesParams({ sizes: selectedSizes }))
-  }, [dispatch, selectedSizes]);
-
-  
   const onClickHandler = (value: string) => {
-    dispatch(filterActions.setSizes(value));
-    dispatch(paramActions.setSizesParams({ sizes: selectedSizes }));
+    dispatch(filterActions.toggleSize(value));
   };
 
-  
   return (
     <Menu as="div" className="relative inline-block text-left z-10">
       <div>
@@ -46,21 +38,20 @@ export default function Dropdown() {
         leaveFrom="transform opacity-100 scale-100"
         leaveTo="transform opacity-0 scale-95"
       >
-
         <Menu.Items className="origin-top-right absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 focus:outline-none">
           <div className="py-1">
-            {sizes.map((size, index) => (
-              <Menu.Item key={index} onClick={() => onClickHandler(size)}>
-                {({ active }) => (
-                  <a
-                    className={
-                      `text-gray-90 text-gray-700 block px-4 py-2 text-sm bg-gray-50 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-100 focus:bg-indigo-800 `
-                      +
-                      classNames(selectedSizes.includes(size) ? "bg-indigo-400 text-white" : "bg-gray-100 text-gray-900 opacity-70")}
+            {AVAILABLE_SIZES.map((size) => (
+              <Menu.Item key={size}>
+                {() => (
+                  <button
+                    type="button"
+                    className={`${menuItemBaseClasses} ${
+                      selectedSizes.includes(size) ? activeMenuItemClasses : inactiveMenuItemClasses
+                    }`}
+                    onClick={() => onClickHandler(size)}
                   >
                     {size}
-                  </a>
-
+                  </button>
                 )}
               </Menu.Item>
             ))}
