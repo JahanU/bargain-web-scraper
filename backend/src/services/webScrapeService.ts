@@ -126,3 +126,19 @@ function cloneItem(item: Item): Item {
         sizes: item.sizes ? [...item.sizes] : undefined,
     };
 }
+
+function resetStateForTests() {
+    allBestItemsMap.clear();
+    cachedAllBestItems = [];
+    resetCacheFlag = false;
+    isScrapeRunning = false;
+}
+
+export const __test__ = {
+    cacheDeals,
+    sendDeals,
+    resetCache,
+    cloneItem,
+    startScraping,
+    resetStateForTests,
+};
