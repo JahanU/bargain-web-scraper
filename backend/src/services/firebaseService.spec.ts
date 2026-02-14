@@ -15,7 +15,7 @@ const getMock = mock(async () => ({
     ],
 }));
 
-const setMock = mock(async (_payload: any) => {});
+const setMock = mock(async (_payload: any) => { });
 const docMock = mock((_id: string) => ({
     set: setMock,
 }));
@@ -65,7 +65,7 @@ describe('firebaseService', () => {
                 from: {
                     id: 123,
                     first_name: 'Jahan',
-                    last_name: 'Ulhaque',
+                    last_name: 'Ruhee',
                 },
             },
         };
@@ -75,7 +75,7 @@ describe('firebaseService', () => {
         expect(collectionMock.mock.calls[0]?.[0]).toBe('users');
         expect(docMock.mock.calls[0]?.[0]).toBe('123');
         expect(setMock.mock.calls[0]?.[0]).toEqual({
-            fullName: 'Jahan Ulhaque',
+            fullName: 'Jahan Ruhee',
         });
     });
 });

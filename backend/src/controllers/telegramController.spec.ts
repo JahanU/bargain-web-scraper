@@ -3,8 +3,8 @@ import { URLS } from '../helper/urls';
 
 mock.restore();
 
-const addUserMock = mock(async () => {});
-const sendMessageMock = mock(() => {});
+const addUserMock = mock(async () => { });
+const sendMessageMock = mock(() => { });
 
 mock.module('../services/firebaseService', () => ({
     addUser: addUserMock,
@@ -30,29 +30,29 @@ function createUpdate(command = '/start') {
             from: {
                 id: 42,
                 first_name: 'Jahan',
-                last_name: 'Ulhaque',
+                last_name: 'Ruhee',
             },
             chat: {
                 id: 42,
                 first_name: 'Jahan',
-                last_name: 'Ulhaque',
+                last_name: 'Ruhee',
                 type: 'private',
             },
             sender_chat: {
                 id: 42,
                 first_name: 'Jahan',
-                last_name: 'Ulhaque',
+                last_name: 'Ruhee',
                 type: 'private',
             },
             forward_from: {
                 id: 42,
                 first_name: 'Jahan',
-                last_name: 'Ulhaque',
+                last_name: 'Ruhee',
             },
             forward_from_chat: {
                 id: 42,
                 first_name: 'Jahan',
-                last_name: 'Ulhaque',
+                last_name: 'Ruhee',
                 type: 'private',
             },
         },
