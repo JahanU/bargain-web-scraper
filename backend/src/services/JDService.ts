@@ -454,4 +454,19 @@ async function mapConcurrent<TInput, TOutput>(
     return output;
 }
 
+export const __test__ = {
+    extractDiscount,
+    extractPrice,
+    extractImageUrl,
+    getGenderFromUrl,
+    toAbsoluteUrl,
+    normalizeAvailability,
+    extractAvailabilityFromJsonLd,
+    extractStockStatus,
+    isValidSize,
+    extractSizes,
+    shouldExcludeAsOutOfStock,
+    mapConcurrent,
+};
+
 export default JDMain;
