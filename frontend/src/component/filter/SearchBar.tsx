@@ -1,20 +1,18 @@
 import { ChangeEvent } from "react";
-import { useDispatch } from "react-redux";
-import { filterActions } from "../../store/filterSlice";
-import { AppDispatch } from "../../store";
+import { useFilterParams } from "../../hooks/useFilterParams";
 
 function SearchBar() {
-  const dispatch = useDispatch<AppDispatch>();
+  const { search, setSearch } = useFilterParams();
 
   const handleSearch = (event: ChangeEvent<HTMLInputElement>) => {
-    const input = event.target.value;
-    dispatch(filterActions.setSearch(input));
+    setSearch(event.target.value);
   };
 
   return (
     <div className="flex justify-center">
       <input
         onChange={handleSearch}
+        value={search}
         type="search"
         className="
                     form-control block w-96 px-3 py-1.5 text-base font-normal text-gray-700

@@ -10,7 +10,7 @@ export const Genders = (props: any) => {
     const setGenderHandler = (value: boolean) => {
         // const gender = value ? 'Male' : 'Female';
         // setSearchParams({ gender });
-        dispatch(filterActions.setGender(value));
+        // dispatch(filterActions.setGender(value));
     }
 
     return (
