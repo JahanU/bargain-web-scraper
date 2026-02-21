@@ -1,10 +1,8 @@
 import { Fragment } from "react";
 import { Menu, Transition } from "@headlessui/react";
 import { ChevronDownIcon } from "@heroicons/react/solid";
-import { useDispatch, useSelector } from "react-redux";
-import { filterActions } from "../../../store/filterSlice";
 import { Sort } from "../../../interfaces/Sort";
-import { AppDispatch, RootState } from "../../../store";
+import { useFilterParams } from "../../../hooks/useFilterParams";
 
 interface SortMenuOption {
   id: Sort;
@@ -24,8 +22,7 @@ const sortOptions: SortMenuOption[] = [
 ];
 
 export default function SortDropdown() {
-  const dispatch = useDispatch<AppDispatch>();
-  const selectedSort = useSelector((state: RootState) => state.filterStore.sort);
+  const { sort, setSort } = useFilterParams();
 
   return (
     <Menu as="div" className="relative inline-block text-left z-10">
@@ -52,10 +49,9 @@ export default function SortDropdown() {
                 {() => (
                   <button
                     type="button"
-                    className={`${menuItemBaseClasses} ${
-                      selectedSort === option.id ? activeMenuItemClasses : inactiveMenuItemClasses
-                    }`}
-                    onClick={() => dispatch(filterActions.setSort(option.id))}
+                    className={`${menuItemBaseClasses} ${sort === option.id ? activeMenuItemClasses : inactiveMenuItemClasses
+                      }`}
+                    onClick={() => setSort(option.id)}
                   >
                     {option.label}
                   </button>

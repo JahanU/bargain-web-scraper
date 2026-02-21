@@ -1,9 +1,7 @@
 import { Fragment } from "react";
 import { Menu, Transition } from "@headlessui/react";
 import { ChevronDownIcon } from "@heroicons/react/solid";
-import { useDispatch, useSelector } from "react-redux";
-import { filterActions } from "../../../store/filterSlice";
-import { AppDispatch, RootState } from "../../../store";
+import { useFilterParams } from "../../../hooks/useFilterParams";
 
 const AVAILABLE_SIZES = ["XS", "S", "M", "L", "XL", "XXL"];
 
@@ -13,12 +11,7 @@ const activeMenuItemClasses = "bg-indigo-400 text-white";
 const inactiveMenuItemClasses = "bg-gray-100 text-gray-900 opacity-70 hover:bg-gray-200";
 
 export default function SizeDropdown() {
-  const dispatch = useDispatch<AppDispatch>();
-  const selectedSizes = useSelector((state: RootState) => state.filterStore.sizes);
-
-  const onClickHandler = (value: string) => {
-    dispatch(filterActions.toggleSize(value));
-  };
+  const { sizes, toggleSize } = useFilterParams();
 
   return (
     <Menu as="div" className="relative inline-block text-left z-10">
@@ -45,10 +38,9 @@ export default function SizeDropdown() {
                 {() => (
                   <button
                     type="button"
-                    className={`${menuItemBaseClasses} ${
-                      selectedSizes.includes(size) ? activeMenuItemClasses : inactiveMenuItemClasses
-                    }`}
-                    onClick={() => onClickHandler(size)}
+                    className={`${menuItemBaseClasses} ${sizes.includes(size) ? activeMenuItemClasses : inactiveMenuItemClasses
+                      }`}
+                    onClick={() => toggleSize(size)}
                   >
                     {size}
                   </button>
