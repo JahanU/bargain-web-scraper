@@ -1,5 +1,5 @@
 import Item from '../interfaces/Item';
-import mockData from './mock-data.json'; // Import the data 
+// import mockData from './mock-data.json'; // Import the data 
 
 const getItemsService = async (): Promise<Item[]> => {
     // const url = 'https://bargain-scraper-710da0f863f3.herokuapp.com/webscrape/getBestDeals';
