@@ -98,4 +98,59 @@ describe("applyItemFilters", () => {
 
     expect(filtered.map((item) => item.name)).toEqual(["Puma Tee", "Adidas Runner", "Nike Air"]);
   });
+
+  it("returns all items when search is empty", () => {
+    const filtered = applyItemFilters(items, {
+      search: "",
+      minDiscount: 0,
+      sizes: [],
+      sort: null,
+    });
+
+    expect(filtered).toHaveLength(3);
+  });
+
+  it("returns all items when sizes array is empty", () => {
+    const filtered = applyItemFilters(items, {
+      search: "",
+      minDiscount: 0,
+      sizes: [],
+      sort: null,
+    });
+
+    expect(filtered).toHaveLength(3);
+  });
+
+  it("returns empty array when no items match search", () => {
+    const filtered = applyItemFilters(items, {
+      search: "zzznomatch",
+      minDiscount: 0,
+      sizes: [],
+      sort: null,
+    });
+
+    expect(filtered).toHaveLength(0);
+  });
+
+  it("returns only items matching the size filter", () => {
+    const filtered = applyItemFilters(items, {
+      search: "",
+      minDiscount: 0,
+      sizes: ["XL"],
+      sort: null,
+    });
+
+    expect(filtered.map((item) => item.name)).toEqual(["Puma Tee"]);
+  });
+
+  it("returns null-sorted items unmodified when sort is null", () => {
+    const filtered = applyItemFilters(items, {
+      search: "",
+      minDiscount: 0,
+      sizes: [],
+      sort: null,
+    });
+
+    expect(filtered.map((item) => item.name)).toEqual(["Nike Air", "Adidas Runner", "Puma Tee"]);
+  });
 });

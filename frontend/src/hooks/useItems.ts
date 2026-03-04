@@ -20,11 +20,12 @@ export function useItems(): UseItemsResult {
         setIsLoading(true);
         getItemsService()
             .then((responseItems: Item[]) => {
-                if (!isMounted.current) {
+                // prevents memory leaks, race conditions, and unnecessary state updates
+                if (!isMounted.current) { // Prevent state update if component is unmounted
                     return;
                 }
 
-                if (!Array.isArray(responseItems) || responseItems.length === 0) {
+                if (!Array.isArray(responseItems) || responseItems.length === 0) { // Prevent state update if response is not an array or is empty
                     setIsError(true);
                     return;
                 }
@@ -32,18 +33,18 @@ export function useItems(): UseItemsResult {
                 setItems(responseItems);
             })
             .catch(() => {
-                if (isMounted.current) {
+                if (isMounted.current) { // Prevent state update if component is unmounted
                     setIsError(true);
                 }
             })
             .finally(() => {
-                if (isMounted.current) {
+                if (isMounted.current) { // Prevent state update if component is unmounted
                     setIsLoading(false);
                 }
             });
 
         return () => {
-            isMounted.current = false;
+            isMounted.current = false; // Set ref to false when component unmounts
         };
     }, []);
 
