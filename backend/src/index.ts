@@ -23,6 +23,9 @@ app.use('/client/*', serveStatic({ root: './' }));
 // Default route
 app.get('/', (c) => c.text('on home'));
 
+// Health check endpoint for Render persistence
+app.get('/health', (c) => c.json({ status: 'ok', timestamp: new Date().toISOString() }));
+
 // Routes
 app.route('/firebase', firebaseRoute);
 app.route('/webscrape', webScrapeRoute);
