@@ -1,4 +1,5 @@
 import JDService from './JDService';
+import SizeService from './SizeService';
 import type { Item } from '../interfaces/Item';
 
 const SCRAPE_INTERVAL_MS = 5 * 60 * 1000;
@@ -37,11 +38,16 @@ async function startScraping() {
     isScrapeRunning = true;
 
     try {
-        const jdItems = await JDService(JD_DISCOUNT_LIMIT, resetCacheFlag);
+        const [jdItems, sizeItems] = await Promise.all([
+            JDService(JD_DISCOUNT_LIMIT, resetCacheFlag),
+            SizeService(resetCacheFlag),
+        ]);
         console.log(`[WebScrape] JDService returned ${jdItems.length} items.`);
+        console.log(`[WebScrape] SizeService returned ${sizeItems.length} items.`);
         resetCacheFlag = false;
 
-        const newItems = cacheDeals(jdItems);
+        const allItems = [...jdItems, ...sizeItems];
+        const newItems = cacheDeals(allItems);
         console.log(`[WebScrape] ${newItems.length} of these items are new and were added to cache.`);
 
         sendDeals(newItems);
