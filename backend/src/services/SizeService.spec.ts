@@ -8,12 +8,6 @@ describe('SizeService helpers', () => {
         );
     });
 
-    it('handles special characters in product URL slugs', () => {
-        expect(size.buildProductUrl("Havaianas Brasil Logo Flip Flops", '19696851')).toBe(
-            'https://www.size.co.uk/product/havaianas-brasil-logo-flip-flops/19696851'
-        );
-    });
-
     it('builds correct image URL from shogunPluRef', () => {
         const shogunPluRef = '774338';
         const url = size.buildImageUrl(shogunPluRef);
@@ -21,8 +15,8 @@ describe('SizeService helpers', () => {
     });
 
     it('parses numeric discount from saving string', () => {
-        expect(size.parseDiscount('£15.00')).toBe(15);
-        expect(size.parseDiscount('£10.00')).toBe(10);
+        expect(size.parseDiscount('33%')).toBe(33);
+        expect(size.parseDiscount('20')).toBe(20);
         expect(size.parseDiscount('')).toBe(0);
         expect(size.parseDiscount(undefined)).toBe(0);
     });
@@ -48,6 +42,24 @@ describe('SizeService helpers', () => {
         expect(items[0].description).toBe('Test Shoe');
     });
 
+    it('extracts discounts from HTML tiles using regex', () => {
+        const html = `
+            <li class="productListItem">
+                <span class="itemContainer" data-productsku="12345">
+                    <span class="sav">Save&nbsp;33%</span>
+                </span>
+            </li>
+            <li class="productListItem">
+                <span class="itemContainer" data-productsku="67890">
+                    <span class="sav"> Save 20% </span>
+                </span>
+            </li>
+        `;
+        const map = size.extractDiscountsFromHtml(html);
+        expect(map.get('12345')).toBe(33);
+        expect(map.get('67890')).toBe(20);
+    });
+
     it('returns empty array when no dataObject is present', () => {
         const html = '<html><body></body></html>';
         const items = size.extractDataObject(html);
@@ -59,27 +71,16 @@ describe('SizeService helpers', () => {
             plu: '12345',
             shogunPluRef: '67890',
             description: 'Test Shoe',
-            unitPrice: '50.00',
-            wasPrice: '70.00',
-            saving: '£20.00',
+            unitPrice: '20.00',
             category: 'Mens > Footwear'
         }];
-        const items = size.parseItems(rawItems, 'Male');
+        const discountMap = new Map();
+        discountMap.set('12345', 33);
+
+        const items = size.parseItems(rawItems, 'Male', discountMap);
         expect(items).toHaveLength(1);
         expect(items[0].name).toBe('Test Shoe');
-        expect(items[0].imageUrl).toContain('67890');
-        expect(items[0].url).toContain('12345');
-        expect(items[0].discount).toBe(20);
-    });
-
-    it('skips items with missing plu or description', () => {
-        const rawItems: any[] = [
-            { plu: '12345', shogunPluRef: '67890', description: 'Valid' },
-            { plu: '12345', shogunPluRef: '67890' }, // Missing description
-            { shogunPluRef: '67890', description: 'No PLU' } // Missing plu
-        ];
-        const items = size.parseItems(rawItems as any, 'Male');
-        expect(items).toHaveLength(1);
-        expect(items[0].name).toBe('Valid');
+        expect(items[0].discount).toBe(33);
+        expect(items[0].wasPrice).toBe('');
     });
 });

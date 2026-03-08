@@ -42,7 +42,6 @@ async function SizeMain(resetCacheFlag: boolean): Promise<Item[]> {
     if (resetCacheFlag) {
         console.log('[SizeService] Reset cache flag detected. Clearing seen items cache.');
         seenItemsCache.clear();
-        return [];
     }
 
     try {
@@ -69,20 +68,14 @@ async function scrapeListingPage(url: string): Promise<Item[]> {
         return [];
     }
 
-    console.log(`[SizeService] Extracted ${rawItems.length} raw items from dataObject.`);
+    // Extract discounts from HTML using regex (compensates for missing dataObject fields)
+    const discountMap = extractDiscountsFromHtml(html);
 
+    console.log(`[SizeService] Extracted ${rawItems.length} raw items from dataObject.`);
     const gender = getGenderFromUrl(url);
-    return parseItems(rawItems, gender);
+    return parseItems(rawItems, gender, discountMap);
 }
 
-/**
- * Extracts the items array from the embedded dataObject in the page HTML.
- *
- * The site embeds a JS object via a pattern like:
- *   var defined in a <script> tag that populates window.dataObject = { ... items: [...] }
- *
- * We use a regex to capture the items array from the raw HTML source.
- */
 /**
  * Extracts the items array from the embedded dataObject in the page HTML.
  *
@@ -110,7 +103,6 @@ function extractDataObject(html: string): SizeRawItem[] {
     }
 
     const itemsStartIndex = dataObjectStr.indexOf(itemsStartMatch[0]) + itemsStartMatch[0].length;
-
     // 3. Find the LAST closing bracket ']' in the dataObjectStr
     // Since the items array is typically the last major block in MESH dataObject
     const itemsEndIndex = dataObjectStr.lastIndexOf(']');
@@ -157,25 +149,49 @@ function extractFieldsFromBlock(block: string): Partial<SizeRawItem> {
         return match?.[1] ? match[1].toLowerCase() === 'true' : false;
     };
 
-    result.plu = getString('plu');
-    result.shogunPluRef = getString('shogunPluRef');
-    result.description = getString('description');
-    result.colour = getString('colour');
-    result.unitPrice = getString('unitPrice');
-    result.wasPrice = getString('wasPrice');
-    result.saving = getString('saving');
-    result.category = getString('category');
-    result.categoryId = getString('categoryId');
-    result.brand = getString('brand');
+    result.plu = getString('plu') || '';
+    result.shogunPluRef = getString('shogunPluRef') || '';
+    result.description = getString('description') || '';
+    result.colour = getString('colour') || '';
+    result.unitPrice = getString('unitPrice') || '';
+    result.wasPrice = getString('wasPrice') || '';
+    result.saving = getString('saving') || '';
+    result.category = getString('category') || '';
+    result.categoryId = getString('categoryId') || '';
+    result.brand = getString('brand') || '';
     result.sale = getBool('sale');
 
     return result;
 }
 
 /**
+ * Extracts discount percentages from the raw HTML listing using a simplified tile-splitting pass.
+ */
+function extractDiscountsFromHtml(html: string): Map<string, number> {
+    const map = new Map<string, number>();
+
+    // 1. Chop the page into chunks, one for each product tile
+    // Handles class variations like "productListItem " and "productListItem last"
+    const tiles = html.split('productListItem');
+
+    for (const tile of tiles) {
+        // 2. Run simple, local regexes on just this small chunk
+        const pluMatch = tile.match(/data-productsku="(\d+)"/);
+        // Supports "Save 33%" or "Save&nbsp;33%"
+        const discountMatch = tile.match(/Save(?:&nbsp;|\s)*(\d+)%/i);
+
+        if (pluMatch && discountMatch) {
+            map.set(pluMatch[1]!, parseInt(discountMatch[1]!, 10));
+        }
+    }
+
+    return map;
+}
+
+/**
  * Maps raw size.co.uk items to the shared Item interface.
  */
-function parseItems(rawItems: SizeRawItem[], gender: string): Item[] {
+function parseItems(rawItems: SizeRawItem[], gender: string, discountMap: Map<string, number>): Item[] {
     const items: Item[] = [];
 
     for (const raw of rawItems) {
@@ -189,11 +205,12 @@ function parseItems(rawItems: SizeRawItem[], gender: string): Item[] {
         }
         seenItemsCache.add(productUrl);
 
-        const discount = parseDiscount(raw.saving);
+        // Map discount from HTML map, fallback to dataObject if present
+        const discount = discountMap.get(raw.plu) || parseDiscount(raw.saving);
 
         items.push({
             name: raw.description,
-            wasPrice: raw.wasPrice || '',
+            wasPrice: '', // user requested no wasPrice
             nowPrice: raw.unitPrice || '',
             discount,
             url: productUrl,
@@ -207,7 +224,7 @@ function parseItems(rawItems: SizeRawItem[], gender: string): Item[] {
 }
 
 /**
- * Constructs a product URL from the description and PLU.
+ * Maps raw size.co.uk items to the shared Item interface.
  * size.co.uk uses the pattern: /product/slugified-description/PLU
  */
 function buildProductUrl(description: string, plu: string): string {
@@ -258,6 +275,7 @@ async function fetchWithTimeout(url: string): Promise<string> {
 
 export const __test__ = {
     extractDataObject,
+    extractDiscountsFromHtml,
     parseItems,
     buildProductUrl,
     buildImageUrl,
