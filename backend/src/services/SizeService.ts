@@ -16,6 +16,7 @@ const defaultHeaders = {
  */
 interface SizeRawItem {
     plu: string;
+    shogunPluRef: string;
     description: string;
     colour: string;
     unitPrice: string;
@@ -82,31 +83,93 @@ async function scrapeListingPage(url: string): Promise<Item[]> {
  *
  * We use a regex to capture the items array from the raw HTML source.
  */
+/**
+ * Extracts the items array from the embedded dataObject in the page HTML.
+ *
+ * The site embeds a JS object literal (not strict JSON) via a pattern like:
+ *   window.dataObject = { ... items: [{ plu: "...", ... }, ...] }
+ *
+ * We use regex to find each item block and then extract individual fields.
+ */
 function extractDataObject(html: string): SizeRawItem[] {
-    // The dataObject is assigned in a script tag. We look for the items array directly.
-    // Pattern: "items":[...array of objects...]
-    const itemsMatch = html.match(/"items"\s*:\s*(\[[\s\S]*?\])\s*(?:,\s*"|\})/);
-    if (!itemsMatch || !itemsMatch[1]) {
-        // Fallback: try to find the full dataObject and parse it
-        const dataObjectMatch = html.match(/dataObject\s*=\s*(\{[\s\S]*?\});\s*(?:<\/script>|var\s)/);
-        if (dataObjectMatch && dataObjectMatch[1]) {
-            try {
-                const dataObject = JSON.parse(dataObjectMatch[1]);
-                return Array.isArray(dataObject.items) ? dataObject.items : [];
-            } catch {
-                console.error('[SizeService] Failed to parse dataObject JSON.');
-                return [];
-            }
-        }
+    const items: SizeRawItem[] = [];
+
+    // 1. Find the dataObject assignment in the script
+    // Supports: window.dataObject = { ... } or var dataObject = { ... }
+    const dataObjectMatch = html.match(/dataObject\s*=\s*(\{[\s\S]*?\});/);
+    if (!dataObjectMatch || !dataObjectMatch[1]) {
         return [];
     }
 
-    try {
-        return JSON.parse(itemsMatch[1]);
-    } catch {
-        console.error('[SizeService] Failed to parse items JSON from dataObject.');
+    const dataObjectStr = dataObjectMatch[1];
+
+    // 2. Find the items array start: "items": [
+    const itemsStartMatch = dataObjectStr.match(/"?items"?\s*:\s*\[/i);
+    if (!itemsStartMatch) {
         return [];
     }
+
+    const itemsStartIndex = dataObjectStr.indexOf(itemsStartMatch[0]) + itemsStartMatch[0].length;
+
+    // 3. Find the LAST closing bracket ']' in the dataObjectStr
+    // Since the items array is typically the last major block in MESH dataObject
+    const itemsEndIndex = dataObjectStr.lastIndexOf(']');
+
+    if (itemsEndIndex <= itemsStartIndex) {
+        return [];
+    }
+
+    const itemsContent = dataObjectStr.substring(itemsStartIndex, itemsEndIndex);
+
+    // 4. Split content into individual item blocks.
+    const itemBlocks = itemsContent.match(/\{[\s\S]*?\}/g);
+    if (!itemBlocks) {
+        return [];
+    }
+
+    for (const block of itemBlocks) {
+        const item = extractFieldsFromBlock(block);
+        if (item.plu && item.description) {
+            items.push(item as SizeRawItem);
+        }
+    }
+
+    return items;
+}
+
+/**
+ * Extracts key-value pairs from a JS object literal block using regex.
+ * Handles unquoted and quoted keys, and strings in double/single quotes.
+ */
+function extractFieldsFromBlock(block: string): Partial<SizeRawItem> {
+    const result: any = {};
+
+    // Helper to extract a single string field
+    const getString = (key: string) => {
+        const regex = new RegExp(`"?${key}"?\\s*:\\s*["']([^"']*)["']`, 'i');
+        return block.match(regex)?.[1];
+    };
+
+    // Helper to extract a boolean field
+    const getBool = (key: string) => {
+        const regex = new RegExp(`"?${key}"?\\s*:\\s*(true|false)`, 'i');
+        const match = block.match(regex);
+        return match?.[1] ? match[1].toLowerCase() === 'true' : false;
+    };
+
+    result.plu = getString('plu');
+    result.shogunPluRef = getString('shogunPluRef');
+    result.description = getString('description');
+    result.colour = getString('colour');
+    result.unitPrice = getString('unitPrice');
+    result.wasPrice = getString('wasPrice');
+    result.saving = getString('saving');
+    result.category = getString('category');
+    result.categoryId = getString('categoryId');
+    result.brand = getString('brand');
+    result.sale = getBool('sale');
+
+    return result;
 }
 
 /**
@@ -134,7 +197,7 @@ function parseItems(rawItems: SizeRawItem[], gender: string): Item[] {
             nowPrice: raw.unitPrice || '',
             discount,
             url: productUrl,
-            imageUrl: buildImageUrl(raw.plu),
+            imageUrl: buildImageUrl(raw.shogunPluRef),
             timestamp: Date.now(),
             gender,
         });
@@ -156,11 +219,11 @@ function buildProductUrl(description: string, plu: string): string {
 }
 
 /**
- * Constructs the product image URL from the PLU using Amplience CDN.
- * size.co.uk serves images at: https://i8.amplience.net/i/jpl/sz_PLU_a
+ * Constructs the product image URL from the shogunPluRef using Amplience CDN.
+ * size.co.uk serves images at: https://i8.amplience.net/i/jpl/sz_SHOGUNPLUREF_a
  */
-function buildImageUrl(plu: string): string {
-    return `${IMAGE_CDN_BASE}/sz_${plu}_a`;
+function buildImageUrl(shogunPluRef: string): string {
+    return `${IMAGE_CDN_BASE}/sz_${shogunPluRef}_a`;
 }
 
 /**

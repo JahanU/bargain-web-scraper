@@ -95,7 +95,7 @@ function sendDeals(newDeals: Item[]) {
         return;
     }
 
-    console.log(`[WebScrape] Found ${discountedItems.length} new high-discount items. Sending to Telegram...`);
+    // console.log(`[WebScrape] Found ${discountedItems.length} new high-discount items. Sending to Telegram...`);
     // telegram.sendPhotosToUsers(discountedItems);
 }
 
