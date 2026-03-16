@@ -1,55 +1,41 @@
-import { Fragment } from "react";
-import { Menu, Transition } from "@headlessui/react";
-import { ChevronDownIcon } from "@heroicons/react/solid";
-import { useFilterParams } from "../../../hooks/useFilterParams";
+import { XStack, Button, Text } from 'tamagui';
+import { useFilterParams } from '../../../hooks/useFilterParams';
 
-const AVAILABLE_SIZES = ["XS", "S", "M", "L", "XL", "XXL"];
-
-const menuItemBaseClasses =
-  "block w-full px-4 py-2 text-left text-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-100";
-const activeMenuItemClasses = "bg-indigo-400 text-white";
-const inactiveMenuItemClasses = "bg-gray-100 text-gray-900 opacity-70 hover:bg-gray-200";
+const AVAILABLE_SIZES = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
 
 export default function SizeDropdown() {
   const { sizes, toggleSize } = useFilterParams();
 
   return (
-    <Menu as="div" className="relative inline-block text-left z-10">
-      <div>
-        <Menu.Button className="inline-flex justify-center w-full rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-100 focus:ring-indigo-500">
-          Sizes
-          <ChevronDownIcon className="-mr-1 ml-2 h-5 w-5" aria-hidden="true" />
-        </Menu.Button>
-      </div>
-
-      <Transition
-        as={Fragment}
-        enter="transition ease-out duration-100"
-        enterFrom="transform opacity-0 scale-95"
-        enterTo="transform opacity-100 scale-100"
-        leave="transition ease-in duration-75"
-        leaveFrom="transform opacity-100 scale-100"
-        leaveTo="transform opacity-0 scale-95"
-      >
-        <Menu.Items className="origin-top-right absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 focus:outline-none">
-          <div className="py-1">
-            {AVAILABLE_SIZES.map((size) => (
-              <Menu.Item key={size}>
-                {() => (
-                  <button
-                    type="button"
-                    className={`${menuItemBaseClasses} ${sizes.includes(size) ? activeMenuItemClasses : inactiveMenuItemClasses
-                      }`}
-                    onClick={() => toggleSize(size)}
-                  >
-                    {size}
-                  </button>
-                )}
-              </Menu.Item>
-            ))}
-          </div>
-        </Menu.Items>
-      </Transition>
-    </Menu>
+    <XStack gap="$1" flexWrap="wrap" alignItems="center">
+      {AVAILABLE_SIZES.map((size) => {
+        const isActive = sizes.includes(size);
+        return (
+          <Button
+            key={size}
+            size="$4"
+            paddingHorizontal="$5"
+            borderRadius="$2"
+            backgroundColor={isActive ? '$cactusMid' : '$background'}
+            borderColor={isActive ? '$cactusDark' : '$sandBorder'}
+            borderWidth={1}
+            hoverStyle={{
+              backgroundColor: isActive ? '$cactusDark' : '$backgroundHover',
+              borderColor: isActive ? '$cactusDark' : '$borderColorHover',
+            }}
+            pressStyle={{ scale: 0.95 }}
+            onPress={() => toggleSize(size)}
+          >
+            <Text
+              color={isActive ? 'white' : '$color11'}
+              fontWeight={isActive ? '600' : '400'}
+              fontSize={12}
+            >
+              {size}
+            </Text>
+          </Button>
+        );
+      })}
+    </XStack>
   );
 }
