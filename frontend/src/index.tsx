@@ -2,7 +2,6 @@ import './polyfills';
 import config from './tamagui.config';
 import React from 'react';
 import './index.css';
-import reportWebVitals from './reportWebVitals';
 import { Provider } from 'react-redux';
 import store from './store/index';
 import { createRoot } from 'react-dom/client';
@@ -25,4 +24,3 @@ root.render(
   </BrowserRouter>
 );
 
-reportWebVitals();
