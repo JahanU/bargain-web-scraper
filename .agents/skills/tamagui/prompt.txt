@@ -1,23 +1,23 @@
 Read and follow BOTH of these skill files before doing anything else:
-- .agent / skill / frontend - design / SKILL.md
-    - .agent / skill / tamagui / SKILL.md
+- .agent/skill/frontend-design/SKILL.md
+- .agent/skill/tamagui/SKILL.md
 
-I want to do a full UI overhaul of this e - commerce / marketplace app using Tamagui.
+I want to do a full UI overhaul of this e-commerce / marketplace app using Tamagui.
 
-** Stack:** React + Vite(web only)
-    ** App type:** E - commerce / marketplace
-        ** Design vibe:** Clean & minimal, inspired by the "Cactus" theme from tamagui.dev
+**Stack:** React + Create React App (web only)
+**App type:** E-commerce / marketplace
+**Design vibe:** Clean & minimal, inspired by the "Cactus" theme from tamagui.dev
 
 ---
 
 ## Cactus theme reference
 
 The Cactus theme on tamagui.dev uses:
-- Warm off - whites and sandy / cream backgrounds(not pure white)
-    - Muted earthy greens as the primary accent
-        - Warm mid - tone grays for text and borders(not cool / blue - gray)
-            - Soft, natural feel — nothing harsh or high - contrast
-                - Dark variant leans warm - dark(dark olive / charcoal, not pure black)
+- Warm off-whites and sandy/cream backgrounds (not pure white)
+- Muted earthy greens as the primary accent
+- Warm mid-tone grays for text and borders (not cool/blue-gray)
+- Soft, natural feel — nothing harsh or high-contrast
+- Dark variant leans warm-dark (dark olive/charcoal, not pure black)
 
 Use this as your visual north star when choosing token values.
 
@@ -25,13 +25,19 @@ Use this as your visual north star when choosing token values.
 
 ## Step 1 — Setup
 
-Install and configure Tamagui for Vite + React following the tamagui skill:
-- Install`tamagui`, `@tamagui/config`, `@tamagui/vite-plugin`, `@tamagui/themes`
-    - Configure`@tamagui/vite-plugin` in `vite.config.ts`
-    - Create`tamagui.config.ts` with a custom token set(see Step 2)
-        - Wrap the app root in `TamaguiProvider` with `defaultTheme="light"`
+Install and configure Tamagui for Create React App following the tamagui skill.
+CRA does not support the Vite plugin — use the Babel preset instead:
 
-## Step 2 — Cactus - inspired theme
+- Install `tamagui`, `@tamagui/config`, `@tamagui/babel-plugin`, `@tamagui/themes`
+- Add `@tamagui/babel-plugin` to `babel.config.js` or via `craco.config.js`
+  (install `@craco/craco` if not already present, and update package.json scripts
+  to use `craco` instead of `react-scripts`)
+- Create `tamagui.config.ts` with a custom token set (see Step 2)
+- Wrap the app root in `TamaguiProvider` in `src/index.tsx` with `defaultTheme="light"`
+
+> Note: Do NOT use `@tamagui/vite-plugin` — it is incompatible with CRA/webpack.
+
+## Step 2 — Cactus-inspired theme
 
 Build a custom theme using `createV5Theme` that captures the Cactus palette:
 ```ts
@@ -50,46 +56,47 @@ const tokens = createTokens({
 })
 ```
 
-Light theme: warm parchment feel.Dark theme: warm olive / charcoal — not blue - black.
+Light theme: warm parchment feel. Dark theme: warm olive/charcoal — not blue-black.
 
 ## Step 3 — UI Overhaul
 
 Replace all existing UI with Tamagui components, following both skills throughout.
 
-** Layout **
-    - Use`XStack`, `YStack` for all layout — no raw `div` flex containers
-        - Use`ScrollView` for scrollable regions
-            - Token - based spacing only(`$2`, `$4`, `$true`) — zero hardcoded px values
+**Layout**
+- Use `XStack`, `YStack` for all layout — no raw `div` flex containers
+- Use `ScrollView` for scrollable regions
+- Token-based spacing only (`$2`, `$4`, `$true`) — zero hardcoded px values
 
-                ** Typography **
-                - Use`H1`–`H4`, `Text`, `Paragraph` from Tamagui
-                    - Keep type scale restrained: 2–3 sizes per page, consistent weight usage
+**Typography**
+- Use `H1`–`H4`, `Text`, `Paragraph` from Tamagui
+- Keep type scale restrained: 2–3 sizes per page, consistent weight usage
 
-                        ** E - commerce components to overhaul:**
-                            - Product cards → `Card` with image, title, price, and a `Button` CTA
-                                - Navigation / header → `XStack` with logo, nav links, cart icon
-                                    - Filters / sidebar → `YStack` with `Checkbox`, `RadioGroup`, `Slider` for price range
-                                        - Product detail page → two - column layout with image gallery and purchase panel
-                                            - Cart / checkout flow → `Sheet` or `Dialog` for cart drawer, clean form inputs
-                                                - Buttons → Tamagui `Button` with cactus accent fill, rounded corners
-                                                    - Inputs / forms → Tamagui`Input`, `Label`, `Select` — warm - bordered, no harsh outlines
+**E-commerce components to overhaul:**
+- Product cards → `Card` with image, title, price, and a `Button` CTA
+- Navigation / header → `XStack` with logo, nav links, cart icon
+- Filters / sidebar → `YStack` with `Checkbox`, `RadioGroup`, `Slider` for price range
+- Product detail page → two-column layout with image gallery and purchase panel
+- Cart / checkout flow → `Sheet` or `Dialog` for cart drawer, clean form inputs
+- Buttons → Tamagui `Button` with cactus accent fill, rounded corners
+- Inputs / forms → Tamagui `Input`, `Label`, `Select` — warm-bordered, no harsh outlines
 
-                                                        ** Interaction states **
-                                                            - Every interactive element must have`hoverStyle`, `pressStyle`, and`focusStyle`
-                                                                - Use the cactus accent for focus rings and pressed states
+**Interaction states**
+- Every interactive element must have `hoverStyle`, `pressStyle`, and `focusStyle`
+- Use the cactus accent for focus rings and pressed states
 
 ## Step 4 — Polish
 
-Apply the quality bar from the frontend - design skill:
+Apply the quality bar from the frontend-design skill:
 - Palette discipline: warm cream + earthy green accent + warm gray — max 3 colors
-    - Borders: subtle, warm - toned — never harsh black borders
-        - Border radius: consistent, `$3` or `$4` for cards, `$2` for inputs and buttons
-            - Shadows: very subtle warm shadows on cards only
-                - No pure black(`#000`) anywhere — use `$warmGray900` for text
-                    - Light mode background never pure white — always`$creamBg`
+- Borders: subtle, warm-toned — never harsh black borders
+- Border radius: consistent, `$3` or `$4` for cards, `$2` for inputs and buttons
+- Shadows: very subtle warm shadows on cards only
+- No pure black (`#000`) anywhere — use `$warmGray900` for text
+- Light mode background never pure white — always `$creamBg`
 
 ---
 
-    Work file by file: start with `tamagui.config.ts` and theme tokens, then
-        `TamaguiProvider` setup, then shared components(Button, Card, Input), then
-page layouts(product listing, product detail, cart), then final polish pass.
+Work file by file: start with `craco.config.js` and `tamagui.config.ts`, then
+`TamaguiProvider` setup in `src/index.tsx`, then shared components (Button, Card,
+Input), then page layouts (product listing, product detail, cart), then final
+polish pass.
