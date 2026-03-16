@@ -1,17 +1,93 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+/* Google Fonts — Fraunces (display) + DM Sans (body) */
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;1,9..144,400&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&display=swap');
 
-body {
+:root {
+  --font-body: 'DM Sans', system-ui, sans-serif;
+  --font-heading: 'Fraunces', Georgia, serif;
+  --cream-bg: #f5f0e8;
+  --sand-surface: #ede7d9;
+  --sand-border: #d9d0c0;
+  --cactus-mid: #5a7a4a;
+  --cactus-dark: #3d5c30;
+  --warm-gray-900: #2e2a22;
+  --warm-gray-100: #8c8578;
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html, body, #root {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
+  padding: 0;
+  min-height: 100%;
+  background-color: var(--cream-bg);
+  font-family: var(--font-body);
+  color: var(--warm-gray-900);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
+/* Slider — custom track/thumb */
+input[type='range'].cactus-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 3px;
+  background: var(--sand-border);
+  border-radius: 9999px;
+  outline: none;
+  cursor: pointer;
+}
+
+input[type='range'].cactus-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--cactus-mid);
+  border: 2px solid var(--cream-bg);
+  box-shadow: 0 0 0 1.5px var(--cactus-mid);
+  cursor: pointer;
+  transition: background 120ms ease, box-shadow 120ms ease, transform 120ms ease;
+}
+
+input[type='range'].cactus-slider::-webkit-slider-thumb:hover {
+  background: var(--cactus-dark);
+  box-shadow: 0 0 0 2.5px var(--cactus-mid);
+  transform: scale(1.1);
+}
+
+input[type='range'].cactus-slider::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--cactus-mid);
+  border: 2px solid var(--cream-bg);
+  box-shadow: 0 0 0 1.5px var(--cactus-mid);
+  cursor: pointer;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+a:hover {
+  color: inherit;
+}
+
+/* Scrollbar — warm tones */
+::-webkit-scrollbar {
+  width: 5px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--sand-border);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--warm-gray-100);
 }
