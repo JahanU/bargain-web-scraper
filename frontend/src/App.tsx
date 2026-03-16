@@ -1,4 +1,3 @@
-import './App.css';
 import { useMemo } from 'react';
 import { useSelector } from 'react-redux';
 import { YStack } from 'tamagui';
