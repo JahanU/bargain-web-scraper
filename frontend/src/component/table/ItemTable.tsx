@@ -1,39 +1,87 @@
+import { YStack, XStack, Text, Spinner, H2 } from 'tamagui';
 import ItemCard from './ItemCard';
 import Item from '../../interfaces/Item';
 
-function ItemTable({ items, isLoading }: { items: Item[], isLoading: boolean }) {
-
-    if (isLoading) {
-        return (
-            <div className="max-w-2xl mx-auto py-16 px-4 sm:py-24 sm:px-6 lg:max-w-7xl lg:px-8">
-                <h2 className="text-2xl font-extrabold tracking-tight text-gray-900">Loading</h2>
-            </div>
-        )
-    }
-
-    if (!isLoading && items.length === 0) {
-        return (
-            <>
-                <div className="max-w-2xl mx-auto py-16 px-4 sm:py-24 sm:px-6 lg:max-w-7xl lg:px-8">
-                    <h2 className="text-2xl font-extrabold tracking-tight text-gray-900">Sorry!</h2>
-                    <h2 className="text-2xl font-extrabold tracking-tight text-gray-900">No Items Found...</h2>
-                </div>
-            </>
-        );
-    }
-
+function ItemTable({ items, isLoading }: { items: Item[]; isLoading: boolean }) {
+  if (isLoading) {
     return (
-        <div className="bg-white">
-            <div className="max-w-2xl mx-auto py-8 px-4 sm:py-4 sm:px-6 lg:max-w-7xl lg:px-8">
-                <h2 className="text-2xl font-extrabold tracking-tight text-gray-900">Latest Picks
-                    <span className="text-sm tracking-tight text-gray-800"> ({items.length})</span>
-                </h2>
-                <div className="mt-4 grid grid-cols-1 gap-y-10 gap-x-6 sm:grid-cols-2 lg:grid-cols-4 xl:gap-x-8">
-                    {items.map((item: Item) => <ItemCard key={item.url} item={item} />)}
-                </div>
-            </div>
-        </div>
-    )
+      <YStack
+        flex={1}
+        paddingVertical="$16"
+        alignItems="center"
+        justifyContent="center"
+        gap="$4"
+      >
+        <Spinner size="large" color="$accentBackground" />
+        <Text fontSize={15} color="$colorMuted" fontWeight="500">
+          Finding the best deals…
+        </Text>
+      </YStack>
+    );
+  }
+
+  if (items.length === 0) {
+    return (
+      <YStack
+        flex={1}
+        paddingVertical="$16"
+        alignItems="center"
+        justifyContent="center"
+        gap="$3"
+      >
+        <Text fontSize={40} textAlign="center">🌵</Text>
+        <H2
+          fontSize={22}
+          fontWeight="700"
+          color="$color11"
+          fontFamily="$heading"
+          textAlign="center"
+        >
+          No deals found
+        </H2>
+        <Text fontSize={14} color="$colorMuted" textAlign="center" maxWidth={280}>
+          Try adjusting your filters — great bargains are out there!
+        </Text>
+      </YStack>
+    );
+  }
+
+  return (
+    <YStack
+      paddingVertical="$6"
+      paddingHorizontal="$6"
+      gap="$4"
+      width="100%"
+    >
+      {/* Section header */}
+      <XStack alignItems="baseline" gap="$2">
+        <Text
+          fontFamily="$heading"
+          fontSize={20}
+          fontWeight="700"
+          color="$color11"
+        >
+          Latest Picks
+        </Text>
+        <Text fontSize={13} color="$colorMuted">
+          ({items.length} {items.length === 1 ? 'deal' : 'deals'})
+        </Text>
+      </XStack>
+
+      {/* Responsive CSS grid */}
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fill, minmax(190px, 1fr))',
+          gap: '14px',
+        }}
+      >
+        {items.map((item: Item) => (
+          <ItemCard key={item.url} item={item} />
+        ))}
+      </div>
+    </YStack>
+  );
 }
 
 export default ItemTable;

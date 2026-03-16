@@ -1,46 +1,121 @@
-import Item from "../../interfaces/Item";
+import { YStack, XStack, Text, Card } from 'tamagui';
+import Item from '../../interfaces/Item';
 
 interface ItemCardProps {
   item: Item;
 }
 
-function formatFoundTime(timestamp: number): string {
-  return new Date(timestamp).toLocaleTimeString([], {
-    hour: "numeric",
-    minute: "2-digit",
-  });
-}
-
 function ItemCard({ item }: ItemCardProps) {
-  const sizes = item.sizes?.join(", ") ?? "N/A";
+  const sizes = item.sizes?.join(', ') ?? '';
 
   return (
-    <div className="relative">
-      <div className="w-full min-h-80 bg-gray-200 aspect-w-1 aspect-h-1 rounded-md hover:opacity-75 lg:h-80 lg:aspect-none shadow-lg">
-        <img
-          src={item.imageUrl}
-          alt={item.name}
-          className="w-full h-full object-center object-cover lg:w-full lg:h-full"
-        />
-      </div>
+    <a
+      href={item.url}
+      target="_blank"
+      rel="noreferrer"
+      style={{ textDecoration: 'none', display: 'contents' }}
+    >
+      <Card
+        borderRadius="$3"
+        borderWidth={1}
+        borderColor="$borderColor"
+        backgroundColor="$background"
+        overflow="hidden"
+        elevation={0}
+        flex={1}
+        hoverStyle={{
+          borderColor: '$borderColorHover',
+          shadowColor: '$shadowColorHover',
+          shadowRadius: 20,
+          shadowOffset: { width: 0, height: 8 },
+          elevation: 4,
+          y: -3,
+        }}
+        pressStyle={{ scale: 0.98, y: 0 }}
+        cursor="pointer"
+      >
+      {/* Product image */}
+      <YStack
+          backgroundColor="$backgroundStrong"
+          overflow="hidden"
+          aspectRatio={1}
+          position="relative"
+        >
+          {item.imageUrl ? (
+            <img
+              src={item.imageUrl}
+              alt={item.name}
+              loading="lazy"
+              style={{
+                width: '100%',
+                height: '100%',
+                objectFit: 'cover',
+                objectPosition: 'center top',
+                display: 'block',
+              }}
+            />
+          ) : (
+            <XStack flex={1} alignItems="center" justifyContent="center">
+              <Text fontSize={32} color="$colorMuted">🛍</Text>
+            </XStack>
+          )}
 
-      <div className="mt-4 flex justify-between gap-3">
-        <div className="text-left">
-          <h3 className="text-sm text-gray-700">
-            <a href={item.url} target="_blank" rel="noreferrer">
-              {item.name}
-            </a>
-          </h3>
-          <p className="text-sm text-gray-700">{item.gender}</p>
-          <p className="text-sm text-gray-700">{sizes}</p>
-          <p className="text-sm text-gray-700">Found {formatFoundTime(item.timestamp)}</p>
-        </div>
+          {/* Discount badge */}
+          {item.discount > 0 && (
+            <XStack
+              position="absolute"
+              top="$2"
+              right="$2"
+              backgroundColor="$accentBackground"
+              borderRadius="$full"
+              paddingHorizontal="$2"
+              paddingVertical="$1"
+            >
+              <Text fontSize={11} fontWeight="700" color="white">
+                -{item.discount}%
+              </Text>
+            </XStack>
+          )}
+        </YStack>
 
-        <p className="text-sm font-medium text-gray-900 whitespace-nowrap">
-          {item.nowPrice} ({item.discount}% off)
-        </p>
-      </div>
-    </div>
+        {/* Card body */}
+        <YStack padding="$3" gap="$1" flex={1} minHeight={120}>
+          {/* Product name */}
+          <Text
+            fontSize={13}
+            fontWeight="600"
+            color="$color11"
+            numberOfLines={2}
+            style={{ lineHeight: '1.3' } as any}
+          >
+            {item.name}
+          </Text>
+
+          {/* Metadata */}
+          <XStack gap="$1" flexWrap="wrap" alignItems="center">
+            <Text fontSize={11} color="$colorMuted">{item.gender}</Text>
+            {sizes && (
+              <>
+                <Text fontSize={11} color="$borderColor">·</Text>
+                <Text fontSize={11} color="$colorMuted" numberOfLines={1}>{sizes}</Text>
+              </>
+            )}
+          </XStack>
+
+          {/* Price row */}
+          <XStack alignItems="baseline" gap="$2" marginTop="$1">
+            <Text fontSize={15} fontWeight="700" color="$accentBackground">
+              {item.nowPrice}
+            </Text>
+            {item.wasPrice && (
+              <Text fontSize={11} color="$colorMuted" textDecorationLine="line-through">
+                {item.wasPrice}
+              </Text>
+            )}
+          </XStack>
+        </YStack>
+      </Card>
+    </a>
   );
 }
 
