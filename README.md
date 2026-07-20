@@ -14,17 +14,13 @@
 - [React Web App](https://bargain-scraper.netlify.app/)
 - Redux
 - Tailwind CSS
-- Filtering, Sorting, Search, Toggling
 - React Router (Search Params)
 
 ### Backend
 - Firebase/Firestore (Store Users)
 - Performed Typescript migration
 - Telegram API Bot (User Sign-up, FAQ queries, Live Updates)
-- Software design patterns followed (MVC, DRY, High Cohesion, Low Coupling etc)
 - Web Scraping via Cheerio library
-- Asynchronous Programming (Promises, Promise.all)
-- Regex
 
 ### Tech 💻
 - Frontend hosted on Netlify 
