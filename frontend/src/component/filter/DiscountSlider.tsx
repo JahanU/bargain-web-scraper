@@ -6,7 +6,7 @@ import { AppDispatch } from '../../store';
 function DiscountSlider() {
 
     const dispatch = useDispatch<AppDispatch>();
-    const [discount, setDiscount] = useState(10);
+    const [discount, setDiscount] = useState(30);
 
     const handleSlider = (event: ChangeEvent<HTMLInputElement>) => {
         const discountValue = Number.parseInt(event.target.value, 10);

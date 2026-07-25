@@ -2,9 +2,6 @@ import { filterData } from '../helper/filterData';
 import type { Item } from '../interfaces/Item';
 
 const JD_BASE_URL = 'https://www.jdsports.co.uk';
-const JD_LOCALE = 'en-gb';
-
-// Still capped at 24 items per listing — that's the Algolia pagination limit, unchanged by any of this.
 const LISTING_URLS = [
     'https://www.jdsports.co.uk/men/brand/nike/sale/',
     // 'https://www.jdsports.co.uk/men/brand/adidas-originals,adidas,nike,champion,under-armour,the-north-face,new-balance,lacoste,tommy-hilfiger,calvin-klein-underwear,levis,columbia,jordan,emporio-armani-ea7,berghaus,polo-ralph-lauren,boss,fred-perry,asics/sale/',
@@ -13,20 +10,37 @@ const LISTING_URLS = [
 
 const REQUEST_TIMEOUT_MS = 15000;
 
-// JD is a Next.js app: the listing HTML carries no product markup, only a
-// server-rendered Algolia payload embedded in this script tag.
+// Algolia's per-request maximum. JD categories run to a few hundred products, so one request covers them.
+const HITS_PER_PAGE = 1000;
+
+// Without this the response carries every merchandising field JD holds: 85KB instead of ~2MB.
+const PRODUCT_ATTRIBUTES = [
+    'name', 'slug', 'objectID', 'discountPct', 'price', 'wasPrice', 'image', 'size', 'inStock',
+];
+
+// A JD listing page server-renders only its first 24 products; the browser fetches the rest from
+// Algolia as you scroll. This script tag holds the credentials and filters needed to ask Algolia
+// for the whole category in one request.
 const NEXT_DATA_PATTERN = /<script id="__NEXT_DATA__" type="application\/json">([\s\S]*?)<\/script>/;
 
 const seenItemsCache = new Set<string>();
 
-// Identifies the current JD deployment. Cached across runs and refreshed when JD redeploys.
-let cachedBuildId: string | undefined;
+// Learned from a listing page, then reused. Dropped whenever a search fails so the next run relearns it.
+const searchConfigCache = new Map<string, JDSearchConfig>();
 
 const defaultHeaders = {
     'User-Agent': 'Mozilla/5.0 (compatible; bargain-web-scraper/1.0)',
 };
 
-/** The Algolia hit fields this scraper reads. JD sends many more. */
+/** Everything needed to query one listing's products directly. */
+interface JDSearchConfig {
+    applicationId: string;
+    searchApiKey: string;
+    indexName: string;
+    facetFilters: unknown;
+}
+
+/** The Algolia hit fields this scraper reads. */
 interface JDHit {
     name?: string;
     slug?: string;
@@ -40,7 +54,7 @@ interface JDHit {
 }
 
 /**
- * Entry point for JD scraping: reads every listing page and sorts by highest discount.
+ * Entry point for JD scraping: reads every listing and sorts by highest discount.
  */
 async function JDMain(discountLimit: number, resetCacheFlag: boolean): Promise<Item[]> {
     console.log('[JDService] Starting JD scrape...');
@@ -50,119 +64,143 @@ async function JDMain(discountLimit: number, resetCacheFlag: boolean): Promise<I
         return [];
     }
 
-    const pages = await Promise.all(LISTING_URLS.map((url) => scrapeListingPage(url, discountLimit)));
-    const items = pages.flat().sort((a, b) => b.discount - a.discount);
+    const listings = await Promise.all(LISTING_URLS.map((url) => scrapeListing(url, discountLimit)));
+    const items = listings.flat().sort((a, b) => b.discount - a.discount);
 
-    console.log(`[JDService] Found ${items.length} items on listing pages.`);
+    console.log(`[JDService] Found ${items.length} items across ${LISTING_URLS.length} listings.`);
     return items;
 }
 
 /**
- * Fetches one listing page and maps its product payload to items.
+ * Fetches one listing's products and maps them to items.
  */
-async function scrapeListingPage(url: string, discountLimit: number): Promise<Item[]> {
+async function scrapeListing(url: string, discountLimit: number): Promise<Item[]> {
     try {
-        console.log(`[JDService] Scraping listing page: ${url}`);
+        console.log(`[JDService] Scraping listing: ${url}`);
         const hits = await fetchHits(url);
-
-        if (!hits.length) {
-            console.warn(`[JDService] No product data found in page payload: ${url}`);
-            return [];
-        }
-
         const gender = getGenderFromUrl(url);
+
         const items = hits
             .map((hit) => parseHit(hit, gender, discountLimit))
             .filter((item): item is Item => item !== undefined);
 
-        console.log(`[JDService] Extracted ${items.length} of ${hits.length} items from listing: ${url}`);
+        console.log(`[JDService] Extracted ${items.length} of ${hits.length} products from: ${url}`);
         return items;
     } catch (error) {
-        console.error(`[JDService] Failed to scrape JD listing page: ${url}`, error);
+        console.error(`[JDService] Failed to scrape JD listing: ${url}`, error);
         return [];
     }
 }
 
 /**
- * JD serves the same payload from two places: the listing HTML (~1.8MB) and a Next.js data
- * route (~440KB) keyed by the current build id. Reads the cheap JSON route, falling back to
- * the HTML page to (re)learn the build id on first run and whenever JD redeploys.
- * 
- * ~5.7× faster in steady state, 439 KB instead of 1848 KB.
- * 
- * Every later run hits /_next/data/{buildId}/en-gb/{path}.json directly.
- * When JD redeploys, the stale id returns a clean 404 (verified against the live site), 
- * so fetchDataRoute returns undefined and the next call transparently re-learns the id from HTML.
+ * Queries Algolia for a listing's products, learning the search config from the
+ * listing page on first use and any time the cached config stops working.
  */
 async function fetchHits(url: string): Promise<JDHit[]> {
-    if (cachedBuildId) {
-        const hits = await fetchDataRoute(url, cachedBuildId);
-        if (hits) {
-            return hits;
+    const config = searchConfigCache.get(url) ?? await bootstrapSearchConfig(url);
+
+    try {
+        const hits = await runSearch(config);
+        searchConfigCache.set(url, config);
+        return hits;
+    } catch (error) {
+        // Rotated key, renamed index or an unreadable response: forget the config so the next run
+        // bootstraps a fresh one instead of repeating a request that can no longer succeed.
+        searchConfigCache.delete(url);
+        throw error;
+    }
+}
+
+/**
+ * Reads a listing's products straight from Algolia, the same source the site's own grid uses.
+ */
+async function runSearch(config: JDSearchConfig): Promise<JDHit[]> {
+    const response = await fetch(
+        `https://${config.applicationId}-dsn.algolia.net/1/indexes/${config.indexName}/query`,
+        {
+            method: 'POST',
+            headers: {
+                ...defaultHeaders,
+                'x-algolia-application-id': config.applicationId,
+                'x-algolia-api-key': config.searchApiKey,
+                'content-type': 'application/json',
+            },
+            body: JSON.stringify({
+                facetFilters: config.facetFilters,
+                hitsPerPage: HITS_PER_PAGE,
+                attributesToRetrieve: PRODUCT_ATTRIBUTES,
+                attributesToHighlight: [],
+            }),
+            signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
         }
-        console.log('[JDService] Build id is stale, refreshing from the listing page.');
+    );
+
+    if (!response.ok) {
+        throw new Error(`Algolia search failed with status ${response.status}`);
     }
 
-    const response = await fetchWithTimeout(url);
-    const { buildId, hits } = parseNextData(await response.text());
-    cachedBuildId = buildId;
+    // Throws on a soft-200 non-JSON body, which the caller treats as a stale config.
+    const { hits, nbHits } = await response.json() as { hits?: JDHit[], nbHits?: number };
+    if (!Array.isArray(hits)) {
+        throw new Error('Algolia response contained no hits');
+    }
+
+    if (typeof nbHits === 'number' && nbHits > hits.length) {
+        console.warn(`[JDService] Listing has ${nbHits} products but only ${hits.length} were returned.`);
+    }
 
     return hits;
 }
 
 /**
- * Reads hits from the Next.js data route.
- * Returns undefined when JD rejects the build id, signalling the caller to refresh it.
+ * Learns the Algolia credentials and filters for a listing from the listing page itself,
+ * so a rotated key or an edited category is picked up without a code change.
  */
-async function fetchDataRoute(url: string, buildId: string): Promise<JDHit[] | undefined> {
-    // The listing route is a catch-all page, so each path segment is also repeated as a slug param.
-    const segments = new URL(url).pathname.split('/').filter(Boolean);
-    const slugs = segments.map((segment) => `slug=${encodeURIComponent(segment)}`).join('&');
-    const dataUrl = `${JD_BASE_URL}/_next/data/${buildId}/${JD_LOCALE}/${segments.join('/')}.json?${slugs}`;
-
-    const response = await fetchWithTimeout(dataUrl);
-    if (!response.ok) {
-        return undefined;
-    }
-
-    return hitsFromPageProps(await response.json());
-}
-
-function fetchWithTimeout(url: string): Promise<Response> {
-    return fetch(url, {
+async function bootstrapSearchConfig(url: string): Promise<JDSearchConfig> {
+    console.log(`[JDService] Reading search config from listing page: ${url}`);
+    const response = await fetch(url, {
         headers: defaultHeaders,
         signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
     });
+
+    if (!response.ok) {
+        throw new Error(`Listing page returned status ${response.status}`);
+    }
+
+    const config = extractSearchConfig(await response.text());
+    if (!config) {
+        throw new Error('Listing page payload had no usable Algolia search config');
+    }
+
+    return config;
 }
 
 /**
- * Pulls the build id and product hits out of a listing page's embedded payload.
+ * Pulls the Algolia credentials, product index and category filters out of a listing page.
  */
-function parseNextData(html: string): { buildId?: string, hits: JDHit[] } {
+function extractSearchConfig(html: string): JDSearchConfig | undefined {
     const payload = html.match(NEXT_DATA_PATTERN)?.[1];
     if (!payload) {
-        return { hits: [] };
+        return undefined;
     }
 
     try {
-        const nextData = JSON.parse(payload);
-        return { buildId: nextData?.buildId, hits: hitsFromPageProps(nextData?.props) };
+        const pageProps = JSON.parse(payload)?.props?.pageProps;
+        const { applicationId, searchApiKey, indices } = pageProps?.algoliaConfig ?? {};
+        const indexName = indices?.find((index: any) => index?.type === 'main')?.name;
+
+        // The server-rendered search carries the exact filters behind this listing's URL.
+        const searches = Object.values<any>(pageProps?.searchServerState?.initialResults ?? {});
+        const facetFilters = searches[0]?.requestParams?.[0]?.facetFilters;
+
+        if (!applicationId || !searchApiKey || !indexName || !facetFilters) {
+            return undefined;
+        }
+
+        return { applicationId, searchApiKey, indexName, facetFilters };
     } catch {
-        return { hits: [] };
+        return undefined;
     }
-}
-
-/**
- * Collects product hits from page props. The HTML payload nests these under `props`,
- * the data route returns them at the top level, and index keys are generated per
- * request, so every entry is walked rather than looked up by name.
- */
-function hitsFromPageProps(props: any): JDHit[] {
-    const indexes = props?.pageProps?.searchServerState?.initialResults ?? {};
-
-    return Object.values<any>(indexes)
-        .flatMap((index) => index?.results ?? [])
-        .flatMap((result: any) => result?.hits ?? []);
 }
 
 /**
@@ -215,11 +253,11 @@ function getGenderFromUrl(url: string): string {
 }
 
 export const __test__ = {
-    parseNextData,
-    hitsFromPageProps,
+    extractSearchConfig,
     parseHit,
     getGenderFromUrl,
     seenItemsCache,
+    searchConfigCache,
 };
 
 export default JDMain;
