@@ -30,8 +30,8 @@ describe('telegramService', () => {
         const items = [
             {
                 name: 'Nike Tee',
-                wasPrice: '50',
-                nowPrice: '20',
+                wasPrice: 50,
+                nowPrice: 20,
                 discount: 60,
                 url: 'https://example.com/item-1',
                 imageUrl: 'https://example.com/item-1.jpg',
@@ -41,8 +41,8 @@ describe('telegramService', () => {
             },
             {
                 name: 'Nike Shorts',
-                wasPrice: '40',
-                nowPrice: '25',
+                wasPrice: 40,
+                nowPrice: 25,
                 discount: 37,
                 url: 'https://example.com/item-2',
                 imageUrl: 'https://example.com/item-2.jpg',

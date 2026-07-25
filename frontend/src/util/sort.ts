@@ -12,11 +12,6 @@ function normalizeSearchTerm(value: string): string {
   return value.trim().toLowerCase();
 }
 
-function getPriceValue(value: string): number {
-  const normalizedPrice = value.replace(/[^0-9.]+/g, "");
-  return Number.parseFloat(normalizedPrice) || 0;
-}
-
 function filterBySearch(items: Item[], search: string): Item[] {
   const normalizedSearch = normalizeSearchTerm(search);
 
@@ -42,10 +37,10 @@ function filterBySizes(items: Item[], sizes: string[]): Item[] {
 
 function priceSort(highToLow: boolean, items: Item[]) {
   if (highToLow) {
-    return [...items].sort((a, b) => getPriceValue(b.nowPrice) - getPriceValue(a.nowPrice));
+    return [...items].sort((a, b) => b.nowPrice - a.nowPrice);
   }
 
-  return [...items].sort((a, b) => getPriceValue(a.nowPrice) - getPriceValue(b.nowPrice));
+  return [...items].sort((a, b) => a.nowPrice - b.nowPrice);
 }
 
 function discountSort(highToLow: boolean, items: Item[]) {
