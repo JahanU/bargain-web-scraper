@@ -1,42 +1,83 @@
-import { useState } from "react";
-import { Popover } from "@headlessui/react";
-import Logo from "../../assets/hxh-logo.png";
-import NewFeature from "../modal/NewFeatures";
+import { useState } from 'react';
+import { XStack, YStack, Text, Button, AnimatePresence } from 'tamagui';
+import Logo from '../../assets/hxh-logo.png';
+import NewFeature from '../modal/NewFeatures';
 
 function HeaderBar() {
   const [open, setOpen] = useState(false);
 
   return (
-    <Popover className="relative bg-white">
-      {open && <NewFeature closeModal={setOpen} isOpen={open} />}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6">
-        <div className="flex border-b-2 border-gray-100">
-          <div className="flex lg:flex-1">
-            <a href="https://github.com/JahanU/bargain-web-scraper">
-              <span className="sr-only">Workflow</span>
-              <img className="h-20 m-auto" src={Logo} alt="" />
-              <h1 className="p-0 text-base font-extrabold tracking-tight text-gray-1200">
-                Bargain Scraper
-              </h1>
-            </a>
-          </div>
-
-          <button
-            type="button"
-            onClick={() => setOpen(true)}
-            className="items-center h-12 m-5 mt-bg-transparent hover:bg-red-500 text-red-700 font-semibold hover:text-white py-2 px-4 border border-red-500 hover:border-transparent rounded-full"
+    <XStack
+      backgroundColor="$background"
+      paddingHorizontal="$4"
+      paddingVertical="$3"
+      alignItems="center"
+      justifyContent="space-between"
+      gap="$3"
+      width="100%"
+      style={{ boxShadow: '0 1px 3px rgba(46,42,34,0.06)' }}
+    >
+      {/* Logo + wordmark */}
+      <a
+        href="https://github.com/JahanU/bargain-web-scraper"
+        target="_blank"
+        rel="noreferrer"
+        style={{ textDecoration: 'none' }}
+      >
+        <XStack
+          alignItems="center"
+          gap="$2"
+          cursor="pointer"
+          hoverStyle={{ opacity: 0.85 }}
+          pressStyle={{ opacity: 0.7 }}
+        >
+        <img
+          src={Logo}
+          alt="Bargain Scraper logo"
+          style={{ height: 32, width: 32, objectFit: 'contain' }}
+        />
+        <YStack>
+          <Text
+            fontFamily="$heading"
+            fontSize={18}
+            fontWeight="700"
+            color="$color11"
+            letterSpacing={-0.3}
           >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-              <path
-                fillRule="evenodd"
-                d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
-                clipRule="evenodd"
-              />
-            </svg>
-          </button>
-        </div>
-      </div>
-    </Popover>
+            Bargain{' '}
+            <Text color="$accentBackground" fontFamily="$heading" fontSize={18} fontWeight="700">
+              Scraper
+            </Text>
+          </Text>
+          <Text fontSize={11} color="$colorMuted" letterSpacing={0.2}>
+            Live deals, curated daily
+          </Text>
+        </YStack>
+        </XStack>
+      </a>
+
+      {/* Info button */}
+      <Button
+        size="$3"
+        circular
+        backgroundColor="transparent"
+        hoverStyle={{
+          backgroundColor: '$backgroundHover',
+        }}
+        pressStyle={{
+          backgroundColor: '$backgroundPress',
+          scale: 0.92,
+        }}
+        onPress={() => setOpen(true)}
+        aria-label="What's new"
+      >
+        <Text fontSize={16} lineHeight={1} color="$color11">ℹ</Text>
+      </Button>
+
+      <AnimatePresence>
+        {open && <NewFeature key="new-features" closeModal={setOpen} isOpen={open} />}
+      </AnimatePresence>
+    </XStack>
   );
 }
 

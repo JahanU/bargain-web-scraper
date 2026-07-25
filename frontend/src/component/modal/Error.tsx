@@ -1,13 +1,37 @@
+import { YStack, Text, H2, Button } from 'tamagui';
 
-const Error = () => {
+const ErrorState = () => {
+  return (
+    <YStack
+      flex={1}
+      paddingVertical="$16"
+      alignItems="center"
+      justifyContent="center"
+      gap="$3"
+    >
+      <Text fontSize={36} textAlign="center">⚠️</Text>
+      <H2 fontSize={20} fontWeight="700" color="$color11" fontFamily="$heading" textAlign="center">
+        Server unavailable
+      </H2>
+      <Text fontSize={13} color="$colorMuted" textAlign="center" maxWidth={280}>
+        We couldn't reach the deals server. Please check back in a moment.
+      </Text>
+      <Button
+        marginTop="$2"
+        size="$3"
+        backgroundColor="$accentBackground"
+        borderRadius="$2"
+        color="$background"
+        fontWeight="600"
+        hoverStyle={{ backgroundColor: '$cactusDark' as any }}
+        pressStyle={{ scale: 0.97 }}
+        animation="quick"
+        onPress={() => window.location.reload()}
+      >
+        Try again
+      </Button>
+    </YStack>
+  );
+};
 
-    return (
-
-        <div className="max-w-2xl mx-auto py-16 px-4 sm:py-24 sm:px-6 lg:max-w-7xl lg:px-8">
-            <h2 className="text-2xl font-extrabold tracking-tight text-gray-900">Error with Server</h2>
-            <h5 className="text-1xl tracking-tight text-gray-600">Please come back later</h5>
-        </div>
-    )
-}
-
-export default Error;
+export default ErrorState;

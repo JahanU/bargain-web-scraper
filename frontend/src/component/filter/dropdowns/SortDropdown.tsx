@@ -1,66 +1,115 @@
-import { Fragment } from "react";
-import { Menu, Transition } from "@headlessui/react";
-import { ChevronDownIcon } from "@heroicons/react/solid";
-import { Sort } from "../../../interfaces/Sort";
-import { useFilterParams } from "../../../hooks/useFilterParams";
+import { useState } from 'react';
+import { YStack, XStack, Text, Button, AnimatePresence } from 'tamagui';
+import { useFilterParams } from '../../../hooks/useFilterParams';
+import { Sort } from '../../../interfaces/Sort';
 
-interface SortMenuOption {
+interface SortOption {
   id: Sort;
   label: string;
 }
 
-const menuItemBaseClasses =
-  "block w-full px-4 py-2 text-left text-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-100";
-const activeMenuItemClasses = "bg-indigo-400 text-white";
-const inactiveMenuItemClasses = "bg-gray-100 text-gray-900 opacity-70 hover:bg-gray-200";
-
-const sortOptions: SortMenuOption[] = [
-  { id: Sort.discountHighToLow, label: "Discount (High to Low)" },
-  { id: Sort.discountLowToHigh, label: "Discount (Low to High)" },
-  { id: Sort.priceHighToLow, label: "Price (High to Low)" },
-  { id: Sort.priceLowToHigh, label: "Price (Low to High)" },
+const sortOptions: SortOption[] = [
+  { id: Sort.discountHighToLow, label: 'Discount ↓' },
+  { id: Sort.discountLowToHigh, label: 'Discount ↑' },
+  { id: Sort.priceHighToLow, label: 'Price ↓' },
+  { id: Sort.priceLowToHigh, label: 'Price ↑' },
 ];
 
 export default function SortDropdown() {
   const { sort, setSort } = useFilterParams();
+  const [open, setOpen] = useState(false);
+
+  const selectedLabel = sortOptions.find((o) => o.id === sort)?.label ?? 'Sort';
 
   return (
-    <Menu as="div" className="relative inline-block text-left z-10">
-      <div>
-        <Menu.Button className="inline-flex justify-center w-full rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-100 focus:ring-indigo-500">
-          Sort
-          <ChevronDownIcon className="-mr-1 ml-2 h-5 w-5" aria-hidden="true" />
-        </Menu.Button>
-      </div>
-
-      <Transition
-        as={Fragment}
-        enter="transition ease-out duration-100"
-        enterFrom="transform opacity-0 scale-95"
-        enterTo="transform opacity-100 scale-100"
-        leave="transition ease-in duration-75"
-        leaveFrom="transform opacity-100 scale-100"
-        leaveTo="transform opacity-0 scale-95"
+    <YStack position="relative">
+      {/* Trigger */}
+      <Button
+        size="$4"
+        backgroundColor="$background"
+        borderWidth={1}
+        borderColor="$borderColor"
+        borderRadius="$3"
+        paddingHorizontal="$5"
+        hoverStyle={{ backgroundColor: '$backgroundHover', borderColor: '$borderColorHover' }}
+        pressStyle={{ backgroundColor: '$backgroundPress' }}
+        onPress={() => setOpen(!open)}
+        aria-haspopup="listbox"
       >
-        <Menu.Items className="origin-top-right absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 focus:outline-none">
-          <div className="py-1">
-            {sortOptions.map((option) => (
-              <Menu.Item key={option.id}>
-                {() => (
-                  <button
-                    type="button"
-                    className={`${menuItemBaseClasses} ${sort === option.id ? activeMenuItemClasses : inactiveMenuItemClasses
-                      }`}
-                    onClick={() => setSort(option.id)}
+        <XStack alignItems="center" gap="$2">
+          <Text fontSize={13} color="$colorMuted" fontWeight="500">Sort:</Text>
+          <Text fontSize={13} color="$color11" fontWeight="600">{selectedLabel}</Text>
+          <Text
+            fontSize={10}
+            color="$colorMuted"
+            style={{
+              transform: open ? 'rotate(180deg)' : 'rotate(0deg)',
+              transition: 'transform 150ms ease',
+            } as any}
+          >
+            ▾
+          </Text>
+        </XStack>
+      </Button>
+
+      {/* Dropdown */}
+      <AnimatePresence>
+        {open && (
+          <YStack
+            key="sort-dropdown"
+            opacity={1}
+            y={0}
+            scale={1}
+            animation="quick"
+            enterStyle={{ opacity: 0, y: -4, scale: 0.98 }}
+            exitStyle={{ opacity: 0, y: -4, scale: 0.98 }}
+            position="absolute"
+            top="100%"
+            left={0}
+            minWidth={160}
+            marginTop="$1"
+            backgroundColor="$background"
+            borderWidth={1}
+            borderColor="$borderColor"
+            borderRadius="$3"
+            overflow="hidden"
+            zIndex={200}
+            shadowColor="$shadowColor"
+            shadowRadius={12}
+            shadowOffset={{ width: 0, height: 4 }}
+          >
+            {sortOptions.map((option) => {
+              const isActive = sort === option.id;
+              return (
+                <XStack
+                  key={option.id}
+                  paddingHorizontal="$3"
+                  paddingVertical="$2"
+                  alignItems="center"
+                  justifyContent="space-between"
+                  backgroundColor={isActive ? '$cactusSubtle' : 'transparent'}
+                  hoverStyle={{ backgroundColor: '$backgroundHover' }}
+                  pressStyle={{ backgroundColor: '$backgroundPress' }}
+                  cursor="pointer"
+                  onPress={() => {
+                    setSort(option.id);
+                    setOpen(false);
+                  }}
+                >
+                  <Text
+                    fontSize={13}
+                    color={isActive ? '$accentBackground' : '$color11'}
+                    fontWeight={isActive ? '600' : '400'}
                   >
                     {option.label}
-                  </button>
-                )}
-              </Menu.Item>
-            ))}
-          </div>
-        </Menu.Items>
-      </Transition>
-    </Menu>
+                  </Text>
+                  {isActive && <Text fontSize={12} color="$accentBackground">✓</Text>}
+                </XStack>
+              );
+            })}
+          </YStack>
+        )}
+      </AnimatePresence>
+    </YStack>
   );
 }
