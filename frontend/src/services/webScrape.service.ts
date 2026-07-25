@@ -1,5 +1,5 @@
 import Item from '../interfaces/Item';
-import mockData from './mock-data.json'; // Import the data 
+// import mockData from './mock-data.json'; // Import the data 
 
 const BASE_URL = process.env.NODE_ENV === 'development'
     ? 'http://localhost:8000'
