@@ -14,26 +14,32 @@ const buildHit = (overrides: Record<string, unknown> = {}) => ({
     ...overrides,
 });
 
-const buildPageProps = (hits: unknown[]) => ({
-    pageProps: {
-        searchServerState: {
-            initialResults: {
-                comp123___jd_prod_products_en: { results: [{ hits }] },
+const buildPage = (pageProps: unknown) => `<html><body>
+    <script id="__NEXT_DATA__" type="application/json">${JSON.stringify({ props: { pageProps } })}</script>
+    </body></html>`;
+
+const validPageProps = {
+    algoliaConfig: {
+        applicationId: 'YPTJLWZE3Q',
+        searchApiKey: '406e0fd2fca1',
+        indices: [
+            { name: 'jd_prod_products_en_latest', type: 'replica' },
+            { name: 'jd_prod_products_en', type: 'main' },
+        ],
+    },
+    searchServerState: {
+        initialResults: {
+            comp123___jd_prod_products_en: {
+                requestParams: [{ facetFilters: [['brand:Nike'], ['onSale:true']] }],
             },
         },
     },
-});
-
-const buildPage = (hits: unknown[]) => `<html><body>
-    <script id="__NEXT_DATA__" type="application/json">${JSON.stringify({
-        buildId: 'sa6hF1IEri_zzjdhsx7of',
-        props: buildPageProps(hits),
-    })}</script>
-    </body></html>`;
+};
 
 describe('JDService helpers', () => {
     beforeEach(() => {
         jd.seenItemsCache.clear();
+        jd.searchConfigCache.clear();
     });
 
     it('infers gender from URL path', () => {
@@ -41,25 +47,34 @@ describe('JDService helpers', () => {
         expect(jd.getGenderFromUrl('https://www.jdsports.co.uk/women/sale')).toBe('Female');
     });
 
-    it('extracts the build id and hits from the embedded Next.js payload', () => {
-        const { buildId, hits } = jd.parseNextData(buildPage([buildHit(), buildHit({ objectID: '2' })]));
-
-        expect(buildId).toBe('sa6hF1IEri_zzjdhsx7of');
-        expect(hits).toHaveLength(2);
-        expect(hits[0]?.name).toBe('Nike Air Max 90');
+    it('extracts the Algolia search config from a listing page', () => {
+        expect(jd.extractSearchConfig(buildPage(validPageProps))).toEqual({
+            applicationId: 'YPTJLWZE3Q',
+            searchApiKey: '406e0fd2fca1',
+            indexName: 'jd_prod_products_en',
+            facetFilters: [['brand:Nike'], ['onSale:true']],
+        });
     });
 
-    it('reads hits from the data route shape, which has no props wrapper', () => {
-        expect(jd.hitsFromPageProps(buildPageProps([buildHit()]))).toHaveLength(1);
-        expect(jd.hitsFromPageProps(undefined)).toEqual([]);
-        expect(jd.hitsFromPageProps({ pageProps: {} })).toEqual([]);
-    });
+    it('returns no config when the page payload is missing, malformed or incomplete', () => {
+        expect(jd.extractSearchConfig('<html><body>no payload</body></html>')).toBeUndefined();
+        expect(jd.extractSearchConfig('<script id="__NEXT_DATA__" type="application/json">{ nope</script>'))
+            .toBeUndefined();
+        expect(jd.extractSearchConfig(buildPage({}))).toBeUndefined();
 
-    it('returns no hits when the payload is missing or malformed', () => {
-        expect(jd.parseNextData('<html><body>no payload</body></html>')).toEqual({ hits: [] });
-        expect(jd.parseNextData('<script id="__NEXT_DATA__" type="application/json">{ nope</script>'))
-            .toEqual({ hits: [] });
-        expect(jd.parseNextData(buildPage([])).hits).toEqual([]);
+        // Credentials present but no filters to search with.
+        expect(jd.extractSearchConfig(buildPage({ algoliaConfig: validPageProps.algoliaConfig })))
+            .toBeUndefined();
+
+        // Only replica indices, so no main product index to query.
+        const replicasOnly = {
+            ...validPageProps,
+            algoliaConfig: {
+                ...validPageProps.algoliaConfig,
+                indices: [{ name: 'jd_prod_products_en_latest', type: 'replica' }],
+            },
+        };
+        expect(jd.extractSearchConfig(buildPage(replicasOnly))).toBeUndefined();
     });
 
     it('maps a hit to an item and drops truncated size values', () => {
