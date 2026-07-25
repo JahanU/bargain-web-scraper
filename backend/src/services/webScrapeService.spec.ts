@@ -8,8 +8,8 @@ const { __test__: webScrapeTest, getBestDealsList } = webScrapeService;
 function makeItem(id: string, discount = 40) {
     return {
         name: `Item ${id}`,
-        wasPrice: '100',
-        nowPrice: '50',
+        wasPrice: 100,
+        nowPrice: 50,
         discount,
         url: `https://example.com/${id}`,
         timestamp: Date.now(),

@@ -10,8 +10,8 @@ const mockGetItemsService = getItemsService as jest.MockedFunction<typeof getIte
 const mockItems: Item[] = [
     {
         name: "Nike Air",
-        wasPrice: "$90.00",
-        nowPrice: "$70.00",
+        wasPrice: 90.00,
+        nowPrice: 70.00,
         discount: 22,
         url: "https://example.com/nike",
         sizes: ["M", "L"],
@@ -20,8 +20,8 @@ const mockItems: Item[] = [
     },
     {
         name: "Adidas Runner",
-        wasPrice: "$80.00",
-        nowPrice: "$55.00",
+        wasPrice: 80.00,
+        nowPrice: 55.00,
         discount: 31,
         url: "https://example.com/adidas",
         sizes: ["S"],
@@ -53,13 +53,13 @@ describe("useItems", () => {
         expect(result.current.isError).toBe(false);
     });
 
-    it("sets isError when response is an empty array", async () => {
+    it("treats an empty array as no results rather than an error", async () => {
         mockGetItemsService.mockResolvedValue([] as any);
         const { result, waitForNextUpdate } = renderHook(() => useItems());
 
         await waitForNextUpdate();
 
-        expect(result.current.isError).toBe(true);
+        expect(result.current.isError).toBe(false);
         expect(result.current.isLoading).toBe(false);
         expect(result.current.items).toEqual([]);
     });

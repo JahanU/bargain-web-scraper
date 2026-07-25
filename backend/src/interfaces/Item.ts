@@ -1,7 +1,7 @@
 export interface Item {
     name: string,
-    wasPrice: string,
-    nowPrice: string,
+    wasPrice: number,
+    nowPrice: number,
     discount: number,
     url: string,
     imageUrl?: string,

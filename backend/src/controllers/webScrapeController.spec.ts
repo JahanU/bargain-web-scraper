@@ -5,8 +5,8 @@ mock.restore();
 const deals = [
     {
         name: 'Nike Tee',
-        wasPrice: '50',
-        nowPrice: '20',
+        wasPrice: 50,
+        nowPrice: 20,
         discount: 60,
         url: 'https://example.com/nike-tee',
         timestamp: 1,
