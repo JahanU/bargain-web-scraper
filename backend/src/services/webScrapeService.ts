@@ -3,7 +3,7 @@ import type { Item } from '../interfaces/Item';
 
 const SCRAPE_INTERVAL_MS = 5 * 60 * 1000;
 const CACHE_RESET_INTERVAL_MS = 24 * 60 * 60 * 1000;
-const JD_DISCOUNT_LIMIT = 30;
+const DISCOUNT_LIMIT = 30;
 const TELEGRAM_DISCOUNT_THRESHOLD = 50;
 
 const allBestItemsMap = new Map<string, Item>(); // <URL, Item>
@@ -37,7 +37,7 @@ async function startScraping() {
     isScrapeRunning = true;
 
     try {
-        const jdItems = await JDService(JD_DISCOUNT_LIMIT, resetCacheFlag);
+        const jdItems = await JDService(DISCOUNT_LIMIT, resetCacheFlag);
         console.log(`[WebScrape] JDService returned ${jdItems.length} items.`);
         resetCacheFlag = false;
 
