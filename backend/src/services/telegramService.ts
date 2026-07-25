@@ -18,7 +18,7 @@ export async function sendPhotosToUsers(items: Item[]) {
         users.forEach((u: any) => {
             api.sendPhoto({ // https://core.telegram.org/bots/api#sendphoto
                 chat_id: u.telegramId,
-                caption: `Name: ${i.name} \nPrice: ${i.nowPrice} \nDiscount: ${i.discount}+% \nSize: ${i.sizes} \nLink: ${i.url}`,
+                caption: `Name: ${i.name} \nPrice: £${i.nowPrice.toFixed(2)} \nDiscount: ${i.discount}+% \nSize: ${i.sizes} \nLink: ${i.url}`,
                 photo: i.imageUrl,
             }).catch((err: Error) => console.log(err));
         });

@@ -4,6 +4,11 @@ interface ItemCardProps {
   item: Item;
 }
 
+const priceFormatter = new Intl.NumberFormat("en-GB", {
+  style: "currency",
+  currency: "GBP",
+});
+
 function formatFoundTime(timestamp: number): string {
   return new Date(timestamp).toLocaleTimeString([], {
     hour: "numeric",
@@ -37,7 +42,7 @@ function ItemCard({ item }: ItemCardProps) {
         </div>
 
         <p className="text-sm font-medium text-gray-900 whitespace-nowrap">
-          {item.nowPrice} ({item.discount}% off)
+          {priceFormatter.format(item.nowPrice)} ({item.discount}% off)
         </p>
       </div>
     </div>

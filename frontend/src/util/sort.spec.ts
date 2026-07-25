@@ -5,8 +5,8 @@ import { applyItemFilters, discountSort, priceSort } from "./sort";
 const items: Item[] = [
   {
     name: "Nike Air",
-    wasPrice: "$90.00",
-    nowPrice: "$70.00",
+    wasPrice: 90.00,
+    nowPrice: 70.00,
     discount: 22,
     url: "https://example.com/nike-air",
     sizes: ["M", "L"],
@@ -15,8 +15,8 @@ const items: Item[] = [
   },
   {
     name: "Adidas Runner",
-    wasPrice: "$80.00",
-    nowPrice: "$55.00",
+    wasPrice: 80.00,
+    nowPrice: 55.00,
     discount: 31,
     url: "https://example.com/adidas-runner",
     sizes: ["S", "M"],
@@ -25,8 +25,8 @@ const items: Item[] = [
   },
   {
     name: "Puma Tee",
-    wasPrice: "$40.00",
-    nowPrice: "$20.00",
+    wasPrice: 40.00,
+    nowPrice: 20.00,
     discount: 50,
     url: "https://example.com/puma-tee",
     sizes: ["XL"],
