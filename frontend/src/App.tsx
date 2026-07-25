@@ -3,7 +3,7 @@ import { useMemo } from "react";
 import { useSelector } from "react-redux";
 import ItemTable from "./component/table/ItemTable";
 import HeaderBar from "./component/header/HeaderBar";
-import Error from "./component/modal/Error";
+import ErrorPage from "./component/modal/ErrorPage";
 import Filters from "./component/filter/Filters";
 import { applyItemFilters } from "./util/sort";
 import { RootState } from "./store";
@@ -31,7 +31,7 @@ export default function App() {
       <nav>
         <HeaderBar />
       </nav>
-      {isError && <Error />}
+      {isError && <ErrorPage />}
       {!isError && <Filters />}
       {!isError && <ItemTable items={filteredItems} isLoading={isLoading} />}
     </div>

@@ -8,6 +8,7 @@ interface UseItemsResult {
     isError: boolean;
 }
 
+// todo rewrite 
 export function useItems(): UseItemsResult {
     const [items, setItems] = useState<Item[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -16,16 +17,15 @@ export function useItems(): UseItemsResult {
 
     useEffect(() => {
         isMounted.current = true;
-
         setIsLoading(true);
         getItemsService()
-            .then((responseItems: Item[]) => {
+            .then((responseItems) => {
                 // prevents memory leaks, race conditions, and unnecessary state updates
                 if (!isMounted.current) { // Prevent state update if component is unmounted
                     return;
                 }
 
-                if (!Array.isArray(responseItems) || responseItems.length === 0) { // Prevent state update if response is not an array or is empty
+                if (!Array.isArray(responseItems)) { // Prevent state update if response is not an array or is empty
                     setIsError(true);
                     return;
                 }
