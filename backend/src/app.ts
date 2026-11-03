@@ -13,7 +13,7 @@ export interface AppOptions {
     cronSecret?: string;
 }
 
-/** Loads saved state and builds the route table. Kept apart from main.ts so tests can drive it. */
+/** Loads saved state and builds the route table. Kept apart from index.ts so tests can drive it. */
 export async function createApp({ retailers, dataFile, minDiscount, cronSecret }: AppOptions) {
     const catalogue = await loadCatalogue(dataFile);
     const snapshot = new DealsSnapshot();
