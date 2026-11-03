@@ -1,0 +1,12 @@
+#!/bin/sh
+# Fast checks (typecheck, lint, format) for each app with staged changes.
+# Checks run on the working tree, so stage everything you want checked.
+# Emergency skip: git commit --no-verify
+changed="$(git diff --cached --name-only)"
+[ -n "$changed" ] || exit 0
+
+if ! "$(git rev-parse --show-toplevel)/.githooks/run-app-checks.sh" check:commit "$changed"; then
+    echo "" >&2
+    echo "Commit blocked. Fix the issues above (backend formatting: cd backend && bun run lint:fix)." >&2
+    exit 1
+fi

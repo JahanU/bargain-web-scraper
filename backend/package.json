@@ -12,7 +12,10 @@
     "typecheck": "tsc --noEmit",
     "lint": "biome check .",
     "lint:fix": "biome check --write .",
-    "check": "bun run typecheck && bun run lint && bun run test:coverage"
+    "check": "bun run typecheck && bun run lint && bun run test:coverage",
+    "check:commit": "bun run typecheck && bun run lint",
+    "check:push": "bun run check",
+    "prepare": "git rev-parse --git-dir >/dev/null 2>&1 && git config core.hooksPath .githooks || true"
   },
   "author": "Jahan Ulhaque",
   "license": "ISC",
