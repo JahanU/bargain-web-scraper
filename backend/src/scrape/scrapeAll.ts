@@ -1,6 +1,6 @@
 import { log } from '../log';
 import { reconcile, type Catalogue } from '../store/catalogue';
-import type { Retailer } from './retailers/types';
+import type { Listing, Retailer } from './retailers/types';
 
 export interface RunRecord {
     retailer: string;
@@ -10,7 +10,23 @@ export interface RunRecord {
     hits: number;
     upserted: number;
     soldOut: number;
+    complete?: boolean;
     error?: string;
+}
+
+type TimedFetch = { ms: number } & ({ listing: Listing } | { error: unknown });
+
+/**
+ * Fetches one retailer, timing it on its own. Being async, a synchronous throw from the
+ * adapter becomes a failed result too, rather than escaping and sinking the whole scrape.
+ */
+async function timedFetch(retailer: Retailer): Promise<TimedFetch> {
+    const started = Date.now();
+    try {
+        return { listing: await retailer.fetchListings(), ms: Date.now() - started };
+    } catch (error) {
+        return { error, ms: Date.now() - started };
+    }
 }
 
 /**
@@ -18,23 +34,24 @@ export interface RunRecord {
  * One retailer failing is recorded and leaves its products untouched; the others carry on.
  */
 export async function scrapeAll(catalogue: Catalogue, retailers: Retailer[]): Promise<RunRecord[]> {
-    const startedAt = Date.now();
-    const fetched = await Promise.allSettled(retailers.map((retailer) => retailer.fetchListings()));
+    const startedAt = new Date().toISOString();
+    const fetched = await Promise.all(retailers.map(timedFetch));
 
     return retailers.map((retailer, index) => {
         const outcome = fetched[index]!;
-        const base = { retailer: retailer.id, startedAt: new Date(startedAt).toISOString() };
+        const base = { retailer: retailer.id, startedAt, ms: outcome.ms };
 
-        if (outcome.status === 'rejected') {
-            log.error('scrape failed', { retailer: retailer.id, error: outcome.reason });
-            return { ...base, ms: Date.now() - startedAt, status: 'failed', hits: 0, upserted: 0, soldOut: 0, error: String(outcome.reason) };
+        if ('error' in outcome) {
+            log.error('scrape failed', { retailer: retailer.id, error: outcome.error });
+            return { ...base, status: 'failed', hits: 0, upserted: 0, soldOut: 0, error: String(outcome.error) };
         }
 
-        const result = reconcile(catalogue, retailer.id, outcome.value);
-        const record: RunRecord = { ...base, ms: Date.now() - startedAt, ...result };
+        const { products, complete } = outcome.listing;
+        const result = reconcile(catalogue, retailer.id, products, Date.now(), complete);
+        const record: RunRecord = { ...base, ...result, complete };
 
         if (result.status === 'partial') {
-            log.warn('scrape partial: too few products seen, skipped removing missing ones', { ...record });
+            log.warn('scrape partial: incomplete or suspiciously small listing, skipped removing missing products', { ...record });
         } else {
             log.info('scrape finished', { ...record });
         }

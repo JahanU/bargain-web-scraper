@@ -7,8 +7,9 @@ const BLOCKED_WORDS = [
     'houston', 'atlanta', 'boston', 'chicago', 'charlotte', 'cleveland', 'dallas', 'denver', 'jacksonville',
 ];
 
-// Whole words only, so "cap" blocks "Nike Cap" but not "Capri", and "real" not "Realtree".
-const BLOCKED_PATTERN = new RegExp(`\\b(?:${BLOCKED_WORDS.join('|')})\\b`, 'i');
+// Whole words, optionally plural: "cap" blocks "Nike Cap" and "Caps" but not "Capri",
+// and "real" does not block "Realtree".
+const BLOCKED_PATTERN = new RegExp(`\\b(?:${BLOCKED_WORDS.join('|')})s?\\b`, 'i');
 
 /** True when a product name contains a blocked word. */
 export function isBlockedName(name: string): boolean {

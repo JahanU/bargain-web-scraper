@@ -94,36 +94,58 @@ describe('JD helpers', () => {
 describe('JD retailer', () => {
     const algoliaResponse = (body: unknown) => new Response(JSON.stringify(body), { headers: { 'content-type': 'application/json' } });
 
-    function fakeFetch(handlers: { algolia: () => Response }) {
+    // Algolia handler receives the requested page number.
+    function fakeFetch(algolia: (page: number) => Response) {
         const calls: string[] = [];
-        const impl = (async (input: string | URL | Request) => {
+        const impl = (async (input: string | URL | Request, init?: RequestInit) => {
             const url = String(input);
             calls.push(url);
-            return url.includes('algolia.net') ? handlers.algolia() : new Response(buildPage(validPageProps));
+            if (!url.includes('algolia.net')) {
+                return new Response(buildPage(validPageProps));
+            }
+            return algolia(JSON.parse(String(init?.body)).page);
         }) as typeof fetch;
         return { impl, calls };
     }
 
+    const hitsFrom = (from: number, count: number) =>
+        Array.from({ length: count }, (_, i) => buildHit({ objectID: String(from + i), slug: `p-${from + i}` }));
+
     it('learns the search config once and reuses it', async () => {
-        const { impl, calls } = fakeFetch({ algolia: () => algoliaResponse({ hits: [buildHit()], nbHits: 1 }) });
+        const { impl, calls } = fakeFetch(() => algoliaResponse({ hits: [buildHit()], nbHits: 1, nbPages: 1 }));
         const jd = createJDRetailer(impl);
 
-        expect(await jd.fetchListings()).toHaveLength(1);
-        expect(await jd.fetchListings()).toHaveLength(1);
+        expect(await jd.fetchListings()).toEqual({ products: [expect.objectContaining({ externalId: '19686180' })], complete: true });
+        await jd.fetchListings();
         expect(calls.filter((url) => url.includes('jdsports')).length).toBe(1);
     });
 
-    it('throws rather than return a truncated catalogue, and relearns the config next time', async () => {
-        const { impl, calls } = fakeFetch({ algolia: () => algoliaResponse({ hits: [buildHit()], nbHits: 2000 }) });
-        const jd = createJDRetailer(impl);
+    it('reads every page of a large listing', async () => {
+        const { impl, calls } = fakeFetch((page) =>
+            algoliaResponse({ hits: page === 0 ? hitsFrom(0, 1000) : hitsFrom(1000, 150), nbHits: 1150, nbPages: 2 }));
+        const listing = await createJDRetailer(impl).fetchListings();
 
-        await expect(jd.fetchListings()).rejects.toThrow('only 1 were returned');
-        await expect(jd.fetchListings()).rejects.toThrow();
-        expect(calls.filter((url) => url.includes('jdsports')).length).toBe(2);
+        expect(listing.products).toHaveLength(1150);
+        expect(listing.complete).toBe(true);
+        expect(calls.filter((url) => url.includes('algolia.net')).length).toBe(2);
     });
 
-    it('throws when Algolia errors', async () => {
-        const { impl } = fakeFetch({ algolia: () => new Response('nope', { status: 403 }) });
-        await expect(createJDRetailer(impl).fetchListings()).rejects.toThrow('status 403');
+    it('keeps a truncated listing but marks it incomplete instead of failing', async () => {
+        // Algolia caps pagination: page 1 comes back empty although more products exist.
+        const { impl } = fakeFetch((page) =>
+            algoliaResponse({ hits: page === 0 ? hitsFrom(0, 1000) : [], nbHits: 1150, nbPages: 2 }));
+        const listing = await createJDRetailer(impl).fetchListings();
+
+        expect(listing.products).toHaveLength(1000);
+        expect(listing.complete).toBe(false);
+    });
+
+    it('throws when Algolia errors, and relearns the config next time', async () => {
+        const { impl, calls } = fakeFetch(() => new Response('nope', { status: 403 }));
+        const jd = createJDRetailer(impl);
+
+        await expect(jd.fetchListings()).rejects.toThrow('status 403');
+        await expect(jd.fetchListings()).rejects.toThrow('status 403');
+        expect(calls.filter((url) => url.includes('jdsports')).length).toBe(2);
     });
 });

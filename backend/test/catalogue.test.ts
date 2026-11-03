@@ -54,6 +54,34 @@ describe('reconcile', () => {
         expect(statusOf(catalogue, '9')).toBe('active');
     });
 
+    it('removes missing products once a smaller listing is confirmed by the next run', () => {
+        const catalogue: Catalogue = new Map();
+        reconcile(catalogue, 'jd', range(600), 1000);
+
+        // The sale shrinks to 200 products: held back once...
+        expect(reconcile(catalogue, 'jd', range(200), 2000)).toMatchObject({ status: 'partial', soldOut: 0 });
+        // ...then confirmed, so the 400 delisted products are removed instead of lingering forever.
+        expect(reconcile(catalogue, 'jd', range(200), 3000)).toMatchObject({ status: 'ok', soldOut: 400 });
+        expect(listActiveDeals(catalogue, 0)).toHaveLength(200);
+    });
+
+    it('never removes missing products when the listing is incomplete, but still adds new ones', () => {
+        const catalogue: Catalogue = new Map();
+        reconcile(catalogue, 'jd', range(4), 1000);
+
+        const result = reconcile(catalogue, 'jd', [product('0'), product('new')], 2000, false);
+        expect(result).toMatchObject({ status: 'partial', soldOut: 0, upserted: 2 });
+        expect(statusOf(catalogue, '3')).toBe('active');
+        expect(statusOf(catalogue, 'new')).toBe('active');
+    });
+
+    it('still marks explicitly out-of-stock products sold out on an incomplete listing', () => {
+        const catalogue: Catalogue = new Map();
+        reconcile(catalogue, 'jd', range(2), 1000);
+        reconcile(catalogue, 'jd', [product('1', { inStock: false })], 2000, false);
+        expect(statusOf(catalogue, '1')).toBe('sold_out');
+    });
+
     it('handles the same product listed twice in one run', () => {
         const catalogue: Catalogue = new Map();
         expect(reconcile(catalogue, 'jd', [product('1', { inStock: false }), product('1')]).upserted).toBe(1);
@@ -141,5 +169,19 @@ describe('catalogue file', () => {
 
         await Bun.write(path, JSON.stringify({ version: 99, products: [] }));
         expect((await loadCatalogue(path)).size).toBe(0);
+    });
+
+    it('skips malformed products instead of letting them crash boot', async () => {
+        const path = await tempFile();
+        const catalogue: Catalogue = new Map();
+        reconcile(catalogue, 'jd', range(2));
+        const [good, bad] = [...catalogue.values()];
+        const { sizes: _dropped, ...withoutSizes } = bad!;
+
+        await Bun.write(path, JSON.stringify({ version: 1, savedAt: '', products: [good, withoutSizes, null, 'junk'] }));
+        const loaded = await loadCatalogue(path);
+
+        expect([...loaded.values()]).toEqual([good!]);
+        expect(() => listActiveDeals(loaded, 0)).not.toThrow();
     });
 });

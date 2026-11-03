@@ -6,15 +6,16 @@ import { product, range, tempFile } from './helpers';
 
 const secret = 's'.repeat(32);
 
-const retailer = (fetchListings: Retailer['fetchListings'], id = 'jd'): Retailer => ({ id, fetchListings });
 const getDeals = async (app: Awaited<ReturnType<typeof createApp>>) =>
     (await (await app.routes['/webscrape/getBestDeals'].GET(new Request('http://local/'))).json()) as Deal[];
 const scrapeRequest = (auth?: string) =>
     new Request('http://local/jobs/scrape', { method: 'POST', headers: auth ? { Authorization: auth } : {} });
 
-async function setup(fetchListings: Retailer['fetchListings'], options: { cronSecret?: string; dataFile?: string } = {}) {
+/** An app whose only retailer returns `fetchProducts()` as a complete listing. */
+async function setup(fetchProducts: () => Promise<ProductSnapshot[]>, options: { cronSecret?: string; dataFile?: string } = {}) {
     const dataFile = options.dataFile ?? await tempFile();
-    const app = await createApp({ retailers: [retailer(fetchListings)], dataFile, minDiscount: 30, cronSecret: options.cronSecret });
+    const retailer: Retailer = { id: 'jd', fetchListings: async () => ({ products: await fetchProducts(), complete: true }) };
+    const app = await createApp({ retailers: [retailer], dataFile, minDiscount: 30, cronSecret: options.cronSecret });
     return { app, dataFile };
 }
 
@@ -91,6 +92,31 @@ describe('app', () => {
         await app.idle();
         expect(app.scrape()).toBe(true);
         await app.idle();
+    });
+
+    it('answers health checks on / as well as /health', async () => {
+        const { app } = await setup(async () => []);
+        expect(app.routes['/']().status).toBe(200);
+        expect(await app.routes['/health']().json()).toMatchObject({ ok: true });
+    });
+
+    it('waits for the boot scrape when the saved file holds no active deals', async () => {
+        const dataFile = await tempFile();
+        await Bun.write(dataFile, JSON.stringify({ version: 1, savedAt: '', products: [{
+            retailer: 'jd', externalId: 'old', name: 'Old', url: 'https://example.com/old', imageUrl: null, gender: 'Male',
+            sizes: [], wasPricePence: 100, nowPricePence: 50, discount: 50, status: 'sold_out',
+            firstSeenAt: 1, lastSeenAt: 1, soldOutAt: 2,
+        }] }));
+
+        let release!: () => void;
+        const gate = new Promise<void>((resolve) => { release = resolve; });
+        const { app } = await setup(async () => (await gate, range(2)), { dataFile });
+
+        app.scrape();
+        const pending = getDeals(app);
+        await Bun.sleep(10);
+        release();
+        expect(await pending).toHaveLength(2);
     });
 
     describe('POST /jobs/scrape', () => {

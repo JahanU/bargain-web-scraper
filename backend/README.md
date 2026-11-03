@@ -21,7 +21,7 @@ Each scrape reconciles every retailer into the catalogue:
 |---|---|
 | Listed and in stock | Added or refreshed → `active` (price, sizes and discount updated) |
 | Listed, out of stock | → `sold_out`, gone from the API |
-| No longer listed | → `sold_out`, *unless* this run saw under 50% of the active products (then logged as `partial` and nothing is removed) |
+| No longer listed | → `sold_out`, *unless* the listing was incomplete, or this run saw under 50% of what the previous run saw. Then the run is logged as `partial` and nothing is removed; a sudden drop that the next run confirms is removed then |
 | Sold out, then restocked | → `active` again |
 | Retailer request failed | Nothing changes; the last good deals keep being served |
 
@@ -35,7 +35,7 @@ On Render's free tier the disk is wiped on every deploy and restart. That's fine
 
 | Method | Path | Notes |
 |---|---|---|
-| GET | `/health` | `{ ok, deals, lastRuns }`. Cheap; use it for the keep-awake ping |
+| GET | `/health` (also `/`) | `{ ok, deals, lastRuns }`. Cheap; use it for the keep-awake ping |
 | GET | `/v1/deals` | Active deals with discount ≥ `MIN_DISCOUNT`, best first. Supports ETag/304 and gzip |
 | GET | `/webscrape/getBestDeals` | Same payload. The path the current frontend calls |
 | POST | `/jobs/scrape` | Manual run. Only works when `CRON_SECRET` is set; send `Authorization: Bearer $CRON_SECRET` |
