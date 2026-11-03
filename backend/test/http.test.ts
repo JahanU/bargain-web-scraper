@@ -26,6 +26,8 @@ describe('DealsResponse', () => {
         expect(response.status).toBe(503);
         expect(response.headers.get('Retry-After')).toBe(String(RETRY_AFTER_SECONDS));
         expect(response.headers.get('Access-Control-Allow-Origin')).toBe('*');
+        // Cross-origin JavaScript can only read Retry-After if it is exposed.
+        expect(response.headers.get('Access-Control-Expose-Headers')).toContain('Retry-After');
     });
 
     it('serves the deals with caching and CORS headers', async () => {

@@ -6,7 +6,9 @@ const CACHE_CONTROL = 'public, max-age=60, stale-while-revalidate=300';
 /** How long clients should wait before asking again while the first scrape is still running. */
 export const RETRY_AFTER_SECONDS = 10;
 
-const CORS = { 'Access-Control-Allow-Origin': '*' };
+// The frontend is on another origin (Netlify). Browsers hide non-standard response headers from
+// cross-origin JavaScript unless they are exposed, so Retry-After and ETag are listed explicitly.
+const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Expose-Headers': 'Retry-After, ETag' };
 
 interface Built {
     body: string;
@@ -68,7 +70,7 @@ export class DealsResponse {
 
 /** Route table for Bun.serve. Both deals paths serve the same response. */
 export function routes(deals: DealsResponse, health: () => object) {
-    const healthResponse = () => Response.json(health());
+    const healthResponse = () => Response.json(health(), { headers: CORS });
     const dealsRoute = { GET: (request: Request) => deals.respond(request) };
 
     return {

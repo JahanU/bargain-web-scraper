@@ -170,6 +170,8 @@ describe('HTTP', () => {
         await clock.scrapesDone(1);
 
         expect(await health()).toMatchObject({ ok: true, ready: true, deals: 0 });
+        // Callable from the browser frontend (a different origin).
+        expect((await get('/health')).headers.get('Access-Control-Allow-Origin')).toBe('*');
         expect((await get('/')).status).toBe(200);
         expect((await get('/nope')).status).toBe(404);
     });

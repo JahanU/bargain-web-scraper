@@ -39,6 +39,8 @@ These are the behaviours the code is built around, and the end-to-end tests (`te
 
 ## Endpoints
 
+The full contract for the frontend (the `Deal` type, the loading state, caching, CORS) is in [`FRONTEND_API.md`](../FRONTEND_API.md).
+
 | Method | Path | Notes |
 |---|---|---|
 | GET | `/health` (also `/`) | `{ ok, ready, deals, runs }`, where `runs` is the last result per retailer. Use it for the keep-awake ping |

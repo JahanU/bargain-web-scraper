@@ -30,7 +30,7 @@
 - Sold-out detection, with a safety check so a failed fetch never wipes the list
 - Responses built once per scrape and served from memory, with ETag/304 and gzip
 - No database or files: everything lives in memory and is rebuilt by scraping on boot
-- See [backend/README.md](backend/README.md) for details
+- See [backend/README.md](backend/README.md) for details, and [FRONTEND_API.md](FRONTEND_API.md) for the API contract the frontend relies on
 
 ### Tech 💻
 - Frontend hosted on Netlify
