@@ -20,9 +20,11 @@ export async function createApp({ retailers, dataFile, minDiscount, cronSecret }
     let lastRuns: RunRecord[] = [];
     let running: Promise<void> | undefined;
 
-    // Serve what the last process saved straight away, if anything survived.
-    if (catalogue.size) {
-        snapshot.update(listActiveDeals(catalogue, minDiscount));
+    // Serve what the last process saved straight away, if it holds any deals. Otherwise early
+    // requests wait for the boot scrape rather than getting an empty list.
+    const savedDeals = listActiveDeals(catalogue, minDiscount);
+    if (savedDeals.length) {
+        snapshot.update(savedDeals);
     }
 
     /** Starts a scrape unless one is already running. Returns whether it started. */
@@ -49,8 +51,12 @@ export async function createApp({ retailers, dataFile, minDiscount, cronSecret }
         return true;
     }
 
+    const health = () => Response.json({ ok: true, deals: snapshot.count, lastRuns });
+
     const routes = {
-        '/health': () => Response.json({ ok: true, deals: snapshot.count, lastRuns }),
+        // `/` too, so a keep-awake ping or platform health check aimed at the root still gets 200.
+        '/': health,
+        '/health': health,
 
         '/v1/deals': { GET: (request: Request) => snapshot.respond(request) },
 

@@ -42,8 +42,9 @@ export interface ReconcileResult {
     soldOut: number;
 }
 
-// If a run sees fewer than half the products we currently list, assume the fetch was
-// incomplete rather than that half the catalogue sold out in five minutes.
+// If a run sees fewer than half the products the previous run saw, hold back removals once:
+// a sudden drop is more often a bad fetch than half the catalogue selling out in five minutes.
+// If the next run confirms the smaller number, it was real and removals go ahead.
 export const MIN_SEEN_RATIO = 0.5;
 
 export const SOLD_OUT_RETENTION_MS = 7 * 24 * 60 * 60 * 1000;
@@ -54,12 +55,16 @@ export const keyOf = (retailer: string, externalId: string) => `${retailer}:${ex
  * Brings one retailer's products in line with what it lists right now: add or refresh what
  * is in stock, and mark out-of-stock and disappeared products sold out. Synchronous, so it
  * can never be observed half-done.
+ *
+ * Disappeared products are only removed when the listing is `complete` and not suspiciously
+ * smaller than the previous run's; otherwise the run is 'partial' and only adds and refreshes.
  */
 export function reconcile(
     catalogue: Catalogue,
     retailer: string,
     snapshots: ProductSnapshot[],
     now = Date.now(),
+    complete = true,
 ): ReconcileResult {
     // The same product can appear in more than one listing. If any copy is in stock, it is.
     const byId = new Map<string, ProductSnapshot>();
@@ -72,8 +77,7 @@ export function reconcile(
 
     const listed = [...byId.values()];
     const inStock = listed.filter((snapshot) => snapshot.inStock);
-    const activeBefore = [...catalogue.values()]
-        .filter((product) => product.retailer === retailer && product.status === 'active').length;
+    const seenLastRun = countSeenInLastRun(catalogue, retailer);
 
     let soldOut = 0;
     const markSoldOut = (product: StoredProduct) => {
@@ -109,8 +113,8 @@ export function reconcile(
         }
     }
 
-    const looksComplete = inStock.length >= activeBefore * MIN_SEEN_RATIO;
-    if (looksComplete) {
+    const removeMissing = complete && inStock.length >= seenLastRun * MIN_SEEN_RATIO;
+    if (removeMissing) {
         for (const product of catalogue.values()) {
             if (product.retailer === retailer && product.status === 'active' && !byId.has(product.externalId)) {
                 markSoldOut(product);
@@ -118,7 +122,31 @@ export function reconcile(
         }
     }
 
-    return { status: looksComplete ? 'ok' : 'partial', hits: byId.size, upserted: inStock.length, soldOut };
+    return { status: removeMissing ? 'ok' : 'partial', hits: byId.size, upserted: inStock.length, soldOut };
+}
+
+/**
+ * How many in-stock products the previous run saw: every product a run sees in stock gets
+ * that run's timestamp, so it is the count sharing the newest `lastSeenAt`. Derived from the
+ * catalogue itself, so it survives restarts with no extra state.
+ */
+function countSeenInLastRun(catalogue: Catalogue, retailer: string): number {
+    let lastRunAt = -Infinity;
+    let count = 0;
+
+    for (const product of catalogue.values()) {
+        if (product.retailer !== retailer) {
+            continue;
+        }
+        if (product.lastSeenAt > lastRunAt) {
+            lastRunAt = product.lastSeenAt;
+            count = 1;
+        } else if (product.lastSeenAt === lastRunAt) {
+            count++;
+        }
+    }
+
+    return count;
 }
 
 /** Forgets products that have been sold out for longer than the retention window. */

@@ -8,6 +8,12 @@ describe('isBlockedName', () => {
         expect(isBlockedName('Nike Cap')).toBe(true);
     });
 
+    it('blocks plurals too', () => {
+        expect(isBlockedName('Nike Club Caps 3 Pack')).toBe(true);
+        expect(isBlockedName('Nike Teams Hoodie')).toBe(true);
+        expect(isBlockedName('Mini Basketballs Set')).toBe(true);
+    });
+
     it('allows ordinary products', () => {
         expect(isBlockedName('Nike Running Shorts')).toBe(false);
     });

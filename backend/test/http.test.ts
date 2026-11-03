@@ -91,4 +91,19 @@ describe('loadConfig', () => {
     it('fails fast on a weak secret', () => {
         expect(() => loadConfig({ CRON_SECRET: 'short' })).toThrow('at least 32');
     });
+
+    it('keeps 0 as 0 instead of falling back to the default', () => {
+        expect(loadConfig({ MIN_DISCOUNT: '0' }).minDiscount).toBe(0);
+    });
+
+    it('rejects typos and out-of-range numbers', () => {
+        expect(() => loadConfig({ MIN_DISCOUNT: '3O' })).toThrow('MIN_DISCOUNT');
+        expect(() => loadConfig({ MIN_DISCOUNT: '120' })).toThrow('MIN_DISCOUNT');
+        expect(() => loadConfig({ SCRAPE_INTERVAL_MINUTES: '0' })).toThrow('SCRAPE_INTERVAL_MINUTES');
+        expect(() => loadConfig({ PORT: 'abc' })).toThrow('PORT');
+    });
+
+    it('treats blank values as unset', () => {
+        expect(loadConfig({ MIN_DISCOUNT: '  ' }).minDiscount).toBe(30);
+    });
 });
