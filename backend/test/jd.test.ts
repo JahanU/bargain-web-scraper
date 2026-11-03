@@ -148,4 +148,98 @@ describe('JD retailer', () => {
         await expect(jd.fetchListings()).rejects.toThrow('status 403');
         expect(calls.filter((url) => url.includes('jdsports')).length).toBe(2);
     });
+
+    /** A fake JD + Algolia where each listing URL and page can be scripted. */
+    function scriptedFetch(options: {
+        page?: (url: string) => Response;
+        algolia: (body: { page: number; facetFilters: unknown }) => Response;
+    }) {
+        const calls = { pages: 0, searches: 0 };
+        const impl = (async (input: string | URL | Request, init?: RequestInit) => {
+            const url = String(input);
+            if (!url.includes('algolia.net')) {
+                calls.pages++;
+                return options.page?.(url) ?? new Response(buildPage(validPageProps));
+            }
+            calls.searches++;
+            return options.algolia(JSON.parse(String(init?.body)));
+        }) as typeof fetch;
+        return { impl, calls };
+    }
+
+    it('keeps the listings that worked when one fails, marked incomplete', async () => {
+        const { impl } = scriptedFetch({
+            page: (url) => (url.includes('broken') ? new Response('down', { status: 500 }) : new Response(buildPage(validPageProps))),
+            algolia: () => algoliaResponse({ hits: [buildHit()], nbHits: 1, nbPages: 1 }),
+        });
+        const jd = createJDRetailer({ fetch: impl, listingUrls: ['https://jd/men/ok/', 'https://jd/men/broken/'] });
+
+        expect(await jd.fetchListings()).toMatchObject({ products: [{ externalId: '19686180' }], complete: false });
+    });
+
+    it('fails the run when every listing fails', async () => {
+        const { impl } = scriptedFetch({ page: () => new Response('down', { status: 500 }), algolia: () => algoliaResponse({ hits: [] }) });
+        const jd = createJDRetailer({ fetch: impl, listingUrls: ['https://jd/men/a/', 'https://jd/men/b/'] });
+        await expect(jd.fetchListings()).rejects.toThrow('status 500');
+    });
+
+    it('trusts a short last page when Algolia says its count is an estimate', async () => {
+        const { impl } = scriptedFetch({
+            algolia: ({ page }) => algoliaResponse({
+                hits: page === 0 ? hitsFrom(0, 1000) : hitsFrom(1000, 12), nbHits: 1100, nbPages: 2, exhaustiveNbHits: false,
+            }),
+        });
+        const listing = await createJDRetailer({ fetch: impl }).fetchListings();
+        expect(listing).toMatchObject({ complete: true });
+        expect(listing.products).toHaveLength(1012);
+    });
+
+    it('treats an empty page past the pagination cap as truncation, even with an estimated count', async () => {
+        const { impl } = scriptedFetch({
+            algolia: ({ page }) => algoliaResponse({
+                hits: page === 0 ? hitsFrom(0, 1000) : [], nbHits: 1400, nbPages: 2, exhaustiveNbHits: false,
+            }),
+        });
+        expect((await createJDRetailer({ fetch: impl }).fetchListings()).complete).toBe(false);
+    });
+
+    it('treats an exact count with missing products as incomplete', async () => {
+        const { impl } = scriptedFetch({
+            algolia: ({ page }) => algoliaResponse({
+                hits: page === 0 ? hitsFrom(0, 1000) : [], nbHits: 1150, nbPages: 2, exhaustive: { nbHits: true },
+            }),
+        });
+        expect((await createJDRetailer({ fetch: impl }).fetchListings()).complete).toBe(false);
+    });
+
+    it('re-reads the listing page when a cached config suddenly finds nothing (stale filters)', async () => {
+        let filters: unknown = [['onSale:true']];
+        const page = () => new Response(buildPage({
+            ...validPageProps,
+            searchServerState: { initialResults: { a: { requestParams: [{ facetFilters: filters }] } } },
+        }));
+        const { impl, calls } = scriptedFetch({
+            page,
+            algolia: (body) => algoliaResponse(JSON.stringify(body.facetFilters) === JSON.stringify(filters)
+                ? { hits: [buildHit()], nbHits: 1, nbPages: 1 }
+                : { hits: [], nbHits: 0, nbPages: 0 }),
+        });
+        const jd = createJDRetailer({ fetch: impl });
+        await jd.fetchListings();
+
+        filters = [['sale:yes']]; // JD renames the facet; the cached config now matches nothing
+        expect((await jd.fetchListings()).products).toHaveLength(1);
+        expect(calls.pages).toBe(2);
+    });
+
+    it('accepts a genuinely empty sale after re-reading the page once', async () => {
+        let hits = [buildHit()];
+        const { impl, calls } = scriptedFetch({ algolia: () => algoliaResponse({ hits, nbHits: hits.length, nbPages: 1 }) });
+        const jd = createJDRetailer({ fetch: impl });
+        await jd.fetchListings();
+
+        hits = [];
+        expect(await jd.fetchListings()).toEqual({ products: [], complete: true });
+        expect(calls.pages).toBe(2);
+    });
 });

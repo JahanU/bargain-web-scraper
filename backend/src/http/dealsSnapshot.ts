@@ -31,6 +31,8 @@ export class DealsSnapshot {
     private readonly ready = new Promise<void>((resolve) => {
         this.markReady = resolve;
     });
+    /** One shared deadline for every request waiting on boot, rather than a timer per request. */
+    private bootDeadline: Promise<void> | undefined;
 
     constructor(private readonly bootWaitMs = BOOT_WAIT_MS) {}
 
@@ -53,7 +55,8 @@ export class DealsSnapshot {
 
     async respond(request: Request): Promise<Response> {
         if (!this.current) {
-            await Promise.race([this.ready, Bun.sleep(this.bootWaitMs)]);
+            this.bootDeadline ??= Promise.race([this.ready, Bun.sleep(this.bootWaitMs)]);
+            await this.bootDeadline;
         }
 
         const snapshot = this.current;

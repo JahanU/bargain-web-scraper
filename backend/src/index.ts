@@ -30,11 +30,16 @@ log.info('listening', { port: server.port, dataFile: config.dataFile });
 app.scrape();
 const timer = setInterval(app.scrape, config.scrapeIntervalMs);
 
-// Render sends SIGTERM on deploys: stop taking requests, let a running scrape finish and save.
+// Render sends SIGTERM on deploys and kills the process about 30s later. Close connections now,
+// then give a running scrape a bounded chance to finish and save. If it can't, the previous
+// deals.json is left intact (saves are atomic) and the next process re-scrapes on boot.
+const SHUTDOWN_WAIT_MS = 20_000;
+
 process.on('SIGTERM', async () => {
     log.info('shutting down');
     clearInterval(timer);
-    await server.stop();
-    await app.idle();
+    app.stop();
+    await server.stop(true);
+    await Promise.race([app.idle(), Bun.sleep(SHUTDOWN_WAIT_MS)]);
     process.exit(0);
 });

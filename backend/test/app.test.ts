@@ -12,10 +12,15 @@ const scrapeRequest = (auth?: string) =>
     new Request('http://local/jobs/scrape', { method: 'POST', headers: auth ? { Authorization: auth } : {} });
 
 /** An app whose only retailer returns `fetchProducts()` as a complete listing. */
-async function setup(fetchProducts: () => Promise<ProductSnapshot[]>, options: { cronSecret?: string; dataFile?: string } = {}) {
+async function setup(
+    fetchProducts: () => Promise<ProductSnapshot[]>,
+    options: { cronSecret?: string; dataFile?: string; retryDelaysMs?: number[] } = {},
+) {
     const dataFile = options.dataFile ?? await tempFile();
     const retailer: Retailer = { id: 'jd', fetchListings: async () => ({ products: await fetchProducts(), complete: true }) };
-    const app = await createApp({ retailers: [retailer], dataFile, minDiscount: 30, cronSecret: options.cronSecret });
+    const app = await createApp({
+        retailers: [retailer], dataFile, minDiscount: 30, cronSecret: options.cronSecret, retryDelaysMs: options.retryDelaysMs ?? [],
+    });
     return { app, dataFile };
 }
 
@@ -117,6 +122,52 @@ describe('app', () => {
         await Bun.sleep(10);
         release();
         expect(await pending).toHaveLength(2);
+    });
+
+    it('retries soon after a failed scrape instead of waiting a whole interval', async () => {
+        let calls = 0;
+        const { app } = await setup(async () => {
+            calls++;
+            if (calls === 1) throw new Error('JD hiccup');
+            return range(2);
+        }, { retryDelaysMs: [20] });
+
+        app.scrape();
+        await app.idle();
+        expect(await getDeals(app)).toEqual([]);
+
+        await Bun.sleep(60);
+        await app.idle();
+        expect(calls).toBe(2);
+        expect(await getDeals(app)).toHaveLength(2);
+    });
+
+    it('gives up retrying early after the configured attempts', async () => {
+        let calls = 0;
+        const { app } = await setup(async () => {
+            calls++;
+            throw new Error('down');
+        }, { retryDelaysMs: [10] });
+
+        app.scrape();
+        await Bun.sleep(80);
+        await app.idle();
+        expect(calls).toBe(2);
+        app.stop();
+    });
+
+    it('does not serve products saved from a retailer that is no longer configured', async () => {
+        const dataFile = await tempFile();
+        await Bun.write(dataFile, JSON.stringify({ version: 2, savedAt: '', lastInStock: { gone: 1 }, products: [{
+            retailer: 'gone', externalId: 'x', name: 'Old', url: 'https://example.com/x', imageUrl: null, gender: 'Male',
+            sizes: [], wasPricePence: 100, nowPricePence: 50, discount: 50, status: 'active',
+            firstSeenAt: 1, lastSeenAt: 1, soldOutAt: null,
+        }] }));
+
+        const { app } = await setup(async () => range(1), { dataFile });
+        app.scrape();
+        await app.idle();
+        expect((await getDeals(app)).map((deal) => deal.url)).toEqual(['https://example.com/0']);
     });
 
     describe('POST /jobs/scrape', () => {
