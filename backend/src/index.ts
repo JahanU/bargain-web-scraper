@@ -1,55 +1,38 @@
-import { Hono } from 'hono';
-import { cors } from 'hono/cors';
-import { logger } from 'hono/logger';
-import { serveStatic } from 'hono/bun';
-import 'dotenv/config';
+import { createApp } from './app';
+import { loadConfig } from './config';
+import { log } from './log';
+import { createJDRetailer } from './scrape/retailers/jd';
 
-import { firebaseRoute } from './routes/firebaseRoute';
-import { webScrapeRoute } from './routes/webScrapeRoute';
-import { telegramRoute } from './routes/telegramRoute';
-import { loggingMiddleware } from './middlewares/logging';
-import { main as startWebScraper } from './services/webScrapeService';
+const config = loadConfig();
 
-const app = new Hono();
-
-// Middleware
-app.use('*', logger());
-app.use('*', cors());
-app.use('*', loggingMiddleware);
-
-// Static files
-app.use('/client/*', serveStatic({ root: './' }));
-
-// Default route
-app.get('/', (c) => c.text('on home'));
-
-// Health check endpoint for Render persistence
-app.get('/health', (c) => c.json({ status: 'ok', timestamp: new Date().toISOString() }));
-
-// Routes
-app.route('/firebase', firebaseRoute);
-app.route('/webscrape', webScrapeRoute);
-app.route('/telegram', telegramRoute);
-
-// 404 handler
-app.notFound((c) => {
-    return c.json({ error: { message: 'Not Found', code: 404 } }, 404);
+const app = await createApp({
+    retailers: [createJDRetailer()],
+    dataFile: config.dataFile,
+    minDiscount: config.minDiscount,
+    cronSecret: config.cronSecret,
 });
 
-// Error handler
-app.onError((err, c) => {
-    const status = 500;
-    return c.json({ error: { message: err.message, code: status } }, status);
+const server = Bun.serve({
+    port: config.port,
+    routes: app.routes,
+    fetch: () => Response.json({ error: 'Not Found' }, { status: 404 }),
+    error: (error) => {
+        log.error('unhandled request error', { error });
+        return Response.json({ error: 'Internal Server Error' }, { status: 500 });
+    },
 });
 
-// Start web scraper
-startWebScraper();
+log.info('listening', { port: server.port, dataFile: config.dataFile });
 
-const PORT = Number(process.env.PORT) || 8000;
+// Scrape now (the disk may have been wiped), then on a timer. An external ping to /health keeps Render awake.
+app.scrape();
+const timer = setInterval(app.scrape, config.scrapeIntervalMs);
 
-export default {
-    port: PORT,
-    fetch: app.fetch,
-};
-
-console.log(`listening on port: ${PORT}`);
+// Render sends SIGTERM on deploys: stop taking requests, let a running scrape finish and save.
+process.on('SIGTERM', async () => {
+    log.info('shutting down');
+    clearInterval(timer);
+    await server.stop();
+    await app.idle();
+    process.exit(0);
+});

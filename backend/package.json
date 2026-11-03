@@ -1,24 +1,17 @@
 {
-  "name": "web-scraper",
-  "version": "1.0.0",
-  "description": "Web Scraper for clothes sales",
+  "name": "bargain-backend",
+  "version": "2.0.0",
+  "description": "Discounted clothing deals API: Bun, zero runtime dependencies",
   "type": "module",
+  "private": true,
   "scripts": {
     "dev": "bun run --watch src/index.ts",
     "start": "bun run src/index.ts",
-    "test": "bun test"
+    "test": "bun test",
+    "typecheck": "tsc --noEmit"
   },
   "author": "Jahan Ulhaque",
   "license": "ISC",
-  "dependencies": {
-    "@firebase/app": "^0.7.9",
-    "cheerio": "^1.0.0-rc.10",
-    "dotenv": "^10.0.0",
-    "firebase": "^9.5.0",
-    "firebase-admin": "^11.6.0",
-    "hono": "^4.0.0",
-    "telegram-bot-api": "^2.0.1"
-  },
   "devDependencies": {
     "@types/bun": "latest",
     "typescript": "latest"
