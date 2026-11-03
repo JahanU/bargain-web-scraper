@@ -1,3 +1,4 @@
+import type { Deal } from '@/deals';
 import type { Listing, Product, Retailer } from '@/retailers/types';
 
 export const product = (id: string, overrides: Partial<Product> = {}): Product => ({
@@ -14,9 +15,13 @@ export const product = (id: string, overrides: Partial<Product> = {}): Product =
     ...overrides,
 });
 
-export const range = (count: number, from = 0) => Array.from({ length: count }, (_, i) => product(String(from + i)));
+/** Products with ids '0', '1', … */
+export const range = (count: number) => Array.from({ length: count }, (_, i) => product(String(i)));
 
 export const complete = (products: Product[]): Listing => ({ products, complete: true });
+
+/** The product id at the end of each deal's URL, to compare deal lists briefly. */
+export const idsOf = (deals: Deal[]) => deals.map((deal) => deal.url.split('/').pop());
 
 export interface FakeRetailer {
     retailer: Retailer;
@@ -48,11 +53,13 @@ export function fakeRetailer(id = 'jd', first: FakeRetailer['next'] = () => comp
 export function manualSleep() {
     const delays: number[] = [];
     let wake: (() => void) | undefined;
-    const waiters: { count: number; resolve: () => void }[] = [];
+    let waiters: { count: number; resolve: () => void }[] = [];
 
     const sleep = (ms: number, signal?: AbortSignal) => {
         delays.push(ms);
-        for (const waiter of waiters.filter((w) => w.count <= delays.length)) {
+        const due = waiters.filter((waiter) => waiter.count <= delays.length);
+        waiters = waiters.filter((waiter) => !due.includes(waiter));
+        for (const waiter of due) {
             waiter.resolve();
         }
         return new Promise<void>((resolve) => {

@@ -21,7 +21,7 @@ const ready = (deals: Deal[] = [deal]) => {
 };
 
 describe('DealsResponse', () => {
-    it('answers 503 with Retry-After until the first update', async () => {
+    it('answers 503 with Retry-After until the first update', () => {
         const response = new DealsResponse().respond(get());
         expect(response.status).toBe(503);
         expect(response.headers.get('Retry-After')).toBe(String(RETRY_AFTER_SECONDS));

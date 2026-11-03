@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'bun:test';
 import { DealStore } from '@/deals';
-import { complete, product, range } from './helpers';
+import { complete, idsOf, product, range } from './helpers';
 
-const ids = (store: DealStore) => store.deals(0).map((deal) => deal.url.split('/').pop());
+const ids = (store: DealStore) => idsOf(store.deals(0));
 
 describe('DealStore', () => {
     describe('R1: the deals are the latest accepted listing', () => {
@@ -126,7 +126,7 @@ describe('DealStore', () => {
             );
 
             const deals = store.deals(30);
-            expect(deals.map((deal) => deal.url.split('/').pop())).toEqual(['best', 'b', 'a']);
+            expect(idsOf(deals)).toEqual(['best', 'b', 'a']);
             expect(deals[1]).toEqual({
                 name: 'Product b',
                 wasPrice: 100,

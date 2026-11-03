@@ -1,49 +1,56 @@
-// End-to-end scenarios: the real server and scrape loop, with a fake retailer and a test-driven
+// End-to-end scenarios: the real server and scrape loop, with fake retailers and a test-driven
 // clock, exercised over HTTP the way the frontend uses it.
 import { afterEach, describe, expect, it } from 'bun:test';
-import { startApp } from '@/app';
+import { type AppOptions, startApp } from '@/app';
 import type { Deal } from '@/deals';
-import { complete, type FakeRetailer, fakeRetailer, manualSleep, product, range } from './helpers';
+import type { Retailer } from '@/retailers/types';
+import { FIRST_RETRY_MS } from '@/scraper';
+import { complete, type FakeRetailer, fakeRetailer, idsOf, manualSleep, product, range } from './helpers';
 
-type App = ReturnType<typeof startApp>;
-const running: App[] = [];
+const INTERVAL_MS = 300_000;
+const stops: (() => Promise<void>)[] = [];
 
 afterEach(async () => {
-    await Promise.all(running.splice(0).map((app) => app.stop()));
+    await Promise.all(stops.splice(0).map((stop) => stop()));
 });
 
-/** Starts the app. The first scrape begins immediately, so its JD response is given up front. */
-function start(firstResponse?: FakeRetailer['next']) {
+/**
+ * Starts the app with a fake JD whose first response is given up front (the first scrape begins
+ * immediately). The scrape loop sleeps on a test-driven clock unless `loop` says otherwise.
+ */
+function start(
+    firstResponse?: FakeRetailer['next'],
+    options: { retailers?: Retailer[]; loop?: AppOptions['loop'] } = {},
+) {
     const jd = fakeRetailer('jd', firstResponse);
     const clock = manualSleep();
     const app = startApp({
         port: 0,
         minDiscount: 30,
-        scrapeIntervalMs: 300_000,
-        retailers: [jd.retailer],
-        loop: { sleep: clock.sleep, firstRetryMs: 15_000 },
+        scrapeIntervalMs: INTERVAL_MS,
+        retailers: options.retailers ?? [jd.retailer],
+        loop: options.loop ?? { sleep: clock.sleep },
     });
-    running.push(app);
+    stops.push(app.stop);
 
-    const url = (path: string) => new URL(path, app.server.url);
+    const get = (path: string) => fetch(new URL(path, app.server.url));
     return {
         jd,
         clock,
-        getDeals: () => fetch(url('/webscrape/getBestDeals')),
-        dealIds: async () =>
-            ((await (await fetch(url('/v1/deals'))).json()) as Deal[]).map((deal) => deal.url.split('/').pop()),
-        health: async () => (await fetch(url('/health'))).json() as Promise<Record<string, unknown>>,
+        get,
+        dealIds: async () => idsOf((await (await get('/v1/deals')).json()) as Deal[]),
+        health: async () => (await get('/health')).json() as Promise<Record<string, unknown>>,
     };
 }
 
 describe('after a deploy', () => {
     it('answers 503 + Retry-After while the first scrape runs, then serves the deals', async () => {
         let release!: () => void;
-        const { clock, getDeals, dealIds } = start(
+        const { clock, get, dealIds } = start(
             () => new Promise((resolve) => (release = () => resolve(complete(range(3))))),
         );
 
-        const loading = await getDeals();
+        const loading = await get('/webscrape/getBestDeals');
         expect(loading.status).toBe(503);
         expect(loading.headers.get('Retry-After')).toBe('10');
 
@@ -53,24 +60,24 @@ describe('after a deploy', () => {
     });
 
     it('keeps answering 503 while JD is down, retries quickly, and recovers', async () => {
-        const { jd, clock, getDeals, dealIds, health } = start(() => Promise.reject(new Error('JD is down')));
+        const { jd, clock, get, dealIds, health } = start(() => Promise.reject(new Error('JD is down')));
 
         await clock.scrapesDone(1);
-        expect((await getDeals()).status).toBe(503);
+        expect((await get('/webscrape/getBestDeals')).status).toBe(503);
         expect(await health()).toMatchObject({ ready: false, runs: { jd: { status: 'failed' } } });
-        expect(clock.delays).toEqual([15_000]);
+        expect(clock.delays).toEqual([FIRST_RETRY_MS]);
 
         jd.next = () => complete(range(2));
         await clock.tick();
         expect(await dealIds()).toEqual(['0', '1']);
-        expect(clock.delays).toEqual([15_000, 300_000]);
+        expect(clock.delays).toEqual([FIRST_RETRY_MS, INTERVAL_MS]);
     });
 
     it('serves an empty list (not an error) when the sale is genuinely empty', async () => {
-        const { clock, getDeals } = start();
+        const { clock, get } = start();
         await clock.scrapesDone(1);
 
-        const response = await getDeals();
+        const response = await get('/webscrape/getBestDeals');
         expect(response.status).toBe(200);
         expect(await response.json()).toEqual([]);
     });
@@ -145,32 +152,25 @@ describe('several retailers', () => {
     it('retries a failing retailer quickly without re-scraping the healthy one', async () => {
         const healthy = fakeRetailer('jd', () => complete(range(2)));
         const broken = fakeRetailer('other', () => Promise.reject(new Error('blocked')));
-        const app = startApp({
-            port: 0,
-            minDiscount: 30,
-            scrapeIntervalMs: 300_000,
+        const { dealIds } = start(undefined, {
             retailers: [healthy.retailer, broken.retailer],
             loop: { firstRetryMs: 10 }, // real timers: retries at 10ms, 20ms, 40ms…
         });
-        running.push(app);
 
         await Bun.sleep(100);
         expect(broken.calls).toBeGreaterThanOrEqual(3);
         expect(healthy.calls).toBe(1);
-
-        const deals = (await (await fetch(new URL('/v1/deals', app.server.url))).json()) as Deal[];
-        expect(deals).toHaveLength(2);
+        expect(await dealIds()).toEqual(['0', '1']);
     });
 });
 
 describe('HTTP', () => {
     it('answers health checks on / and /health, and 404s unknown paths', async () => {
-        const { clock, health } = start();
+        const { clock, get, health } = start();
         await clock.scrapesDone(1);
-        expect(await health()).toMatchObject({ ok: true, ready: true, deals: 0 });
 
-        const app = running[0] as App;
-        expect((await fetch(new URL('/', app.server.url))).status).toBe(200);
-        expect((await fetch(new URL('/nope', app.server.url))).status).toBe(404);
+        expect(await health()).toMatchObject({ ok: true, ready: true, deals: 0 });
+        expect((await get('/')).status).toBe(200);
+        expect((await get('/nope')).status).toBe(404);
     });
 });
