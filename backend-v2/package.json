@@ -1,15 +1,14 @@
 {
   "name": "bargain-backend",
   "version": "2.0.0",
-  "description": "Discounted clothing deals API: Bun + Postgres, zero runtime dependencies",
+  "description": "Discounted clothing deals API: Bun, zero runtime dependencies",
   "type": "module",
   "private": true,
   "scripts": {
     "dev": "bun run --watch src/main.ts",
     "start": "bun run src/main.ts",
     "test": "bun test",
-    "typecheck": "tsc --noEmit",
-    "db:migrate": "bun run src/db/migrate.ts"
+    "typecheck": "tsc --noEmit"
   },
   "author": "Jahan Ulhaque",
   "license": "ISC",

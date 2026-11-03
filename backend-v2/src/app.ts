@@ -1,31 +1,46 @@
-import type { Sql } from './db/sql';
-import { listActiveDeals } from './db/products';
 import { hasBearer } from './http/auth';
 import { DealsSnapshot } from './http/dealsSnapshot';
 import { log } from './log';
-import { runScrape } from './scrape/runScrape';
+import { scrapeAll, type RunRecord } from './scrape/scrapeAll';
 import type { Retailer } from './scrape/retailers/types';
+import { listActiveDeals, purgeSoldOut } from './store/catalogue';
+import { loadCatalogue, saveCatalogue } from './store/file';
 
 export interface AppOptions {
-    sql: Sql;
     retailers: Retailer[];
-    cronSecret: string;
+    dataFile: string;
     minDiscount: number;
+    cronSecret?: string;
 }
 
-/** Builds the route table. Kept apart from main.ts so tests can drive it without a real server. */
-export function createApp({ sql, retailers, cronSecret, minDiscount }: AppOptions) {
-    const snapshot = new DealsSnapshot(() => listActiveDeals(sql, minDiscount));
+/** Loads saved state and builds the route table. Kept apart from main.ts so tests can drive it. */
+export async function createApp({ retailers, dataFile, minDiscount, cronSecret }: AppOptions) {
+    const catalogue = await loadCatalogue(dataFile);
+    const snapshot = new DealsSnapshot();
+    let lastRuns: RunRecord[] = [];
     let running: Promise<void> | undefined;
 
-    /** Starts a scrape unless one is already running here; refreshes the snapshot when done. */
-    function startScrape(): boolean {
+    // Serve what the last process saved straight away, if anything survived.
+    if (catalogue.size) {
+        snapshot.update(listActiveDeals(catalogue, minDiscount));
+    }
+
+    /** Starts a scrape unless one is already running. Returns whether it started. */
+    function scrape(): boolean {
         if (running) {
             return false;
         }
 
-        running = runScrape(sql, retailers)
-            .then((outcome) => (outcome === 'completed' ? snapshot.refresh().then(() => {}) : undefined))
+        running = (async () => {
+            try {
+                lastRuns = await scrapeAll(catalogue, retailers);
+                purgeSoldOut(catalogue);
+            } finally {
+                // Always publish, even after a failure, so requests waiting on boot are answered.
+                snapshot.update(listActiveDeals(catalogue, minDiscount));
+            }
+            await saveCatalogue(dataFile, catalogue);
+        })()
             .catch((error) => log.error('scrape run crashed', { error }))
             .finally(() => {
                 running = undefined;
@@ -35,30 +50,28 @@ export function createApp({ sql, retailers, cronSecret, minDiscount }: AppOption
     }
 
     const routes = {
-        '/health': () => Response.json({ ok: true }),
+        '/health': () => Response.json({ ok: true, deals: snapshot.count, lastRuns }),
 
         '/v1/deals': { GET: (request: Request) => snapshot.respond(request) },
 
         // The path the current frontend calls. Same payload as /v1/deals.
         '/webscrape/getBestDeals': { GET: (request: Request) => snapshot.respond(request) },
 
-        // Called by Supabase cron. Answers at once; the scrape carries on in the background.
+        // Manual trigger. Only enabled when CRON_SECRET is set. Answers at once; scrapes in the background.
         '/jobs/scrape': {
             POST: (request: Request) => {
-                if (!hasBearer(request, cronSecret)) {
+                if (!cronSecret || !hasBearer(request, cronSecret)) {
                     return Response.json({ error: 'Unauthorized' }, { status: 401 });
                 }
-
-                const started = startScrape();
-                return Response.json({ started }, { status: 202 });
+                return Response.json({ started: scrape() }, { status: 202 });
             },
         },
     };
 
     return {
         routes,
-        snapshot,
-        /** Resolves once any scrape running in this process has finished. */
+        scrape,
+        /** Resolves once any running scrape has finished. */
         idle: () => running ?? Promise.resolve(),
     };
 }

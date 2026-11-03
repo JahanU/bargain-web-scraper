@@ -1,17 +1,15 @@
 import { createApp } from './app';
 import { loadConfig } from './config';
-import { createSql } from './db/sql';
 import { log } from './log';
 import { createJDRetailer } from './scrape/retailers/jd';
 
 const config = loadConfig();
-const sql = createSql(config.databaseUrl);
 
-const app = createApp({
-    sql,
+const app = await createApp({
     retailers: [createJDRetailer()],
-    cronSecret: config.cronSecret,
+    dataFile: config.dataFile,
     minDiscount: config.minDiscount,
+    cronSecret: config.cronSecret,
 });
 
 const server = Bun.serve({
@@ -24,13 +22,17 @@ const server = Bun.serve({
     },
 });
 
-log.info('listening', { port: server.port });
+log.info('listening', { port: server.port, dataFile: config.dataFile });
 
-// Render sends SIGTERM on deploys: stop taking requests, let a running scrape finish, close the pool.
+// Scrape now (the disk may have been wiped), then on a timer. An external ping to /health keeps Render awake.
+app.scrape();
+const timer = setInterval(app.scrape, config.scrapeIntervalMs);
+
+// Render sends SIGTERM on deploys: stop taking requests, let a running scrape finish and save.
 process.on('SIGTERM', async () => {
     log.info('shutting down');
+    clearInterval(timer);
     await server.stop();
     await app.idle();
-    await sql.close();
     process.exit(0);
 });

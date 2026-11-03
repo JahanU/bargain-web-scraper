@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'bun:test';
 import { loadConfig } from '../src/config';
-import type { Deal } from '../src/db/products';
+import type { Deal } from '../src/store/catalogue';
 import { hasBearer } from '../src/http/auth';
 import { DealsSnapshot } from '../src/http/dealsSnapshot';
 
@@ -12,27 +12,27 @@ const deal: Deal = {
 const get = (headers: Record<string, string> = {}) => new Request('http://local/v1/deals', { headers });
 
 describe('DealsSnapshot', () => {
-    it('loads lazily, then serves from memory', async () => {
-        let loads = 0;
-        const snapshot = new DealsSnapshot(async () => (loads++, [deal]));
+    const ready = (deals: Deal[] = [deal]) => {
+        const snapshot = new DealsSnapshot();
+        snapshot.update(deals);
+        return snapshot;
+    };
 
-        const response = await snapshot.respond(get());
+    it('serves the deals it was given', async () => {
+        const response = await ready().respond(get());
         expect(response.status).toBe(200);
         expect(await response.json()).toEqual([deal]);
-
-        await snapshot.respond(get());
-        expect(loads).toBe(1);
     });
 
-    it('shares one load between concurrent first requests', async () => {
-        let loads = 0;
-        const snapshot = new DealsSnapshot(async () => (loads++, await Bun.sleep(5), [deal]));
-        await Promise.all([snapshot.respond(get()), snapshot.respond(get()), snapshot.respond(get())]);
-        expect(loads).toBe(1);
+    it('holds requests until the first update', async () => {
+        const snapshot = new DealsSnapshot();
+        const pending = snapshot.respond(get());
+        snapshot.update([deal]);
+        expect(await (await pending).json()).toEqual([deal]);
     });
 
     it('answers 304 when the ETag matches', async () => {
-        const snapshot = new DealsSnapshot(async () => [deal]);
+        const snapshot = ready();
         const etag = (await snapshot.respond(get())).headers.get('ETag')!;
 
         const response = await snapshot.respond(get({ 'If-None-Match': etag }));
@@ -41,18 +41,14 @@ describe('DealsSnapshot', () => {
     });
 
     it('changes the ETag when the deals change', async () => {
-        let deals = [deal];
-        const snapshot = new DealsSnapshot(async () => deals);
+        const snapshot = ready();
         const before = (await snapshot.respond(get())).headers.get('ETag');
-
-        deals = [{ ...deal, nowPrice: 40 }];
-        await snapshot.refresh();
+        snapshot.update([{ ...deal, nowPrice: 40 }]);
         expect((await snapshot.respond(get())).headers.get('ETag')).not.toBe(before);
     });
 
     it('sends pre-compressed gzip when the client accepts it', async () => {
-        const snapshot = new DealsSnapshot(async () => [deal]);
-        const response = await snapshot.respond(get({ 'Accept-Encoding': 'br, gzip' }));
+        const response = await ready().respond(get({ 'Accept-Encoding': 'br, gzip' }));
 
         expect(response.headers.get('Content-Encoding')).toBe('gzip');
         const bytes = new Uint8Array(await response.arrayBuffer());
@@ -60,35 +56,9 @@ describe('DealsSnapshot', () => {
     });
 
     it('sets caching and CORS headers', async () => {
-        const response = await new DealsSnapshot(async () => [deal]).respond(get());
+        const response = await ready().respond(get());
         expect(response.headers.get('Cache-Control')).toContain('max-age=60');
         expect(response.headers.get('Access-Control-Allow-Origin')).toBe('*');
-    });
-
-    it('reloads in the background once stale, serving the old copy meanwhile', async () => {
-        let clock = 0;
-        let loads = 0;
-        const snapshot = new DealsSnapshot(async () => [{ ...deal, discount: 50 + loads++ }], 1000, () => clock);
-
-        const firstDiscount = async () => ((await (await snapshot.respond(get())).json()) as Deal[])[0]?.discount;
-
-        expect(await firstDiscount()).toBe(50);
-        clock = 2000;
-        expect(await firstDiscount()).toBe(50);
-        await Bun.sleep(0);
-        expect(await firstDiscount()).toBe(51);
-    });
-
-    it('answers 503 when the first load fails, and recovers on the next request', async () => {
-        let fail = true;
-        const snapshot = new DealsSnapshot(async () => {
-            if (fail) throw new Error('db down');
-            return [deal];
-        });
-
-        expect((await snapshot.respond(get())).status).toBe(503);
-        fail = false;
-        expect((await snapshot.respond(get())).status).toBe(200);
     });
 });
 
@@ -107,14 +77,18 @@ describe('hasBearer', () => {
 });
 
 describe('loadConfig', () => {
-    const valid = { DATABASE_URL: 'postgres://x', CRON_SECRET: 'b'.repeat(32) };
-
-    it('applies defaults', () => {
-        expect(loadConfig(valid)).toEqual({ port: 8000, databaseUrl: 'postgres://x', cronSecret: 'b'.repeat(32), minDiscount: 30 });
+    it('applies defaults, with the manual scrape endpoint off', () => {
+        expect(loadConfig({})).toEqual({
+            port: 8000, dataFile: './data/deals.json', minDiscount: 30, scrapeIntervalMs: 300_000, cronSecret: undefined,
+        });
     });
 
-    it('fails fast on missing or weak settings', () => {
-        expect(() => loadConfig({ CRON_SECRET: valid.CRON_SECRET })).toThrow('DATABASE_URL');
-        expect(() => loadConfig({ DATABASE_URL: 'postgres://x', CRON_SECRET: 'short' })).toThrow('at least 32');
+    it('reads overrides', () => {
+        expect(loadConfig({ PORT: '9000', DATA_FILE: '/var/data/d.json', MIN_DISCOUNT: '50', SCRAPE_INTERVAL_MINUTES: '10', CRON_SECRET: 'b'.repeat(32) }))
+            .toEqual({ port: 9000, dataFile: '/var/data/d.json', minDiscount: 50, scrapeIntervalMs: 600_000, cronSecret: 'b'.repeat(32) });
+    });
+
+    it('fails fast on a weak secret', () => {
+        expect(() => loadConfig({ CRON_SECRET: 'short' })).toThrow('at least 32');
     });
 });
