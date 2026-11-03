@@ -23,7 +23,8 @@ Each scrape reconciles every retailer into the catalogue:
 | Listed, out of stock | → `sold_out`, gone from the API |
 | No longer listed | → `sold_out`, *unless* the listing was incomplete, or this run saw under 50% of the last complete run's count (stored per retailer). Then the run is logged as `partial` and nothing is removed; if the next run confirms the drop, even to zero, the products are removed then |
 | Sold out, then restocked | → `active` again |
-| Retailer request failed | Nothing changes; the last good deals keep being served |
+| Retailer request failed | Nothing changes; the last good deals keep being served, and the scrape is retried after 30s, 60s and 120s |
+| Product in both men's and women's sales | Stored as `Unisex` |
 
 Sold-out products are forgotten after 7 days.
 

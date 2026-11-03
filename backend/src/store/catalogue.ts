@@ -62,6 +62,29 @@ export const SOLD_OUT_RETENTION_MS = 7 * 24 * 60 * 60 * 1000;
 
 export const keyOf = (retailer: string, externalId: string) => `${retailer}:${externalId}`;
 
+export const UNISEX = 'Unisex';
+
+/**
+ * Marks products from retailers that are no longer configured as sold out, so they stop being
+ * served (and are purged later) instead of lingering with stale prices forever.
+ */
+export function retireRetailers(catalogue: Catalogue, configured: ReadonlySet<string>, now = Date.now()): number {
+    let retired = 0;
+    for (const product of catalogue.products.values()) {
+        if (product.status === 'active' && !configured.has(product.retailer)) {
+            product.status = 'sold_out';
+            product.soldOutAt = now;
+            retired++;
+        }
+    }
+    for (const retailer of catalogue.lastInStock.keys()) {
+        if (!configured.has(retailer)) {
+            catalogue.lastInStock.delete(retailer);
+        }
+    }
+    return retired;
+}
+
 /**
  * Brings one retailer's products in line with what it lists right now: add or refresh what
  * is in stock, and mark out-of-stock and disappeared products sold out. Synchronous, so it
@@ -77,13 +100,19 @@ export function reconcile(
     now = Date.now(),
     complete = true,
 ): ReconcileResult {
-    // The same product can appear in more than one listing. If any copy is in stock, it is.
+    // The same product can appear in more than one listing. If any copy is in stock, it is, and
+    // one listed in both men's and women's sales is unisex rather than whichever copy came last.
     const byId = new Map<string, ProductSnapshot>();
     for (const snapshot of snapshots) {
         const existing = byId.get(snapshot.externalId);
-        if (!existing || (snapshot.inStock && !existing.inStock)) {
+        if (!existing) {
             byId.set(snapshot.externalId, snapshot);
+            continue;
         }
+
+        const preferred = snapshot.inStock && !existing.inStock ? snapshot : existing;
+        const gender = existing.gender === snapshot.gender ? preferred.gender : UNISEX;
+        byId.set(snapshot.externalId, { ...preferred, gender });
     }
 
     const listed = [...byId.values()];

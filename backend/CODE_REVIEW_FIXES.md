@@ -4,6 +4,7 @@ Two rounds of code review. Every fix has a test that failed before the change.
 
 - **Round 1:** 9 findings, 44 → 58 backend tests
 - **Round 2:** 10 findings, 58 → 74 backend tests, plus 3 new frontend tests (76 in total)
+- **Round 3:** 9 findings, 74 → 83 backend tests, 76 → 80 frontend tests
 
 # Round 1
 
@@ -120,7 +121,7 @@ Five of these came from round 1's fixes (marked 🔁), and five had been in the 
 | R2-9 | ETags missed weak `W/` and list forms; gzip and plain shared one ETag | 🟡 Low | Weak comparison; a separate ETag per encoding | `http/dealsSnapshot.ts` |
 | R2-10 🔁 | Root cause of R2-1: a guessed value instead of a stored one | — | Covered by R2-1 | `store/catalogue.ts` |
 
-The reproductions live in `test/round2.test.ts`. All 8 backend ones failed before the fixes (R2-4 is covered by the frontend spec, and R2-10 by R2-1's test).
+All 8 backend reproductions failed before the fixes (R2-4 is covered by the frontend spec, and R2-10 by R2-1's test). They now live in each feature's own test file (see R3-9).
 
 ## R2-1 · A sale that ended completely was never cleared (and R2-10, its root cause)
 
@@ -193,15 +194,81 @@ PORT=8000.5 / 0x1F40 / 1e3      Before: accepted ❌
 
 ---
 
+---
+
+# Round 3
+
+| # | Problem | Severity | Fix | Files |
+|---|---|---|---|---|
+| R3-1 | Stale JD filters returning 0 results were never relearned, so the site emptied | 🔴 High | Re-read the listing page once when a cached config finds nothing | `retailers/jd.ts` |
+| R3-2 | An empty page past Algolia's cap counted as "end of list" | 🔴 High | Only a short **non-empty** last page counts as the end | `retailers/jd.ts` |
+| R3-3 | A failed boot scrape left the site empty for 5 minutes | 🟠 Medium | Retry after 30s, then 60s, then 120s | `app.ts` |
+| R3-4 | Products from a removed retailer were served forever | 🟠 Medium | Retire them at boot | `store/catalogue.ts`, `app.ts` |
+| R3-5 | The frontend showed the error page on the boot 503 | 🟠 Medium | Retry on 503, honouring `Retry-After` (up to 3 times) | `frontend/…/webScrape.service.ts` |
+| R3-6 | Shutdown could outlast Render's grace period | 🟡 Low | Close connections at once; wait at most 20s for a scrape | `index.ts` |
+| R3-7 | A product in both men's and women's sales kept one gender | 🟡 Low | Store it as `Unisex` | `store/catalogue.ts` |
+| R3-8 | Every boot waiter started its own 30s timer | 🟡 Low | One shared deadline | `http/dealsSnapshot.ts` |
+| R3-9 | Tests grouped by review round, not by feature | 🟡 Low | Moved into each feature's test file; `round2.test.ts` deleted | `test/*` |
+
+## R3-1 · Stale filters wiped the site
+
+```
+Before:  JD renames a facet → cached filters match nothing → 0 results (no error)
+         run 1: held back · run 2: 0 ≥ 0 confirmed → every deal removed
+         cache kept (search "succeeded") → never relearned → empty until restart ❌
+
+After:   cached config finds 0 → drop it, re-read the listing page, search again
+         fresh filters → deals found ✅     still 0 with fresh filters → the sale really is empty ✅
+```
+
+At most one extra page fetch, and only when a cached config suddenly finds nothing.
+
+## R3-2 · An empty page isn't the end of the list
+
+Round 2 trusted "a short last page" when Algolia's count was an estimate. But an **empty** page is also exactly what you get past Algolia's pagination cap. Now only a short page **with products on it** counts as the real end. An empty page leaves the listing incomplete, so nothing is removed.
+
+## R3-3 and R3-5 · Recovering from a slow or failed boot
+
+```
+Backend:   boot scrape fails → retry in 30s → 60s → 120s → then the normal 5-minute timer
+Frontend:  503 "still loading" → wait Retry-After (default 10s, max 60s) → retry, up to 3 times
+```
+
+Together, a hiccup right after a deploy now recovers in seconds instead of showing an empty site or the error page. The frontend test also caught a bug during the fix: a missing `Retry-After` header would have parsed as `0` and retried instantly.
+
+## R3-4 · Removed retailers
+
+At boot, active products from retailers that are no longer configured are marked sold out (so the normal 7-day purge removes them), and their baseline count is dropped.
+
+## R3-6 · Shutdown
+
+```
+Before:  SIGTERM → wait for every open request (≤30s) → wait for the scrape (unbounded) → Render kills it
+After:   SIGTERM → close connections now → wait for the scrape at most 20s → exit
+```
+
+If a scrape can't finish in time, the previous `deals.json` is left intact (saves are atomic) and the next process re-scrapes on boot.
+
+## R3-7 · Unisex products
+
+A product listed in both men's and women's sales is now stored as `Unisex` instead of whichever listing came last. The API shape is unchanged (`gender` is still a string).
+
+## R3-8 and R3-9 · Tidy-ups
+
+- All requests waiting on boot share **one** deadline timer.
+- The tests moved to their feature files: snapshot, gzip, ETag and config tests to `http.test.ts`; JD paging and listing tests to `jd.test.ts` (reusing its page builder); baseline and unisex tests to `catalogue.test.ts`; retry and retired-retailer tests to `app.test.ts`.
+
+---
+
 ## Verify
 
 ```bash
 cd backend
-bun test              # 74 pass
+bun test              # 83 pass
 bun run typecheck
 ```
 
 ```bash
 cd frontend
-CI=true npm test      # 76 pass
+CI=true npm test      # 80 pass
 ```

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test';
-import { createCatalogue, keyOf, listActiveDeals, purgeSoldOut, reconcile, SOLD_OUT_RETENTION_MS, type Catalogue } from '../src/store/catalogue';
+import { createCatalogue, keyOf, listActiveDeals, purgeSoldOut, reconcile, retireRetailers, SOLD_OUT_RETENTION_MS, type Catalogue } from '../src/store/catalogue';
 import { loadCatalogue, saveCatalogue } from '../src/store/file';
 import { product, range, tempFile } from './helpers';
 
@@ -82,6 +82,28 @@ describe('reconcile', () => {
         expect(statusOf(catalogue, '1')).toBe('sold_out');
     });
 
+    it('clears a sale that ends completely after one confirming run', () => {
+        const catalogue = createCatalogue();
+        reconcile(catalogue, 'jd', range(100), 1000);
+        reconcile(catalogue, 'jd', [], 2000);
+        reconcile(catalogue, 'jd', [], 3000);
+        expect(listActiveDeals(catalogue, 0)).toHaveLength(0);
+    });
+
+    it('does not let a truncated listing lower the baseline', () => {
+        const catalogue = createCatalogue();
+        reconcile(catalogue, 'jd', range(100), 1000);
+        reconcile(catalogue, 'jd', range(10), 2000, false);
+        expect(catalogue.lastInStock.get('jd')).toBe(100);
+    });
+
+    it('marks a product listed under two genders as unisex', () => {
+        const catalogue = createCatalogue();
+        reconcile(catalogue, 'jd', [product('1', { gender: 'Male' }), product('1', { gender: 'Female' }), product('2', { gender: 'Female' })]);
+        expect(catalogue.products.get(keyOf('jd', '1'))?.gender).toBe('Unisex');
+        expect(catalogue.products.get(keyOf('jd', '2'))?.gender).toBe('Female');
+    });
+
     it('handles the same product listed twice in one run', () => {
         const catalogue = createCatalogue();
         expect(reconcile(catalogue, 'jd', [product('1', { inStock: false }), product('1')]).upserted).toBe(1);
@@ -99,6 +121,19 @@ describe('reconcile', () => {
         reconcile(catalogue, 'other', [product('x')]);
         reconcile(catalogue, 'jd', range(1));
         expect(statusOf(catalogue, 'x', 'other')).toBe('active');
+    });
+});
+
+describe('retireRetailers', () => {
+    it('stops serving products from retailers no longer configured', () => {
+        const catalogue = createCatalogue();
+        reconcile(catalogue, 'jd', range(2));
+        reconcile(catalogue, 'gone', [product('x')]);
+
+        expect(retireRetailers(catalogue, new Set(['jd']), 5000)).toBe(1);
+        expect(catalogue.products.get(keyOf('gone', 'x'))).toMatchObject({ status: 'sold_out', soldOutAt: 5000 });
+        expect(catalogue.lastInStock.has('gone')).toBe(false);
+        expect(listActiveDeals(catalogue, 0)).toHaveLength(2);
     });
 });
 
@@ -183,5 +218,26 @@ describe('catalogue file', () => {
 
         expect([...loaded.products.values()]).toEqual([good!]);
         expect(() => listActiveDeals(loaded, 0)).not.toThrow();
+    });
+});
+
+describe('catalogue file baseline', () => {
+    it('survives a save and reload, including zero', async () => {
+        const path = await tempFile();
+        const catalogue = createCatalogue();
+        reconcile(catalogue, 'jd', [], 1000);
+        await saveCatalogue(path, catalogue);
+        expect((await loadCatalogue(path)).lastInStock.get('jd')).toBe(0);
+    });
+
+    it('loads an older v1 file, using the active count as its baseline', async () => {
+        const path = await tempFile();
+        const old = createCatalogue();
+        reconcile(old, 'jd', range(10), 1000);
+        await Bun.write(path, JSON.stringify({ version: 1, savedAt: '', products: [...old.products.values()] }));
+
+        const loaded = await loadCatalogue(path);
+        expect(loaded.products.size).toBe(10);
+        expect(reconcile(loaded, 'jd', range(2), 2000).status).toBe('partial');
     });
 });

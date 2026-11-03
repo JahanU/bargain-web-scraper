@@ -70,10 +70,19 @@ export function createJDRetailer({ fetch: fetchImpl = fetch, listingUrls = LISTI
     const searchConfigCache = new Map<string, JDSearchConfig>();
 
     async function fetchHits(url: string): Promise<SearchResult> {
-        const config = searchConfigCache.get(url) ?? await bootstrapSearchConfig(url);
+        const cached = searchConfigCache.get(url);
+        const config = cached ?? await bootstrapSearchConfig(url);
 
         try {
             const result = await runSearch(config);
+
+            // A cached config that suddenly finds nothing may have stale filters (JD renamed a facet).
+            // Re-read the listing page once; if a fresh config also finds nothing, the empty sale is real.
+            if (cached && !result.hits.length) {
+                searchConfigCache.delete(url);
+                return fetchHits(url);
+            }
+
             searchConfigCache.set(url, config);
             return result;
         } catch (error) {
@@ -100,7 +109,8 @@ export function createJDRetailer({ fetch: fetchImpl = fetch, listingUrls = LISTI
 
         const nbHits = last?.nbHits;
         // When Algolia says its count is only an estimate, a short last page is the real end of the list.
-        const ranOut = last?.exhaustiveNbHits === false && (last.hits.length < HITS_PER_PAGE);
+        // An empty page is not: it is also what a page past Algolia's pagination cap looks like.
+        const ranOut = last?.exhaustiveNbHits === false && last.hits.length > 0 && last.hits.length < HITS_PER_PAGE;
 
         // Algolia can cap how deep pagination goes. Keep what we got, but say it is not everything,
         // so reconcile adds new deals without treating the unreturned products as sold out.

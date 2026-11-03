@@ -3,7 +3,7 @@ import { DealsSnapshot } from './http/dealsSnapshot';
 import { log } from './log';
 import { scrapeAll, type RunRecord } from './scrape/scrapeAll';
 import type { Retailer } from './scrape/retailers/types';
-import { listActiveDeals, purgeSoldOut } from './store/catalogue';
+import { listActiveDeals, purgeSoldOut, retireRetailers } from './store/catalogue';
 import { loadCatalogue, saveCatalogue } from './store/file';
 
 export interface AppOptions {
@@ -11,14 +11,39 @@ export interface AppOptions {
     dataFile: string;
     minDiscount: number;
     cronSecret?: string;
+    /** Delays before retrying after a failed scrape, instead of waiting a whole interval. */
+    retryDelaysMs?: number[];
 }
 
+const DEFAULT_RETRY_DELAYS_MS = [30_000, 60_000, 120_000];
+
 /** Loads saved state and builds the route table. Kept apart from index.ts so tests can drive it. */
-export async function createApp({ retailers, dataFile, minDiscount, cronSecret }: AppOptions) {
+export async function createApp({
+    retailers, dataFile, minDiscount, cronSecret, retryDelaysMs = DEFAULT_RETRY_DELAYS_MS,
+}: AppOptions) {
     const catalogue = await loadCatalogue(dataFile);
+    const retired = retireRetailers(catalogue, new Set(retailers.map((retailer) => retailer.id)));
+    if (retired) {
+        log.info('retired products from retailers no longer configured', { retired });
+    }
     const snapshot = new DealsSnapshot();
     let lastRuns: RunRecord[] = [];
     let running: Promise<void> | undefined;
+    let failuresInARow = 0;
+    let retryTimer: Timer | undefined;
+
+    /** After a failed run, try again soon (with backoff) rather than a whole interval later. */
+    function scheduleRetry(failed: boolean) {
+        clearTimeout(retryTimer);
+        failuresInARow = failed ? failuresInARow + 1 : 0;
+
+        const delay = failed ? retryDelaysMs[failuresInARow - 1] : undefined;
+        if (delay !== undefined) {
+            log.info('scrape failed, retrying soon', { inMs: delay });
+            retryTimer = setTimeout(scrape, delay);
+            retryTimer.unref();
+        }
+    }
 
     // Serve what the last process saved straight away, if it holds any deals. Otherwise early
     // requests wait for the boot scrape rather than getting an empty list.
@@ -37,6 +62,7 @@ export async function createApp({ retailers, dataFile, minDiscount, cronSecret }
             try {
                 lastRuns = await scrapeAll(catalogue, retailers);
                 purgeSoldOut(catalogue);
+                scheduleRetry(lastRuns.some((run) => run.status === 'failed'));
             } finally {
                 // Always publish, even after a failure, so requests waiting on boot are answered.
                 snapshot.update(listActiveDeals(catalogue, minDiscount));
@@ -79,5 +105,7 @@ export async function createApp({ retailers, dataFile, minDiscount, cronSecret }
         scrape,
         /** Resolves once any running scrape has finished. */
         idle: () => running ?? Promise.resolve(),
+        /** Cancels a pending retry, for shutdown. */
+        stop: () => clearTimeout(retryTimer),
     };
 }
