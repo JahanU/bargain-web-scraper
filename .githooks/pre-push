@@ -1,5 +1,7 @@
 #!/bin/sh
 # The full checks CI runs (including tests), for each app changed in the commits being pushed.
+# Like most pre-push hooks, the checks run on your working copy, which normally is the commit
+# you're pushing. Uncommitted changes are included, so commit or stash them first.
 # Emergency skip: git push --no-verify
 zero=0000000000000000000000000000000000000000
 changed=""

@@ -63,6 +63,17 @@ bun test               # tests only
 bun run lint:fix       # format and auto-fix lint issues
 ```
 
+### Git hooks
+
+`bun install` also installs the repo's git hooks (`.githooks/`, via `git config core.hooksPath`):
+
+| Hook | Runs | Blocks |
+|---|---|---|
+| `pre-commit` | `bun run check:commit`: typecheck + lint/format (~1s) | the commit, if they fail |
+| `pre-push` | `bun run check:push`: everything CI runs, including tests and coverage | the push, if they fail |
+
+They only run for apps with changes (a docs-only commit runs nothing). Formatting fails? Run `bun run lint:fix`. In an emergency, `--no-verify` skips them; CI still checks everything.
+
 Import from `src` with the `@/` alias (e.g. `import { log } from '@/log'`). Bun resolves it from `tsconfig.json`, with no build step.
 
 | Tool | Role | Config |

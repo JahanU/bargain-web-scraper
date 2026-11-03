@@ -35,6 +35,7 @@
 ### Tech 💻
 - Frontend hosted on Netlify
 - Backend hosted on Render
+- Git hooks (`.githooks/`, installed by `bun install` in `backend/`): typecheck + lint before each commit and the full checks before each push, for whichever app changed. An app opts in by defining `check:commit` / `check:push` scripts in its `package.json`
 - GitHub Actions CI on every PR and push to main (`.github/workflows/ci.yml`); require the **CI passed** check before merging
 - Automatic deployments from main
 - Google Analytics
