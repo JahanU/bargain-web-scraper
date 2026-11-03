@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'bun:test';
 import { scrapeAll } from '../src/scrape/scrapeAll';
 import type { Retailer } from '../src/scrape/retailers/types';
-import type { Catalogue } from '../src/store/catalogue';
+import { createCatalogue } from '../src/store/catalogue';
 import { range } from './helpers';
 
 describe('scrapeAll', () => {
@@ -11,7 +11,7 @@ describe('scrapeAll', () => {
             fetchListings: () => { throw new Error('bad config'); },
         };
         const working: Retailer = { id: 'jd', fetchListings: async () => ({ products: range(2), complete: true }) };
-        const catalogue: Catalogue = new Map();
+        const catalogue = createCatalogue();
 
         const runs = await scrapeAll(catalogue, [broken, working]);
 
@@ -19,14 +19,14 @@ describe('scrapeAll', () => {
             { retailer: 'broken', status: 'failed', error: 'Error: bad config' },
             { retailer: 'jd', status: 'ok', hits: 2, complete: true },
         ]);
-        expect(catalogue.size).toBe(2);
+        expect(catalogue.products.size).toBe(2);
     });
 
     it('times each retailer on its own', async () => {
         const fast: Retailer = { id: 'fast', fetchListings: async () => ({ products: [], complete: true }) };
         const slow: Retailer = { id: 'slow', fetchListings: async () => (await Bun.sleep(60), { products: [], complete: true }) };
 
-        const [fastRun, slowRun] = await scrapeAll(new Map(), [fast, slow]);
+        const [fastRun, slowRun] = await scrapeAll(createCatalogue(), [fast, slow]);
 
         expect(fastRun!.ms).toBeLessThan(30);
         expect(slowRun!.ms).toBeGreaterThanOrEqual(50);
@@ -34,7 +34,7 @@ describe('scrapeAll', () => {
 
     it('reports an incomplete listing as partial', async () => {
         const truncated: Retailer = { id: 'jd', fetchListings: async () => ({ products: range(1), complete: false }) };
-        const [run] = await scrapeAll(new Map(), [truncated]);
+        const [run] = await scrapeAll(createCatalogue(), [truncated]);
         expect(run).toMatchObject({ status: 'partial', complete: false });
     });
 });

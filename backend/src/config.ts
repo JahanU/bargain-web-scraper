@@ -10,22 +10,26 @@ export interface Config {
 type Env = Record<string, string | undefined>;
 
 /**
- * A numeric setting: the default when unset or blank, otherwise a number within range.
- * Anything else (a typo, out of range) throws, rather than quietly becoming the default,
- * so 0 stays 0.
+ * A whole-number setting: the default when unset or blank, otherwise plain digits within range.
+ * Anything else (a typo, decimals, hex, out of range) throws rather than quietly becoming the
+ * default, so 0 stays 0.
  */
-function numberSetting(env: Env, name: string, fallback: number, min: number, max = Number.MAX_SAFE_INTEGER): number {
+function integerSetting(env: Env, name: string, fallback: number, min: number, max: number): number {
     const raw = env[name]?.trim();
     if (!raw) {
         return fallback;
     }
 
     const value = Number(raw);
-    if (!Number.isFinite(value) || value < min || value > max) {
-        throw new Error(`${name} must be a number from ${min} to ${max}, got "${raw}"`);
+    if (!/^\d+$/.test(raw) || value < min || value > max) {
+        throw new Error(`${name} must be a whole number from ${min} to ${max}, got "${raw}"`);
     }
     return value;
 }
+
+// One day. Also keeps the timer far below setInterval's limit (2^31 - 1 ms, about 24.8 days),
+// above which it fires every millisecond instead.
+const MAX_SCRAPE_INTERVAL_MINUTES = 24 * 60;
 
 /** Reads and validates the environment once at startup, so a bad deploy fails immediately. */
 export function loadConfig(env: Env = Bun.env): Config {
@@ -35,10 +39,10 @@ export function loadConfig(env: Env = Bun.env): Config {
     }
 
     return {
-        port: numberSetting(env, 'PORT', 8000, 1, 65_535),
+        port: integerSetting(env, 'PORT', 8000, 1, 65_535),
         dataFile: env.DATA_FILE?.trim() || './data/deals.json',
-        minDiscount: numberSetting(env, 'MIN_DISCOUNT', 30, 0, 100),
-        scrapeIntervalMs: numberSetting(env, 'SCRAPE_INTERVAL_MINUTES', 5, 1) * 60_000,
+        minDiscount: integerSetting(env, 'MIN_DISCOUNT', 30, 0, 100),
+        scrapeIntervalMs: integerSetting(env, 'SCRAPE_INTERVAL_MINUTES', 5, 1, MAX_SCRAPE_INTERVAL_MINUTES) * 60_000,
         cronSecret,
     };
 }

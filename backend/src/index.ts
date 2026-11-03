@@ -1,4 +1,5 @@
 import { createApp } from './app';
+import { SERVER_IDLE_TIMEOUT_SECONDS } from './http/dealsSnapshot';
 import { loadConfig } from './config';
 import { log } from './log';
 import { createJDRetailer } from './scrape/retailers/jd';
@@ -14,6 +15,7 @@ const app = await createApp({
 
 const server = Bun.serve({
     port: config.port,
+    idleTimeout: SERVER_IDLE_TIMEOUT_SECONDS,
     routes: app.routes,
     fetch: () => Response.json({ error: 'Not Found' }, { status: 404 }),
     error: (error) => {

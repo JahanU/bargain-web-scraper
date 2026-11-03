@@ -113,7 +113,7 @@ describe('JD retailer', () => {
 
     it('learns the search config once and reuses it', async () => {
         const { impl, calls } = fakeFetch(() => algoliaResponse({ hits: [buildHit()], nbHits: 1, nbPages: 1 }));
-        const jd = createJDRetailer(impl);
+        const jd = createJDRetailer({ fetch: impl });
 
         expect(await jd.fetchListings()).toEqual({ products: [expect.objectContaining({ externalId: '19686180' })], complete: true });
         await jd.fetchListings();
@@ -123,7 +123,7 @@ describe('JD retailer', () => {
     it('reads every page of a large listing', async () => {
         const { impl, calls } = fakeFetch((page) =>
             algoliaResponse({ hits: page === 0 ? hitsFrom(0, 1000) : hitsFrom(1000, 150), nbHits: 1150, nbPages: 2 }));
-        const listing = await createJDRetailer(impl).fetchListings();
+        const listing = await createJDRetailer({ fetch: impl }).fetchListings();
 
         expect(listing.products).toHaveLength(1150);
         expect(listing.complete).toBe(true);
@@ -134,7 +134,7 @@ describe('JD retailer', () => {
         // Algolia caps pagination: page 1 comes back empty although more products exist.
         const { impl } = fakeFetch((page) =>
             algoliaResponse({ hits: page === 0 ? hitsFrom(0, 1000) : [], nbHits: 1150, nbPages: 2 }));
-        const listing = await createJDRetailer(impl).fetchListings();
+        const listing = await createJDRetailer({ fetch: impl }).fetchListings();
 
         expect(listing.products).toHaveLength(1000);
         expect(listing.complete).toBe(false);
@@ -142,7 +142,7 @@ describe('JD retailer', () => {
 
     it('throws when Algolia errors, and relearns the config next time', async () => {
         const { impl, calls } = fakeFetch(() => new Response('nope', { status: 403 }));
-        const jd = createJDRetailer(impl);
+        const jd = createJDRetailer({ fetch: impl });
 
         await expect(jd.fetchListings()).rejects.toThrow('status 403');
         await expect(jd.fetchListings()).rejects.toThrow('status 403');
