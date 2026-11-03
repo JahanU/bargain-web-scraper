@@ -50,6 +50,8 @@ interface AlgoliaPage {
     hits: JDHit[];
     nbHits?: number;
     nbPages?: number;
+    /** False when nbHits is an estimate rather than an exact count. */
+    exhaustiveNbHits?: boolean;
 }
 
 interface SearchResult {
@@ -58,7 +60,12 @@ interface SearchResult {
 }
 
 /** JD Sports UK, read straight from the Algolia index behind its listing pages. */
-export function createJDRetailer(fetchImpl: typeof fetch = fetch): Retailer {
+export interface JDOptions {
+    fetch?: typeof fetch;
+    listingUrls?: readonly string[];
+}
+
+export function createJDRetailer({ fetch: fetchImpl = fetch, listingUrls = LISTING_URLS }: JDOptions = {}): Retailer {
     // Learned from a listing page, then reused. Dropped whenever a search fails so the next run relearns it.
     const searchConfigCache = new Map<string, JDSearchConfig>();
 
@@ -80,21 +87,24 @@ export function createJDRetailer(fetchImpl: typeof fetch = fetch): Retailer {
     /** Reads every page of a listing. Marks the result incomplete if Algolia holds back products. */
     async function runSearch(config: JDSearchConfig): Promise<SearchResult> {
         const hits: JDHit[] = [];
-        let nbHits: number | undefined;
+        let last: AlgoliaPage | undefined;
 
         for (let page = 0; page < MAX_PAGES; page++) {
-            const result = await searchPage(config, page);
-            hits.push(...result.hits);
-            nbHits = result.nbHits;
+            last = await searchPage(config, page);
+            hits.push(...last.hits);
 
-            if (!result.hits.length || page + 1 >= (result.nbPages ?? 1)) {
+            if (!last.hits.length || page + 1 >= (last.nbPages ?? 1)) {
                 break;
             }
         }
 
+        const nbHits = last?.nbHits;
+        // When Algolia says its count is only an estimate, a short last page is the real end of the list.
+        const ranOut = last?.exhaustiveNbHits === false && (last.hits.length < HITS_PER_PAGE);
+
         // Algolia can cap how deep pagination goes. Keep what we got, but say it is not everything,
         // so reconcile adds new deals without treating the unreturned products as sold out.
-        const complete = typeof nbHits !== 'number' || hits.length >= nbHits;
+        const complete = typeof nbHits !== 'number' || hits.length >= nbHits || ranOut;
         if (!complete) {
             log.warn('JD listing truncated: missing products will not be removed this run', { nbHits, returned: hits.length });
         }
@@ -129,12 +139,14 @@ export function createJDRetailer(fetchImpl: typeof fetch = fetch): Retailer {
         }
 
         // Throws on a soft-200 non-JSON body, which the caller treats as a stale config.
-        const body = await response.json() as Partial<AlgoliaPage>;
+        const body = await response.json() as Partial<AlgoliaPage> & { exhaustive?: { nbHits?: boolean } };
         if (!Array.isArray(body.hits)) {
             throw new Error('Algolia response contained no hits');
         }
 
-        return { hits: body.hits, nbHits: body.nbHits, nbPages: body.nbPages };
+        // Newer Algolia responses report exhaustiveness under `exhaustive.nbHits`.
+        const exhaustiveNbHits = body.exhaustiveNbHits ?? body.exhaustive?.nbHits;
+        return { hits: body.hits, nbHits: body.nbHits, nbPages: body.nbPages, exhaustiveNbHits };
     }
 
     async function bootstrapSearchConfig(url: string): Promise<JDSearchConfig> {
@@ -154,16 +166,30 @@ export function createJDRetailer(fetchImpl: typeof fetch = fetch): Retailer {
     return {
         id: 'jd',
         async fetchListings() {
-            const listings = await Promise.all(LISTING_URLS.map(async (url) => {
+            const results = await Promise.allSettled(listingUrls.map(async (url) => {
                 const gender = getGenderFromUrl(url);
                 const { hits, complete } = await fetchHits(url);
                 const products = hits.map((hit) => parseHit(hit, gender)).filter((item) => item !== undefined);
                 return { products, complete };
             }));
 
+            const listings = results.flatMap((result) => (result.status === 'fulfilled' ? [result.value] : []));
+            const failures = results.flatMap((result, index) =>
+                result.status === 'rejected' ? [{ url: listingUrls[index], error: result.reason }] : []);
+
+            // Nothing usable: fail the run, so it is recorded and no products are touched.
+            if (!listings.length) {
+                throw failures[0]?.error ?? new Error('JD has no listings configured');
+            }
+
+            // Some categories failed: keep the ones that worked, but the listing is not the whole catalogue.
+            if (failures.length) {
+                log.warn('JD listings failed: missing products will not be removed this run', { failures });
+            }
+
             return {
                 products: listings.flatMap((listing) => listing.products),
-                complete: listings.every((listing) => listing.complete),
+                complete: !failures.length && listings.every((listing) => listing.complete),
             };
         },
     };

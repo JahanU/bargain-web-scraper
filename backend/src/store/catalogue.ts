@@ -18,8 +18,18 @@ export interface StoredProduct {
     soldOutAt: number | null;
 }
 
-/** Every known product, keyed by `retailer:externalId`. Small enough to live in memory. */
-export type Catalogue = Map<string, StoredProduct>;
+/** Everything the scraper knows. Small enough to live in memory. */
+export interface Catalogue {
+    /** Every known product, keyed by `retailer:externalId`. */
+    products: Map<string, StoredProduct>;
+    /**
+     * How many in-stock products each retailer's last complete listing had, including zero.
+     * Stored explicitly so the shrink guard always has a true baseline to compare against.
+     */
+    lastInStock: Map<string, number>;
+}
+
+export const createCatalogue = (): Catalogue => ({ products: new Map(), lastInStock: new Map() });
 
 /** A deal exactly as the frontend's `Item` expects it. */
 export interface Deal {
@@ -42,9 +52,10 @@ export interface ReconcileResult {
     soldOut: number;
 }
 
-// If a run sees fewer than half the products the previous run saw, hold back removals once:
-// a sudden drop is more often a bad fetch than half the catalogue selling out in five minutes.
-// If the next run confirms the smaller number, it was real and removals go ahead.
+// If a run sees fewer than half the products the previous complete run saw, hold back removals
+// once: a sudden drop is more often a bad fetch than half the catalogue selling out in five
+// minutes. The new count becomes the baseline, so if the next run confirms it (even at zero),
+// it was real and removals go ahead.
 export const MIN_SEEN_RATIO = 0.5;
 
 export const SOLD_OUT_RETENTION_MS = 7 * 24 * 60 * 60 * 1000;
@@ -77,7 +88,8 @@ export function reconcile(
 
     const listed = [...byId.values()];
     const inStock = listed.filter((snapshot) => snapshot.inStock);
-    const seenLastRun = countSeenInLastRun(catalogue, retailer);
+    const { products } = catalogue;
+    const baseline = catalogue.lastInStock.get(retailer) ?? countActive(catalogue, retailer);
 
     let soldOut = 0;
     const markSoldOut = (product: StoredProduct) => {
@@ -88,7 +100,7 @@ export function reconcile(
 
     for (const snapshot of inStock) {
         const key = keyOf(retailer, snapshot.externalId);
-        catalogue.set(key, {
+        products.set(key, {
             retailer,
             externalId: snapshot.externalId,
             name: snapshot.name,
@@ -100,61 +112,53 @@ export function reconcile(
             nowPricePence: snapshot.nowPricePence,
             discount: snapshot.discount,
             status: 'active',
-            firstSeenAt: catalogue.get(key)?.firstSeenAt ?? now,
+            firstSeenAt: products.get(key)?.firstSeenAt ?? now,
             lastSeenAt: now,
             soldOutAt: null,
         });
     }
 
     for (const snapshot of listed) {
-        const product = catalogue.get(keyOf(retailer, snapshot.externalId));
+        const product = products.get(keyOf(retailer, snapshot.externalId));
         if (!snapshot.inStock && product?.status === 'active') {
             markSoldOut(product);
         }
     }
 
-    const removeMissing = complete && inStock.length >= seenLastRun * MIN_SEEN_RATIO;
+    const removeMissing = complete && inStock.length >= baseline * MIN_SEEN_RATIO;
     if (removeMissing) {
-        for (const product of catalogue.values()) {
+        for (const product of products.values()) {
             if (product.retailer === retailer && product.status === 'active' && !byId.has(product.externalId)) {
                 markSoldOut(product);
             }
         }
     }
 
+    // Only a complete listing is a trustworthy count; a truncated one would lower the baseline.
+    if (complete) {
+        catalogue.lastInStock.set(retailer, inStock.length);
+    }
+
     return { status: removeMissing ? 'ok' : 'partial', hits: byId.size, upserted: inStock.length, soldOut };
 }
 
-/**
- * How many in-stock products the previous run saw: every product a run sees in stock gets
- * that run's timestamp, so it is the count sharing the newest `lastSeenAt`. Derived from the
- * catalogue itself, so it survives restarts with no extra state.
- */
-function countSeenInLastRun(catalogue: Catalogue, retailer: string): number {
-    let lastRunAt = -Infinity;
+/** Fallback baseline for a retailer with no recorded count yet (e.g. an older data file). */
+function countActive(catalogue: Catalogue, retailer: string): number {
     let count = 0;
-
-    for (const product of catalogue.values()) {
-        if (product.retailer !== retailer) {
-            continue;
-        }
-        if (product.lastSeenAt > lastRunAt) {
-            lastRunAt = product.lastSeenAt;
-            count = 1;
-        } else if (product.lastSeenAt === lastRunAt) {
+    for (const product of catalogue.products.values()) {
+        if (product.retailer === retailer && product.status === 'active') {
             count++;
         }
     }
-
     return count;
 }
 
 /** Forgets products that have been sold out for longer than the retention window. */
 export function purgeSoldOut(catalogue: Catalogue, now = Date.now(), retentionMs = SOLD_OUT_RETENTION_MS): number {
     let purged = 0;
-    for (const [key, product] of catalogue) {
+    for (const [key, product] of catalogue.products) {
         if (product.status === 'sold_out' && product.soldOutAt !== null && now - product.soldOutAt > retentionMs) {
-            catalogue.delete(key);
+            catalogue.products.delete(key);
             purged++;
         }
     }
@@ -163,7 +167,7 @@ export function purgeSoldOut(catalogue: Catalogue, now = Date.now(), retentionMs
 
 /** Active deals at or above the discount floor, best first, in the API's shape. */
 export function listActiveDeals(catalogue: Catalogue, minDiscount: number): Deal[] {
-    return [...catalogue.values()]
+    return [...catalogue.products.values()]
         .filter((product) => product.status === 'active' && product.discount >= minDiscount)
         .sort((a, b) => b.discount - a.discount || a.nowPricePence - b.nowPricePence)
         .map((product) => ({

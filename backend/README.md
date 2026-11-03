@@ -21,7 +21,7 @@ Each scrape reconciles every retailer into the catalogue:
 |---|---|
 | Listed and in stock | Added or refreshed → `active` (price, sizes and discount updated) |
 | Listed, out of stock | → `sold_out`, gone from the API |
-| No longer listed | → `sold_out`, *unless* the listing was incomplete, or this run saw under 50% of what the previous run saw. Then the run is logged as `partial` and nothing is removed; a sudden drop that the next run confirms is removed then |
+| No longer listed | → `sold_out`, *unless* the listing was incomplete, or this run saw under 50% of the last complete run's count (stored per retailer). Then the run is logged as `partial` and nothing is removed; if the next run confirms the drop, even to zero, the products are removed then |
 | Sold out, then restocked | → `active` again |
 | Retailer request failed | Nothing changes; the last good deals keep being served |
 
@@ -29,7 +29,7 @@ Sold-out products are forgotten after 7 days.
 
 ### About the data file
 
-On Render's free tier the disk is wiped on every deploy and restart. That's fine: everything in `deals.json` can be rebuilt, so the app re-scrapes on boot, and requests that arrive meanwhile wait a few seconds for it. On a host with a persistent disk, the file also lets the app serve instantly after a restart.
+On Render's free tier the disk is wiped on every deploy and restart. That's fine: everything in `deals.json` can be rebuilt, so the app re-scrapes on boot. Requests that arrive meanwhile wait for it, up to 30 seconds, then get a `503` with `Retry-After`. On a host with a persistent disk, the file also lets the app serve instantly after a restart.
 
 ## Endpoints
 

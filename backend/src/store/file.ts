@@ -1,14 +1,17 @@
 import { mkdir, rename } from 'node:fs/promises';
 import { dirname } from 'node:path';
 import { log } from '../log';
-import { keyOf, type Catalogue, type StoredProduct } from './catalogue';
+import { createCatalogue, keyOf, type Catalogue, type StoredProduct } from './catalogue';
 
-const FORMAT_VERSION = 1;
+// v2 added `lastInStock`. v1 files still load; their baseline is rebuilt from the products.
+const FORMAT_VERSION = 2;
+const READABLE_VERSIONS = [1, 2];
 
 interface CatalogueFile {
     version: number;
     savedAt: string;
     products: StoredProduct[];
+    lastInStock?: Record<string, number>;
 }
 
 /**
@@ -18,12 +21,12 @@ interface CatalogueFile {
 export async function loadCatalogue(path: string): Promise<Catalogue> {
     const file = Bun.file(path);
     if (!(await file.exists())) {
-        return new Map();
+        return createCatalogue();
     }
 
     try {
         const data = await file.json() as Partial<CatalogueFile>;
-        if (data.version !== FORMAT_VERSION || !Array.isArray(data.products)) {
+        if (!READABLE_VERSIONS.includes(data.version ?? -1) || !Array.isArray(data.products)) {
             throw new Error(`unrecognised format (version ${data.version})`);
         }
 
@@ -32,10 +35,16 @@ export async function loadCatalogue(path: string): Promise<Catalogue> {
             log.warn('skipped malformed products in data file', { path, skipped: data.products.length - products.length });
         }
 
-        return new Map(products.map((product) => [keyOf(product.retailer, product.externalId), product]));
+        const lastInStock = Object.entries(data.lastInStock ?? {})
+            .filter((entry): entry is [string, number] => isNumber(entry[1]) && entry[1] >= 0);
+
+        return {
+            products: new Map(products.map((product) => [keyOf(product.retailer, product.externalId), product])),
+            lastInStock: new Map(lastInStock),
+        };
     } catch (error) {
         log.warn('ignoring unreadable data file; the next scrape rebuilds it', { path, error });
-        return new Map();
+        return createCatalogue();
     }
 }
 
@@ -47,7 +56,8 @@ export async function saveCatalogue(path: string, catalogue: Catalogue): Promise
     const data: CatalogueFile = {
         version: FORMAT_VERSION,
         savedAt: new Date().toISOString(),
-        products: [...catalogue.values()],
+        products: [...catalogue.products.values()],
+        lastInStock: Object.fromEntries(catalogue.lastInStock),
     };
 
     await mkdir(dirname(path), { recursive: true });

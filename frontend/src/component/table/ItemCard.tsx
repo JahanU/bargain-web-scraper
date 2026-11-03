@@ -1,4 +1,5 @@
 import Item from "../../interfaces/Item";
+import { formatFoundTime } from "../../util/formatFoundTime";
 
 interface ItemCardProps {
   item: Item;
@@ -8,13 +9,6 @@ const priceFormatter = new Intl.NumberFormat("en-GB", {
   style: "currency",
   currency: "GBP",
 });
-
-function formatFoundTime(timestamp: number): string {
-  return new Date(timestamp).toLocaleTimeString([], {
-    hour: "numeric",
-    minute: "2-digit",
-  });
-}
 
 function ItemCard({ item }: ItemCardProps) {
   const sizes = item.sizes?.join(", ") ?? "N/A";
