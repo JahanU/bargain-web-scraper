@@ -34,7 +34,8 @@
 ### Tech 💻
 - Frontend hosted on Netlify
 - Backend hosted on Render
-- CI/CD (automatic deployments from master)
+- GitHub Actions CI on every PR and push to main (`.github/workflows/ci.yml`); require the **CI passed** check before merging
+- Automatic deployments from main
 - Google Analytics
 
 ## Installation
