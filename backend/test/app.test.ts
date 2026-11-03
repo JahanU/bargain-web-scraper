@@ -141,6 +141,28 @@ describe('while running', () => {
     });
 });
 
+describe('several retailers', () => {
+    it('retries a failing retailer quickly without re-scraping the healthy one', async () => {
+        const healthy = fakeRetailer('jd', () => complete(range(2)));
+        const broken = fakeRetailer('other', () => Promise.reject(new Error('blocked')));
+        const app = startApp({
+            port: 0,
+            minDiscount: 30,
+            scrapeIntervalMs: 300_000,
+            retailers: [healthy.retailer, broken.retailer],
+            loop: { firstRetryMs: 10 }, // real timers: retries at 10ms, 20ms, 40ms…
+        });
+        running.push(app);
+
+        await Bun.sleep(100);
+        expect(broken.calls).toBeGreaterThanOrEqual(3);
+        expect(healthy.calls).toBe(1);
+
+        const deals = (await (await fetch(new URL('/v1/deals', app.server.url))).json()) as Deal[];
+        expect(deals).toHaveLength(2);
+    });
+});
+
 describe('HTTP', () => {
     it('answers health checks on / and /health, and 404s unknown paths', async () => {
         const { clock, health } = start();

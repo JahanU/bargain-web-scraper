@@ -3,7 +3,7 @@
 The deals API and scraper. It runs on Bun with **zero runtime dependencies**: the HTTP server, gzip and hashing are built into Bun, and everything is held in memory.
 
 ```
- scrape loop (one at a time)                          requests
+ scrape loop (one per retailer)                       requests
  ───────────────────────────                          ────────
  JD (Algolia) ─► Listing ─► DealStore.accept() ─► DealsResponse ◄── GET /webscrape/getBestDeals
                             (rules R1, R2)        (JSON + gzip +      GET /v1/deals
@@ -20,7 +20,7 @@ These are the behaviours the code is built around, and the end-to-end tests (`te
 | **R1** | The deals served are the latest accepted listing. A product that sells out is simply gone. |
 | **R2** | A bad fetch never wipes deals. A failed fetch keeps the previous list. An incomplete listing adds, refreshes and drops what it says is out of stock, but removes nothing else. A sudden drop of over 50% is held back once, then accepted if the next scrape confirms it (even at zero). |
 | **R3** | Before the first good scrape, deal requests get an immediate `503` with `Retry-After: 10`, and the frontend retries. |
-| **R4** | One loop, so scrapes never overlap: scrape, then sleep 5 minutes, or 15s, 30s, 60s… (capped at 5 minutes) after a failure. |
+| **R4** | One loop per retailer, so its scrapes never overlap and one failing retailer never makes the others scrape more often: scrape, then sleep 5 minutes, or 15s, 30s, 60s… (capped at 5 minutes) after a failure. |
 | **R5** | Memory only. Render's free tier wipes the disk anyway, so the app scrapes on boot. "Found" is when this process first saw the item. |
 
 ## Files
@@ -28,10 +28,10 @@ These are the behaviours the code is built around, and the end-to-end tests (`te
 | File | What it does |
 |---|---|
 | `src/index.ts` | Entry point: reads config and starts the app |
-| `src/app.ts` | Wires the store, the scrape loop and the server together |
+| `src/app.ts` | Wires the store, a scrape loop per retailer and the server together |
 | `src/deals.ts` | `DealStore`: applies R1 and R2, and builds the deals list (≥ `MIN_DISCOUNT`, best first) |
 | `src/http.ts` | `DealsResponse` (pre-built JSON, gzip, ETag/304, 503 until ready) and the routes |
-| `src/scraper.ts` | `scrapeOnce` (retailers in parallel, timed, failure-safe) and the loop (R4) |
+| `src/scraper.ts` | `scrapeRetailer` (one timed, failure-safe scrape) and the loop (R4) |
 | `src/retailers/jd.ts` | JD adapter: learns JD's Algolia settings from a listing page, reads every page, and flags incomplete results |
 | `src/retailers/blocklist.ts` | Names to skip (team kits, caps…), matched as whole words and plurals |
 | `src/retailers/types.ts` | `Product`, `Listing` and `Retailer`. A new retailer is one new file |

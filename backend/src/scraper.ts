@@ -16,41 +16,29 @@ export interface RetailerRun {
 export const FIRST_RETRY_MS = 15_000;
 
 /**
- * Fetches every retailer in parallel and feeds each listing to the store. A retailer that fails
- * (even by throwing synchronously) is recorded, and its previous products are kept.
+ * Fetches one retailer and feeds its listing to the store. A failure (even a synchronous throw)
+ * is recorded and the retailer's previous products are kept.
  */
-export async function scrapeOnce(retailers: Retailer[], store: DealStore): Promise<Record<string, RetailerRun>> {
+export async function scrapeRetailer(retailer: Retailer, store: DealStore): Promise<RetailerRun> {
     const at = new Date().toISOString();
-    const fetched = await Promise.all(retailers.map(async (retailer) => ({ retailer, ...(await timed(retailer)) })));
-
-    const runs: Record<string, RetailerRun> = {};
-    for (const { retailer, ms, listing, error } of fetched) {
-        if (!listing) {
-            log.error('scrape failed', { retailer: retailer.id, error });
-            runs[retailer.id] = { status: 'failed', at, ms, error: String(error) };
-            continue;
-        }
-
-        const result = store.accept(retailer.id, listing);
-        runs[retailer.id] = { at, ms, ...result };
-        const level = result.status === 'ok' ? 'info' : 'warn';
-        log[level]('scrape finished', { retailer: retailer.id, ms, ...result });
-    }
-    return runs;
-}
-
-async function timed(retailer: Retailer): Promise<{ ms: number; listing?: Listing; error?: unknown }> {
     const started = Date.now();
+    let listing: Listing;
     try {
-        const listing = await retailer.fetchListing();
-        return { ms: Date.now() - started, listing };
+        listing = await retailer.fetchListing();
     } catch (error) {
-        return { ms: Date.now() - started, error };
+        const ms = Date.now() - started;
+        log.error('scrape failed', { retailer: retailer.id, ms, error });
+        return { status: 'failed', at, ms, error: String(error) };
     }
+
+    const ms = Date.now() - started;
+    const result = store.accept(retailer.id, listing);
+    log[result.status === 'ok' ? 'info' : 'warn']('scrape finished', { retailer: retailer.id, ms, ...result });
+    return { at, ms, ...result };
 }
 
 export interface LoopOptions {
-    /** Runs one scrape; resolves to whether every retailer succeeded. */
+    /** Runs one scrape; resolves to whether it succeeded. */
     scrape: () => Promise<boolean>;
     intervalMs: number;
     firstRetryMs?: number;
@@ -60,7 +48,8 @@ export interface LoopOptions {
 
 /**
  * Scrapes now, then forever: the normal interval after a success, and a quick doubling retry
- * after a failure. One loop, so runs can never overlap.
+ * after a failure. Each retailer gets its own loop, so its runs never overlap, and one failing
+ * retailer's retries never make the healthy ones scrape more often.
  */
 export async function runScrapeLoop({
     scrape,

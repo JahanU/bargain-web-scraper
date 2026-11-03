@@ -1,29 +1,33 @@
 import { describe, expect, it } from 'bun:test';
 import { DealStore } from '@/deals';
 import type { Retailer } from '@/retailers/types';
-import { runScrapeLoop, scrapeOnce } from '@/scraper';
+import { runScrapeLoop, scrapeRetailer } from '@/scraper';
 import { complete, manualSleep, range } from './helpers';
 
-describe('scrapeOnce', () => {
-    it('records a failing retailer (even a synchronous throw) and still runs the others', async () => {
+describe('scrapeRetailer', () => {
+    it('feeds a successful listing to the store and reports the result', async () => {
+        const store = new DealStore();
+        const run = await scrapeRetailer({ id: 'jd', fetchListing: async () => complete(range(2)) }, store);
+
+        expect(run).toMatchObject({ status: 'ok', products: 2, added: 2, removed: 0 });
+        expect(store.deals(0)).toHaveLength(2);
+    });
+
+    it('records a failure, even a synchronous throw, and keeps the previous products', async () => {
+        const store = new DealStore();
+        store.accept('jd', complete(range(2)));
         const broken: Retailer = {
-            id: 'broken',
+            id: 'jd',
             fetchListing: () => {
                 throw new Error('bad config');
             },
         };
-        const working: Retailer = { id: 'jd', fetchListing: async () => complete(range(2)) };
-        const store = new DealStore();
 
-        const runs = await scrapeOnce([broken, working], store);
-
-        expect(runs.broken).toMatchObject({ status: 'failed', error: 'Error: bad config' });
-        expect(runs.jd).toMatchObject({ status: 'ok', products: 2, added: 2 });
+        expect(await scrapeRetailer(broken, store)).toMatchObject({ status: 'failed', error: 'Error: bad config' });
         expect(store.deals(0)).toHaveLength(2);
     });
 
-    it('times each retailer on its own', async () => {
-        const fast: Retailer = { id: 'fast', fetchListing: async () => complete([]) };
+    it('times the fetch', async () => {
         const slow: Retailer = {
             id: 'slow',
             fetchListing: async () => {
@@ -31,10 +35,7 @@ describe('scrapeOnce', () => {
                 return complete([]);
             },
         };
-
-        const runs = await scrapeOnce([fast, slow], new DealStore());
-        expect(runs.fast?.ms).toBeLessThan(30);
-        expect(runs.slow?.ms).toBeGreaterThanOrEqual(50);
+        expect((await scrapeRetailer(slow, new DealStore())).ms).toBeGreaterThanOrEqual(50);
     });
 });
 
