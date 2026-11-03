@@ -1,10 +1,10 @@
-import { hasBearer } from './http/auth';
-import { DealsSnapshot } from './http/dealsSnapshot';
-import { log } from './log';
-import { scrapeAll, type RunRecord } from './scrape/scrapeAll';
-import type { Retailer } from './scrape/retailers/types';
-import { listActiveDeals, purgeSoldOut, retireRetailers } from './store/catalogue';
-import { loadCatalogue, saveCatalogue } from './store/file';
+import { hasBearer } from '@/http/auth';
+import { DealsSnapshot } from '@/http/dealsSnapshot';
+import { log } from '@/log';
+import type { Retailer } from '@/scrape/retailers/types';
+import { type RunRecord, scrapeAll } from '@/scrape/scrapeAll';
+import { listActiveDeals, purgeSoldOut, retireRetailers } from '@/store/catalogue';
+import { loadCatalogue, saveCatalogue } from '@/store/file';
 
 export interface AppOptions {
     retailers: Retailer[];
@@ -19,7 +19,11 @@ const DEFAULT_RETRY_DELAYS_MS = [30_000, 60_000, 120_000];
 
 /** Loads saved state and builds the route table. Kept apart from index.ts so tests can drive it. */
 export async function createApp({
-    retailers, dataFile, minDiscount, cronSecret, retryDelaysMs = DEFAULT_RETRY_DELAYS_MS,
+    retailers,
+    dataFile,
+    minDiscount,
+    cronSecret,
+    retryDelaysMs = DEFAULT_RETRY_DELAYS_MS,
 }: AppOptions) {
     const catalogue = await loadCatalogue(dataFile);
     const retired = retireRetailers(catalogue, new Set(retailers.map((retailer) => retailer.id)));

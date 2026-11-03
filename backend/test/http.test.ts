@@ -1,12 +1,18 @@
 import { describe, expect, it, spyOn } from 'bun:test';
-import { loadConfig } from '../src/config';
-import type { Deal } from '../src/store/catalogue';
-import { hasBearer } from '../src/http/auth';
-import { acceptsGzip, BOOT_WAIT_MS, DealsSnapshot, SERVER_IDLE_TIMEOUT_SECONDS } from '../src/http/dealsSnapshot';
+import { loadConfig } from '@/config';
+import { hasBearer } from '@/http/auth';
+import { acceptsGzip, BOOT_WAIT_MS, DealsSnapshot, SERVER_IDLE_TIMEOUT_SECONDS } from '@/http/dealsSnapshot';
+import type { Deal } from '@/store/catalogue';
 
 const deal: Deal = {
-    name: 'Nike Air Max 90', wasPrice: 135, nowPrice: 54.99, discount: 60,
-    url: 'https://www.jdsports.co.uk/product/x/1/', inStock: 'IN STOCK', timestamp: 1, gender: 'Male',
+    name: 'Nike Air Max 90',
+    wasPrice: 135,
+    nowPrice: 54.99,
+    discount: 60,
+    url: 'https://www.jdsports.co.uk/product/x/1/',
+    inStock: 'IN STOCK',
+    timestamp: 1,
+    gender: 'Male',
 };
 
 const get = (headers: Record<string, string> = {}) => new Request('http://local/v1/deals', { headers });
@@ -135,13 +141,30 @@ describe('hasBearer', () => {
 describe('loadConfig', () => {
     it('applies defaults, with the manual scrape endpoint off', () => {
         expect(loadConfig({})).toEqual({
-            port: 8000, dataFile: './data/deals.json', minDiscount: 30, scrapeIntervalMs: 300_000, cronSecret: undefined,
+            port: 8000,
+            dataFile: './data/deals.json',
+            minDiscount: 30,
+            scrapeIntervalMs: 300_000,
+            cronSecret: undefined,
         });
     });
 
     it('reads overrides', () => {
-        expect(loadConfig({ PORT: '9000', DATA_FILE: '/var/data/d.json', MIN_DISCOUNT: '50', SCRAPE_INTERVAL_MINUTES: '10', CRON_SECRET: 'b'.repeat(32) }))
-            .toEqual({ port: 9000, dataFile: '/var/data/d.json', minDiscount: 50, scrapeIntervalMs: 600_000, cronSecret: 'b'.repeat(32) });
+        expect(
+            loadConfig({
+                PORT: '9000',
+                DATA_FILE: '/var/data/d.json',
+                MIN_DISCOUNT: '50',
+                SCRAPE_INTERVAL_MINUTES: '10',
+                CRON_SECRET: 'b'.repeat(32),
+            }),
+        ).toEqual({
+            port: 9000,
+            dataFile: '/var/data/d.json',
+            minDiscount: 50,
+            scrapeIntervalMs: 600_000,
+            cronSecret: 'b'.repeat(32),
+        });
     });
 
     it('fails fast on a weak secret', () => {

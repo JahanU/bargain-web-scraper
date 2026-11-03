@@ -50,9 +50,20 @@ bun run dev
 ```
 
 ```bash
-bun test
-bun run typecheck
+bun run check        # everything CI should run: typecheck + lint + tests with a coverage floor
+bun test             # tests only
+bun run lint:fix     # format and auto-fix lint issues
 ```
+
+### Tooling
+
+| Tool | What it does | Config |
+|---|---|---|
+| `tsc` | Strict type checking only (Bun runs the TypeScript directly) | `tsconfig.json` |
+| Biome | Formatter and linter in one binary (4 spaces, single quotes, 120 columns, sorted imports, no `any`, no `!`) | `biome.json` |
+| `bun test` | Tests and coverage; fails below 95% of lines or 85% of functions | `bunfig.toml` |
+
+Import from `src` with the `@/` alias, e.g. `import { log } from '@/log'`. Bun resolves it from `tsconfig.json` at runtime and in tests, with no build step. All of these tools are dev-only; the app still has **zero runtime dependencies**.
 
 ## Deploying on Render
 

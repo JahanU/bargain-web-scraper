@@ -1,6 +1,6 @@
-import { log } from '../log';
-import { reconcile, type Catalogue } from '../store/catalogue';
-import type { Listing, Retailer } from './retailers/types';
+import { log } from '@/log';
+import type { Listing, Retailer } from '@/scrape/retailers/types';
+import { type Catalogue, reconcile } from '@/store/catalogue';
 
 export interface RunRecord {
     retailer: string;
@@ -35,10 +35,11 @@ async function timedFetch(retailer: Retailer): Promise<TimedFetch> {
  */
 export async function scrapeAll(catalogue: Catalogue, retailers: Retailer[]): Promise<RunRecord[]> {
     const startedAt = new Date().toISOString();
-    const fetched = await Promise.all(retailers.map(timedFetch));
+    const fetched = await Promise.all(
+        retailers.map(async (retailer) => ({ retailer, outcome: await timedFetch(retailer) })),
+    );
 
-    return retailers.map((retailer, index) => {
-        const outcome = fetched[index]!;
+    return fetched.map(({ retailer, outcome }) => {
         const base = { retailer: retailer.id, startedAt, ms: outcome.ms };
 
         if ('error' in outcome) {
@@ -51,7 +52,9 @@ export async function scrapeAll(catalogue: Catalogue, retailers: Retailer[]): Pr
         const record: RunRecord = { ...base, ...result, complete };
 
         if (result.status === 'partial') {
-            log.warn('scrape partial: incomplete or suspiciously small listing, skipped removing missing products', { ...record });
+            log.warn('scrape partial: incomplete or suspiciously small listing, skipped removing missing products', {
+                ...record,
+            });
         } else {
             log.info('scrape finished', { ...record });
         }

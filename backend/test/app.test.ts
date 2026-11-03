@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'bun:test';
-import { createApp } from '../src/app';
-import type { ProductSnapshot, Retailer } from '../src/scrape/retailers/types';
-import type { Deal } from '../src/store/catalogue';
+import { createApp } from '@/app';
+import type { ProductSnapshot, Retailer } from '@/scrape/retailers/types';
+import type { Deal } from '@/store/catalogue';
 import { product, range, tempFile } from './helpers';
 
 const secret = 's'.repeat(32);
@@ -16,10 +16,17 @@ async function setup(
     fetchProducts: () => Promise<ProductSnapshot[]>,
     options: { cronSecret?: string; dataFile?: string; retryDelaysMs?: number[] } = {},
 ) {
-    const dataFile = options.dataFile ?? await tempFile();
-    const retailer: Retailer = { id: 'jd', fetchListings: async () => ({ products: await fetchProducts(), complete: true }) };
+    const dataFile = options.dataFile ?? (await tempFile());
+    const retailer: Retailer = {
+        id: 'jd',
+        fetchListings: async () => ({ products: await fetchProducts(), complete: true }),
+    };
     const app = await createApp({
-        retailers: [retailer], dataFile, minDiscount: 30, cronSecret: options.cronSecret, retryDelaysMs: options.retryDelaysMs ?? [],
+        retailers: [retailer],
+        dataFile,
+        minDiscount: 30,
+        cronSecret: options.cronSecret,
+        retryDelaysMs: options.retryDelaysMs ?? [],
     });
     return { app, dataFile };
 }
@@ -27,7 +34,12 @@ async function setup(
 describe('app', () => {
     it('makes the first requests wait for the boot scrape instead of serving nothing', async () => {
         let release!: () => void;
-        const { app } = await setup(() => new Promise((resolve) => { release = () => resolve(range(2)); }));
+        const { app } = await setup(
+            () =>
+                new Promise((resolve) => {
+                    release = () => resolve(range(2));
+                }),
+        );
 
         app.scrape();
         const pending = getDeals(app);
@@ -74,21 +86,31 @@ describe('app', () => {
         await app.idle();
 
         expect(await getDeals(app)).toHaveLength(2);
-        const health = await app.routes['/health']().json() as { deals: number; lastRuns: { status: string; error?: string }[] };
+        const health = (await app.routes['/health']().json()) as {
+            deals: number;
+            lastRuns: { status: string; error?: string }[];
+        };
         expect(health.deals).toBe(2);
         expect(health.lastRuns).toMatchObject([{ status: 'failed', error: 'Error: blocked' }]);
     });
 
     it('answers boot-time requests even when the first scrape fails', async () => {
-        const { app } = await setup(async () => { throw new Error('blocked'); });
+        const { app } = await setup(async () => {
+            throw new Error('blocked');
+        });
         app.scrape();
         expect(await getDeals(app)).toEqual([]);
     });
 
     it('does not start a second scrape while one is running', async () => {
         let release!: () => void;
-        const gate = new Promise<void>((resolve) => { release = resolve; });
-        const { app } = await setup(async () => (await gate, []));
+        const gate = new Promise<void>((resolve) => {
+            release = resolve;
+        });
+        const { app } = await setup(async () => {
+            await gate;
+            return [];
+        });
 
         expect(app.scrape()).toBe(true);
         expect(app.scrape()).toBe(false);
@@ -107,15 +129,43 @@ describe('app', () => {
 
     it('waits for the boot scrape when the saved file holds no active deals', async () => {
         const dataFile = await tempFile();
-        await Bun.write(dataFile, JSON.stringify({ version: 1, savedAt: '', products: [{
-            retailer: 'jd', externalId: 'old', name: 'Old', url: 'https://example.com/old', imageUrl: null, gender: 'Male',
-            sizes: [], wasPricePence: 100, nowPricePence: 50, discount: 50, status: 'sold_out',
-            firstSeenAt: 1, lastSeenAt: 1, soldOutAt: 2,
-        }] }));
+        await Bun.write(
+            dataFile,
+            JSON.stringify({
+                version: 1,
+                savedAt: '',
+                products: [
+                    {
+                        retailer: 'jd',
+                        externalId: 'old',
+                        name: 'Old',
+                        url: 'https://example.com/old',
+                        imageUrl: null,
+                        gender: 'Male',
+                        sizes: [],
+                        wasPricePence: 100,
+                        nowPricePence: 50,
+                        discount: 50,
+                        status: 'sold_out',
+                        firstSeenAt: 1,
+                        lastSeenAt: 1,
+                        soldOutAt: 2,
+                    },
+                ],
+            }),
+        );
 
         let release!: () => void;
-        const gate = new Promise<void>((resolve) => { release = resolve; });
-        const { app } = await setup(async () => (await gate, range(2)), { dataFile });
+        const gate = new Promise<void>((resolve) => {
+            release = resolve;
+        });
+        const { app } = await setup(
+            async () => {
+                await gate;
+                return range(2);
+            },
+            { dataFile },
+        );
 
         app.scrape();
         const pending = getDeals(app);
@@ -126,11 +176,14 @@ describe('app', () => {
 
     it('retries soon after a failed scrape instead of waiting a whole interval', async () => {
         let calls = 0;
-        const { app } = await setup(async () => {
-            calls++;
-            if (calls === 1) throw new Error('JD hiccup');
-            return range(2);
-        }, { retryDelaysMs: [20] });
+        const { app } = await setup(
+            async () => {
+                calls++;
+                if (calls === 1) throw new Error('JD hiccup');
+                return range(2);
+            },
+            { retryDelaysMs: [20] },
+        );
 
         app.scrape();
         await app.idle();
@@ -144,10 +197,13 @@ describe('app', () => {
 
     it('gives up retrying early after the configured attempts', async () => {
         let calls = 0;
-        const { app } = await setup(async () => {
-            calls++;
-            throw new Error('down');
-        }, { retryDelaysMs: [10] });
+        const { app } = await setup(
+            async () => {
+                calls++;
+                throw new Error('down');
+            },
+            { retryDelaysMs: [10] },
+        );
 
         app.scrape();
         await Bun.sleep(80);
@@ -158,11 +214,32 @@ describe('app', () => {
 
     it('does not serve products saved from a retailer that is no longer configured', async () => {
         const dataFile = await tempFile();
-        await Bun.write(dataFile, JSON.stringify({ version: 2, savedAt: '', lastInStock: { gone: 1 }, products: [{
-            retailer: 'gone', externalId: 'x', name: 'Old', url: 'https://example.com/x', imageUrl: null, gender: 'Male',
-            sizes: [], wasPricePence: 100, nowPricePence: 50, discount: 50, status: 'active',
-            firstSeenAt: 1, lastSeenAt: 1, soldOutAt: null,
-        }] }));
+        await Bun.write(
+            dataFile,
+            JSON.stringify({
+                version: 2,
+                savedAt: '',
+                lastInStock: { gone: 1 },
+                products: [
+                    {
+                        retailer: 'gone',
+                        externalId: 'x',
+                        name: 'Old',
+                        url: 'https://example.com/x',
+                        imageUrl: null,
+                        gender: 'Male',
+                        sizes: [],
+                        wasPricePence: 100,
+                        nowPricePence: 50,
+                        discount: 50,
+                        status: 'active',
+                        firstSeenAt: 1,
+                        lastSeenAt: 1,
+                        soldOutAt: null,
+                    },
+                ],
+            }),
+        );
 
         const { app } = await setup(async () => range(1), { dataFile });
         app.scrape();
