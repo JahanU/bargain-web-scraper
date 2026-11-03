@@ -1,14 +1,16 @@
 import { describe, expect, it } from 'bun:test';
-import { scrapeAll } from '../src/scrape/scrapeAll';
-import type { Retailer } from '../src/scrape/retailers/types';
-import { createCatalogue } from '../src/store/catalogue';
+import type { Retailer } from '@/scrape/retailers/types';
+import { scrapeAll } from '@/scrape/scrapeAll';
+import { createCatalogue } from '@/store/catalogue';
 import { range } from './helpers';
 
 describe('scrapeAll', () => {
     it('records a synchronous throw as one failed retailer, and still runs the others', async () => {
         const broken: Retailer = {
             id: 'broken',
-            fetchListings: () => { throw new Error('bad config'); },
+            fetchListings: () => {
+                throw new Error('bad config');
+            },
         };
         const working: Retailer = { id: 'jd', fetchListings: async () => ({ products: range(2), complete: true }) };
         const catalogue = createCatalogue();
@@ -24,7 +26,13 @@ describe('scrapeAll', () => {
 
     it('times each retailer on its own', async () => {
         const fast: Retailer = { id: 'fast', fetchListings: async () => ({ products: [], complete: true }) };
-        const slow: Retailer = { id: 'slow', fetchListings: async () => (await Bun.sleep(60), { products: [], complete: true }) };
+        const slow: Retailer = {
+            id: 'slow',
+            fetchListings: async () => {
+                await Bun.sleep(60);
+                return { products: [], complete: true };
+            },
+        };
 
         const [fastRun, slowRun] = await scrapeAll(createCatalogue(), [fast, slow]);
 

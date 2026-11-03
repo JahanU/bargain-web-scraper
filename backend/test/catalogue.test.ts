@@ -1,9 +1,19 @@
 import { describe, expect, it } from 'bun:test';
-import { createCatalogue, keyOf, listActiveDeals, purgeSoldOut, reconcile, retireRetailers, SOLD_OUT_RETENTION_MS, type Catalogue } from '../src/store/catalogue';
-import { loadCatalogue, saveCatalogue } from '../src/store/file';
+import {
+    type Catalogue,
+    createCatalogue,
+    keyOf,
+    listActiveDeals,
+    purgeSoldOut,
+    reconcile,
+    retireRetailers,
+    SOLD_OUT_RETENTION_MS,
+} from '@/store/catalogue';
+import { loadCatalogue, saveCatalogue } from '@/store/file';
 import { product, range, tempFile } from './helpers';
 
-const statusOf = (catalogue: Catalogue, id: string, retailer = 'jd') => catalogue.products.get(keyOf(retailer, id))?.status;
+const statusOf = (catalogue: Catalogue, id: string, retailer = 'jd') =>
+    catalogue.products.get(keyOf(retailer, id))?.status;
 
 describe('reconcile', () => {
     it('adds new products as active', () => {
@@ -18,7 +28,11 @@ describe('reconcile', () => {
         reconcile(catalogue, 'jd', [product('1', { nowPricePence: 3000, discount: 70, sizes: ['10'] })], 2000);
 
         expect(catalogue.products.get(keyOf('jd', '1'))).toMatchObject({
-            nowPricePence: 3000, discount: 70, sizes: ['10'], firstSeenAt: 1000, lastSeenAt: 2000,
+            nowPricePence: 3000,
+            discount: 70,
+            sizes: ['10'],
+            firstSeenAt: 1000,
+            lastSeenAt: 2000,
         });
     });
 
@@ -99,7 +113,11 @@ describe('reconcile', () => {
 
     it('marks a product listed under two genders as unisex', () => {
         const catalogue = createCatalogue();
-        reconcile(catalogue, 'jd', [product('1', { gender: 'Male' }), product('1', { gender: 'Female' }), product('2', { gender: 'Female' })]);
+        reconcile(catalogue, 'jd', [
+            product('1', { gender: 'Male' }),
+            product('1', { gender: 'Female' }),
+            product('2', { gender: 'Female' }),
+        ]);
         expect(catalogue.products.get(keyOf('jd', '1'))?.gender).toBe('Unisex');
         expect(catalogue.products.get(keyOf('jd', '2'))?.gender).toBe('Female');
     });
@@ -141,7 +159,12 @@ describe('purgeSoldOut', () => {
     it('forgets products sold out for longer than the retention window', () => {
         const catalogue = createCatalogue();
         reconcile(catalogue, 'jd', range(3), 0);
-        reconcile(catalogue, 'jd', [product('0'), product('1', { inStock: false }), product('2', { inStock: false })], 1000);
+        reconcile(
+            catalogue,
+            'jd',
+            [product('0'), product('1', { inStock: false }), product('2', { inStock: false })],
+            1000,
+        );
         catalogue.products.get(keyOf('jd', '2'))!.soldOutAt = SOLD_OUT_RETENTION_MS;
 
         expect(purgeSoldOut(catalogue, SOLD_OUT_RETENTION_MS + 2000)).toBe(1);
@@ -152,11 +175,16 @@ describe('purgeSoldOut', () => {
 describe('listActiveDeals', () => {
     it('returns active deals above the floor, best first, in the frontend Item shape', () => {
         const catalogue = createCatalogue();
-        reconcile(catalogue, 'jd', [
-            product('low', { discount: 20 }),
-            product('good', { discount: 40, sizes: [], imageUrl: 'https://img/1' }),
-            product('best', { discount: 70, nowPricePence: 1999 }),
-        ], 1234);
+        reconcile(
+            catalogue,
+            'jd',
+            [
+                product('low', { discount: 20 }),
+                product('good', { discount: 40, sizes: [], imageUrl: 'https://img/1' }),
+                product('best', { discount: 70, nowPricePence: 1999 }),
+            ],
+            1234,
+        );
         reconcile(catalogue, 'jd', [product('gone', { discount: 90 })]);
         catalogue.products.get(keyOf('jd', 'gone'))!.status = 'sold_out';
 
@@ -213,7 +241,10 @@ describe('catalogue file', () => {
         const [good, bad] = [...catalogue.products.values()];
         const { sizes: _dropped, ...withoutSizes } = bad!;
 
-        await Bun.write(path, JSON.stringify({ version: 1, savedAt: '', products: [good, withoutSizes, null, 'junk'] }));
+        await Bun.write(
+            path,
+            JSON.stringify({ version: 1, savedAt: '', products: [good, withoutSizes, null, 'junk'] }),
+        );
         const loaded = await loadCatalogue(path);
 
         expect([...loaded.products.values()]).toEqual([good!]);

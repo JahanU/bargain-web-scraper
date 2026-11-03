@@ -2,7 +2,8 @@ type Fields = Record<string, unknown>;
 
 function write(level: 'info' | 'warn' | 'error', msg: string, fields: Fields = {}) {
     const line = JSON.stringify({ time: new Date().toISOString(), level, msg, ...fields }, (_key, value) =>
-        value instanceof Error ? { message: value.message, stack: value.stack } : value);
+        value instanceof Error ? { message: value.message, stack: value.stack } : value,
+    );
     (level === 'error' ? console.error : console.log)(line);
 }
 

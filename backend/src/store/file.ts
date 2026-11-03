@@ -1,7 +1,7 @@
 import { mkdir, rename } from 'node:fs/promises';
 import { dirname } from 'node:path';
-import { log } from '../log';
-import { createCatalogue, keyOf, type Catalogue, type StoredProduct } from './catalogue';
+import { log } from '@/log';
+import { type Catalogue, createCatalogue, keyOf, type StoredProduct } from '@/store/catalogue';
 
 // v2 added `lastInStock`. v1 files still load; their baseline is rebuilt from the products.
 const FORMAT_VERSION = 2;
@@ -25,18 +25,22 @@ export async function loadCatalogue(path: string): Promise<Catalogue> {
     }
 
     try {
-        const data = await file.json() as Partial<CatalogueFile>;
+        const data = (await file.json()) as Partial<CatalogueFile>;
         if (!READABLE_VERSIONS.includes(data.version ?? -1) || !Array.isArray(data.products)) {
             throw new Error(`unrecognised format (version ${data.version})`);
         }
 
         const products = data.products.filter(isStoredProduct);
         if (products.length < data.products.length) {
-            log.warn('skipped malformed products in data file', { path, skipped: data.products.length - products.length });
+            log.warn('skipped malformed products in data file', {
+                path,
+                skipped: data.products.length - products.length,
+            });
         }
 
-        const lastInStock = Object.entries(data.lastInStock ?? {})
-            .filter((entry): entry is [string, number] => isNumber(entry[1]) && entry[1] >= 0);
+        const lastInStock = Object.entries(data.lastInStock ?? {}).filter(
+            (entry): entry is [string, number] => isNumber(entry[1]) && entry[1] >= 0,
+        );
 
         return {
             products: new Map(products.map((product) => [keyOf(product.retailer, product.externalId), product])),
@@ -76,12 +80,21 @@ function isStoredProduct(value: unknown): value is StoredProduct {
     }
 
     const product = value as Record<string, unknown>;
-    return isString(product.retailer) && isString(product.externalId) && isString(product.name)
-        && isString(product.url) && isString(product.gender)
-        && (product.imageUrl === null || isString(product.imageUrl))
-        && Array.isArray(product.sizes) && product.sizes.every(isString)
-        && isNumber(product.wasPricePence) && isNumber(product.nowPricePence) && isNumber(product.discount)
-        && (product.status === 'active' || product.status === 'sold_out')
-        && isNumber(product.firstSeenAt) && isNumber(product.lastSeenAt)
-        && (product.soldOutAt === null || isNumber(product.soldOutAt));
+    return (
+        isString(product.retailer) &&
+        isString(product.externalId) &&
+        isString(product.name) &&
+        isString(product.url) &&
+        isString(product.gender) &&
+        (product.imageUrl === null || isString(product.imageUrl)) &&
+        Array.isArray(product.sizes) &&
+        product.sizes.every(isString) &&
+        isNumber(product.wasPricePence) &&
+        isNumber(product.nowPricePence) &&
+        isNumber(product.discount) &&
+        (product.status === 'active' || product.status === 'sold_out') &&
+        isNumber(product.firstSeenAt) &&
+        isNumber(product.lastSeenAt) &&
+        (product.soldOutAt === null || isNumber(product.soldOutAt))
+    );
 }

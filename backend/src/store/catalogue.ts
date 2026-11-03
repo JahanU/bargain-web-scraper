@@ -1,4 +1,4 @@
-import type { ProductSnapshot } from '../scrape/retailers/types';
+import type { ProductSnapshot } from '@/scrape/retailers/types';
 
 /** A product we have seen, plus what we know about its history. */
 export interface StoredProduct {

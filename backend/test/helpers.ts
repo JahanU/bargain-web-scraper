@@ -1,7 +1,7 @@
 import { mkdtemp } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import type { ProductSnapshot } from '../src/scrape/retailers/types';
+import type { ProductSnapshot } from '@/scrape/retailers/types';
 
 export const product = (id: string, overrides: Partial<ProductSnapshot> = {}): ProductSnapshot => ({
     externalId: id,

@@ -1,0 +1,11 @@
+# Bun's own configuration: https://bun.com/docs/runtime/bunfig
+
+[install]
+# `bun add` writes exact versions ("1.2.3", not "^1.2.3"), so installs are reproducible.
+exact = true
+
+[test]
+# Only measure the app's code, not the tests themselves.
+coverageSkipTestFiles = true
+# `bun run test:coverage` fails if coverage drops below these.
+coverageThreshold = { lines = 0.95, functions = 0.85 }

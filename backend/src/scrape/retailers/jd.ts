@@ -1,11 +1,9 @@
-import { log } from '../../log';
-import { isBlockedName } from '../filters';
-import type { ProductSnapshot, Retailer } from './types';
+import { log } from '@/log';
+import { isBlockedName } from '@/scrape/filters';
+import type { ProductSnapshot, Retailer } from '@/scrape/retailers/types';
 
 const JD_BASE_URL = 'https://www.jdsports.co.uk';
-const LISTING_URLS = [
-    'https://www.jdsports.co.uk/men/brand/nike/sale/',
-] as const;
+const LISTING_URLS = ['https://www.jdsports.co.uk/men/brand/nike/sale/'] as const;
 
 const REQUEST_TIMEOUT_MS = 15_000;
 
@@ -71,7 +69,7 @@ export function createJDRetailer({ fetch: fetchImpl = fetch, listingUrls = LISTI
 
     async function fetchHits(url: string): Promise<SearchResult> {
         const cached = searchConfigCache.get(url);
-        const config = cached ?? await bootstrapSearchConfig(url);
+        const config = cached ?? (await bootstrapSearchConfig(url));
 
         try {
             const result = await runSearch(config);
@@ -116,7 +114,10 @@ export function createJDRetailer({ fetch: fetchImpl = fetch, listingUrls = LISTI
         // so reconcile adds new deals without treating the unreturned products as sold out.
         const complete = typeof nbHits !== 'number' || hits.length >= nbHits || ranOut;
         if (!complete) {
-            log.warn('JD listing truncated: missing products will not be removed this run', { nbHits, returned: hits.length });
+            log.warn('JD listing truncated: missing products will not be removed this run', {
+                nbHits,
+                returned: hits.length,
+            });
         }
 
         return { hits, complete };
@@ -149,7 +150,7 @@ export function createJDRetailer({ fetch: fetchImpl = fetch, listingUrls = LISTI
         }
 
         // Throws on a soft-200 non-JSON body, which the caller treats as a stale config.
-        const body = await response.json() as Partial<AlgoliaPage> & { exhaustive?: { nbHits?: boolean } };
+        const body = (await response.json()) as Partial<AlgoliaPage> & { exhaustive?: { nbHits?: boolean } };
         if (!Array.isArray(body.hits)) {
             throw new Error('Algolia response contained no hits');
         }
@@ -160,7 +161,10 @@ export function createJDRetailer({ fetch: fetchImpl = fetch, listingUrls = LISTI
     }
 
     async function bootstrapSearchConfig(url: string): Promise<JDSearchConfig> {
-        const response = await fetchImpl(url, { headers: DEFAULT_HEADERS, signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS) });
+        const response = await fetchImpl(url, {
+            headers: DEFAULT_HEADERS,
+            signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+        });
         if (!response.ok) {
             throw new Error(`Listing page returned status ${response.status}`);
         }
@@ -176,16 +180,19 @@ export function createJDRetailer({ fetch: fetchImpl = fetch, listingUrls = LISTI
     return {
         id: 'jd',
         async fetchListings() {
-            const results = await Promise.allSettled(listingUrls.map(async (url) => {
-                const gender = getGenderFromUrl(url);
-                const { hits, complete } = await fetchHits(url);
-                const products = hits.map((hit) => parseHit(hit, gender)).filter((item) => item !== undefined);
-                return { products, complete };
-            }));
+            const results = await Promise.allSettled(
+                listingUrls.map(async (url) => {
+                    const gender = getGenderFromUrl(url);
+                    const { hits, complete } = await fetchHits(url);
+                    const products = hits.map((hit) => parseHit(hit, gender)).filter((item) => item !== undefined);
+                    return { products, complete };
+                }),
+            );
 
             const listings = results.flatMap((result) => (result.status === 'fulfilled' ? [result.value] : []));
             const failures = results.flatMap((result, index) =>
-                result.status === 'rejected' ? [{ url: listingUrls[index], error: result.reason }] : []);
+                result.status === 'rejected' ? [{ url: listingUrls[index], error: result.reason }] : [],
+            );
 
             // Nothing usable: fail the run, so it is recorded and no products are touched.
             if (!listings.length) {
@@ -205,6 +212,11 @@ export function createJDRetailer({ fetch: fetchImpl = fetch, listingUrls = LISTI
     };
 }
 
+/** The part of a server-rendered Algolia search this scraper reads. */
+interface ServerSearch {
+    requestParams?: { facetFilters?: unknown }[];
+}
+
 /** Pulls the Algolia credentials, product index and category filters out of a listing page. */
 export function extractSearchConfig(html: string): JDSearchConfig | undefined {
     const payload = html.match(NEXT_DATA_PATTERN)?.[1];
@@ -218,7 +230,7 @@ export function extractSearchConfig(html: string): JDSearchConfig | undefined {
         const indexName = indices?.find((index: { type?: string }) => index?.type === 'main')?.name;
 
         // The server-rendered search carries the exact filters behind this listing's URL.
-        const searches = Object.values<any>(pageProps?.searchServerState?.initialResults ?? {});
+        const searches: ServerSearch[] = Object.values(pageProps?.searchServerState?.initialResults ?? {});
         const facetFilters = searches[0]?.requestParams?.[0]?.facetFilters;
 
         if (!applicationId || !searchApiKey || !indexName || !facetFilters) {

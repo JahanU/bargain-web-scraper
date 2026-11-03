@@ -1,4 +1,4 @@
-import type { Deal } from '../store/catalogue';
+import type { Deal } from '@/store/catalogue';
 
 interface Snapshot {
     body: string;
@@ -73,8 +73,8 @@ export class DealsSnapshot {
         const headers = new Headers({
             'Content-Type': 'application/json; charset=utf-8',
             'Cache-Control': CACHE_CONTROL,
-            'ETag': etag,
-            'Vary': 'Accept-Encoding',
+            ETag: etag,
+            Vary: 'Accept-Encoding',
             'Access-Control-Allow-Origin': '*',
         });
 

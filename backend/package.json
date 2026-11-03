@@ -8,12 +8,17 @@
     "dev": "bun run --watch src/index.ts",
     "start": "bun run src/index.ts",
     "test": "bun test",
-    "typecheck": "tsc --noEmit"
+    "test:coverage": "bun test --coverage",
+    "typecheck": "tsc --noEmit",
+    "lint": "biome check .",
+    "lint:fix": "biome check --write .",
+    "check": "bun run typecheck && bun run lint && bun run test:coverage"
   },
   "author": "Jahan Ulhaque",
   "license": "ISC",
   "devDependencies": {
-    "@types/bun": "latest",
-    "typescript": "latest"
+    "@biomejs/biome": "2.6.4",
+    "@types/bun": "1.4.4",
+    "typescript": "7.0.2"
   }
 }

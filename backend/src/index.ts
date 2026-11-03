@@ -1,8 +1,8 @@
-import { createApp } from './app';
-import { SERVER_IDLE_TIMEOUT_SECONDS } from './http/dealsSnapshot';
-import { loadConfig } from './config';
-import { log } from './log';
-import { createJDRetailer } from './scrape/retailers/jd';
+import { createApp } from '@/app';
+import { loadConfig } from '@/config';
+import { SERVER_IDLE_TIMEOUT_SECONDS } from '@/http/dealsSnapshot';
+import { log } from '@/log';
+import { createJDRetailer } from '@/scrape/retailers/jd';
 
 const config = loadConfig();
 
