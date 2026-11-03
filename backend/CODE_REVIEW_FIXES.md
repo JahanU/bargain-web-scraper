@@ -1,6 +1,8 @@
 # Code review fixes
 
-Two rounds of code review. Every fix has a test that failed before the change.
+> **History.** Rounds 1–3 describe the code *before* the simplification rewrite (at the end of this file). Most of the files named here no longer exist; the rules they established live on in `deals.ts`, `scraper.ts` and `http.ts`, and the end-to-end tests check them.
+
+Three rounds of code review, then a rewrite. Every fix has a test that failed before the change.
 
 - **Round 1:** 9 findings, 44 → 58 backend tests
 - **Round 2:** 10 findings, 58 → 74 backend tests, plus 3 new frontend tests (76 in total)
@@ -272,3 +274,23 @@ bun run typecheck
 cd frontend
 CI=true npm test      # 80 pass
 ```
+
+---
+
+# The simplification rewrite
+
+After the fourth review, the remaining issues all came from one place: the design had grown by patching. The rewrite started from five written rules (see the backend README) and rebuilt the backend around them.
+
+| Before | After |
+|---|---|
+| Database-style catalogue: upsert, mark sold out, statuses, 7-day purge, stored baseline, retire old retailers | `DealStore`: the deals **are** the latest accepted listing, so sold out simply means gone |
+| `deals.json` with validation and two format versions, which Render's free tier wipes anyway | Memory only; the app scrapes on boot |
+| Interval + "running" flag + retry timer + failure counter | One loop: scrape, then sleep (doubling after failures), so runs can't overlap |
+| Boot wait + shared deadline + 60s idle timeout + 503 | Instant 503 + `Retry-After` until the first good scrape; the frontend retries |
+| `/jobs/scrape`, `CRON_SECRET` and auth (left over from the Supabase design) | Removed |
+| Catch-alls that logged a crashed loop and kept serving stale deals | Removed: a crash exits, so Render restarts the service |
+| Tests per function only | Plus end-to-end scenarios against the real server (deploy, JD down, sale ends, bad fetch…) |
+| Frontend price-string shim and an unused `inStock` field | Removed |
+
+**Result:** about 1,100 → 780 lines of source, 60 backend tests with 100% function coverage, and 81 frontend tests. The 7 parked findings from review 4 are gone, because the code they were about no longer exists.
+

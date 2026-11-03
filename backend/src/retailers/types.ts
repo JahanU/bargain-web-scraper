@@ -1,5 +1,5 @@
 /** One product as a retailer lists it right now, normalised to our shape. */
-export interface ProductSnapshot {
+export interface Product {
     externalId: string;
     name: string;
     url: string;
@@ -14,10 +14,10 @@ export interface ProductSnapshot {
 
 /** What one fetch of a retailer's sale catalogue produced. */
 export interface Listing {
-    products: ProductSnapshot[];
+    products: Product[];
     /**
-     * True only when `products` is the retailer's whole sale catalogue. Products missing from a
-     * complete listing are treated as gone; an incomplete one only adds and refreshes.
+     * True only when `products` is the whole sale catalogue. Products missing from a complete
+     * listing are gone; an incomplete one can only add, refresh, or drop what it says is out of stock.
      */
     complete: boolean;
 }
@@ -25,5 +25,5 @@ export interface Listing {
 /** A source of sale products. Throws when nothing usable could be fetched. */
 export interface Retailer {
     id: string;
-    fetchListings(): Promise<Listing>;
+    fetchListing(): Promise<Listing>;
 }

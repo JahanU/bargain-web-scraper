@@ -1,6 +1,6 @@
 import { log } from '@/log';
-import { isBlockedName } from '@/scrape/filters';
-import type { ProductSnapshot, Retailer } from '@/scrape/retailers/types';
+import { isBlockedName } from '@/retailers/blocklist';
+import type { Listing, Product, Retailer } from '@/retailers/types';
 
 const JD_BASE_URL = 'https://www.jdsports.co.uk';
 const LISTING_URLS = ['https://www.jdsports.co.uk/men/brand/nike/sale/'] as const;
@@ -57,36 +57,37 @@ interface SearchResult {
     complete: boolean;
 }
 
-/** JD Sports UK, read straight from the Algolia index behind its listing pages. */
 export interface JDOptions {
     fetch?: typeof fetch;
     listingUrls?: readonly string[];
 }
 
+/** JD Sports UK, read straight from the Algolia index behind its listing pages. */
 export function createJDRetailer({ fetch: fetchImpl = fetch, listingUrls = LISTING_URLS }: JDOptions = {}): Retailer {
-    // Learned from a listing page, then reused. Dropped whenever a search fails so the next run relearns it.
-    const searchConfigCache = new Map<string, JDSearchConfig>();
+    // Search configs learned from listing pages, reused across runs. `hadHits` records whether the
+    // config found products last time (see fetchHits).
+    const configs = new Map<string, { config: JDSearchConfig; hadHits: boolean }>();
 
     async function fetchHits(url: string): Promise<SearchResult> {
-        const cached = searchConfigCache.get(url);
-        const config = cached ?? (await bootstrapSearchConfig(url));
+        const cached = configs.get(url);
 
         try {
-            const result = await runSearch(config);
+            let config = cached?.config ?? (await bootstrapSearchConfig(url));
+            let result = await runSearch(config);
 
-            // A cached config that suddenly finds nothing may have stale filters (JD renamed a facet).
-            // Re-read the listing page once; if a fresh config also finds nothing, the empty sale is real.
-            if (cached && !result.hits.length) {
-                searchConfigCache.delete(url);
-                return fetchHits(url);
+            // A config that found products last time and finds none now may have stale filters (JD
+            // renamed a facet): re-read the page once. A genuinely empty sale is then cached as such,
+            // so it doesn't cost an extra page fetch every run.
+            if (cached?.hadHits && !result.hits.length) {
+                config = await bootstrapSearchConfig(url);
+                result = await runSearch(config);
             }
 
-            searchConfigCache.set(url, config);
+            configs.set(url, { config, hadHits: result.hits.length > 0 });
             return result;
         } catch (error) {
-            // Rotated key, renamed index or an unreadable response: forget the config so the next run
-            // bootstraps a fresh one instead of repeating a request that can no longer succeed.
-            searchConfigCache.delete(url);
+            // Rotated key, renamed index or an unreadable response: relearn the config next run.
+            configs.delete(url);
             throw error;
         }
     }
@@ -111,7 +112,7 @@ export function createJDRetailer({ fetch: fetchImpl = fetch, listingUrls = LISTI
         const ranOut = last?.exhaustiveNbHits === false && last.hits.length > 0 && last.hits.length < HITS_PER_PAGE;
 
         // Algolia can cap how deep pagination goes. Keep what we got, but say it is not everything,
-        // so reconcile adds new deals without treating the unreturned products as sold out.
+        // so the products it didn't return aren't treated as gone.
         const complete = typeof nbHits !== 'number' || hits.length >= nbHits || ranOut;
         if (!complete) {
             log.warn('JD listing truncated: missing products will not be removed this run', {
@@ -179,7 +180,7 @@ export function createJDRetailer({ fetch: fetchImpl = fetch, listingUrls = LISTI
 
     return {
         id: 'jd',
-        async fetchListings() {
+        async fetchListing(): Promise<Listing> {
             const results = await Promise.allSettled(
                 listingUrls.map(async (url) => {
                     const gender = getGenderFromUrl(url);
@@ -194,7 +195,7 @@ export function createJDRetailer({ fetch: fetchImpl = fetch, listingUrls = LISTI
                 result.status === 'rejected' ? [{ url: listingUrls[index], error: result.reason }] : [],
             );
 
-            // Nothing usable: fail the run, so it is recorded and no products are touched.
+            // Nothing usable: fail, so the previous deals are kept.
             if (!listings.length) {
                 throw failures[0]?.error ?? new Error('JD has no listings configured');
             }
@@ -244,10 +245,10 @@ export function extractSearchConfig(html: string): JDSearchConfig | undefined {
 }
 
 /**
- * Maps one hit to a snapshot, or nothing if it is incomplete or blocked.
- * Out-of-stock hits are kept (inStock: false) so reconcile can mark them sold out.
+ * Maps one hit to a product, or nothing if it is incomplete or blocked. Out-of-stock hits are
+ * kept (inStock: false), so even an incomplete listing can drop them.
  */
-export function parseHit(hit: JDHit, gender: string): ProductSnapshot | undefined {
+export function parseHit(hit: JDHit, gender: string): Product | undefined {
     const name = hit.name?.trim();
     if (!hit.slug || !hit.objectID || !name || isBlockedName(name)) {
         return undefined;

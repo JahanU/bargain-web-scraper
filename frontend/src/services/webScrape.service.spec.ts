@@ -49,6 +49,16 @@ describe("getItemsService", () => {
     expect(fetchMock).toHaveBeenCalledTimes(4);
   });
 
+  it("never retries faster than once a second, even if told 0", async () => {
+    global.fetch = jest.fn()
+      .mockResolvedValueOnce(reply(503, {}, "0"))
+      .mockResolvedValueOnce(reply(200, [item]));
+    const waits: number[] = [];
+
+    await getItemsService(async (ms) => { waits.push(ms); });
+    expect(waits).toEqual([1000]);
+  });
+
   it("does not retry other responses", async () => {
     const fetchMock = jest.fn().mockResolvedValue(reply(200, [item]));
     global.fetch = fetchMock;

@@ -5,6 +5,7 @@
 exact = true
 
 [test]
+preload = ["./test/setup.ts"]
 # Only measure the app's code, not the tests themselves.
 coverageSkipTestFiles = true
 # `bun run test:coverage` fails if coverage drops below these.

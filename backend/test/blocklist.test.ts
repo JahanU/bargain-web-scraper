@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test';
-import { isBlockedName } from '@/scrape/filters';
+import { isBlockedName } from '@/retailers/blocklist';
 
 describe('isBlockedName', () => {
     it('blocks team kits and accessories', () => {

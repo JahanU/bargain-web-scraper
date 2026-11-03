@@ -11,10 +11,10 @@
 ## Architecture
 
 ```
- on boot + every 5 min ──► scrape JD (Algolia) ──► reconcile ──► catalogue in memory ──► data/deals.json
-                                                       │
-                                                       ▼
- React app (Netlify) ──► GET /webscrape/getBestDeals ◄── pre-built response (JSON + gzip + ETag)
+ scrape loop (every 5 min) ──► JD (Algolia) ──► deal store (in memory) ──► pre-built response
+                                                                              (JSON + gzip + ETag)
+                                                                                    │
+ React app (Netlify) ──► GET /webscrape/getBestDeals ◄──────────────────────────────┘
 ```
 
 ## Features 🚀
@@ -25,10 +25,11 @@
 - React Router (search params for filters)
 
 ### Backend
-- Bun with zero runtime dependencies (built-in HTTP server, file I/O, gzip and hashing)
+- Bun with zero runtime dependencies (built-in HTTP server, gzip and hashing)
 - Reads JD's product search (Algolia) directly: one request per category instead of scraping HTML
 - Sold-out detection, with a safety check so a failed fetch never wipes the list
 - Responses built once per scrape and served from memory, with ETag/304 and gzip
+- No database or files: everything lives in memory and is rebuilt by scraping on boot
 - See [backend/README.md](backend/README.md) for details
 
 ### Tech 💻
