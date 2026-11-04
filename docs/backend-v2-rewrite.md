@@ -10,13 +10,13 @@ A single place to review **what was done, why, and where things ended up**. For 
 
 | | Before (`main`) | After |
 |---|---|---|
-| Runtime | Node-style code on Bun, Hono framework | Bun only, using its built-in server, gzip and hashing |
+| Runtime | Node-style code on Bun, Hono framework | Bun only, using its built-in server |
 | Runtime dependencies | **7** (Firebase ×3, Hono, Cheerio, dotenv, Telegram) | **0** |
 | Source | 18 files, 898 lines (116 of them a commented-out Nike scraper) | 10 files, 942 lines |
 | Sold-out items | Shown for up to 24 hours | Gone within about 5 minutes |
 | After a restart | Empty site until the next scrape, plus a daily reset bug | Scrapes on boot; visitors get "loading" (503) and the frontend retries |
 | A bad fetch | Could wipe or empty the list | Can't: the safety rules hold the last good deals |
-| Serving | Array rebuilt and JSON encoded on **every** request | Built **once per scrape**; gzip, ETag/304, browser caching |
+| Serving | Array rebuilt and JSON encoded on **every** request | List rebuilt **once per scrape**; browser caching; Render compresses responses (Brotli) |
 | Tests | 39, tied to Firebase/Telegram | **68 backend** (100% function coverage) **+ 81 frontend**, including end-to-end scenarios against the real server |
 | Quality gates | None | Strict TypeScript, Biome lint/format, coverage floor, CI on every PR, git hooks on commit/push |
 | Logs | `console.log` here and there | Readable, aligned, levelled logs across the whole flow |
@@ -39,12 +39,12 @@ flowchart TB
         wait -. next scrape .-> page
     end
 
-    built["📦 DealsResponse<br/><small>deals ≥ 30% off, best first<br/>JSON + gzip + ETag · built once</small>"]
+    built["📦 Deals list<br/><small>deals ≥ 30% off, best first<br/>rebuilt after each scrape</small>"]
     client["🖥️ Frontend"]
 
     accept -- each accepted scrape --> built
     client -- "GET /v1/deals" --> built
-    built -- "200 deals · 304 unchanged · 503 loading" --> client
+    built -- "200 deals · 503 loading" --> client
 ```
 
 ### The five rules everything is built around
@@ -74,7 +74,7 @@ flowchart TB
 | `src/index.ts` | Entry point: reads settings, starts the app |
 | `src/app.ts` | Wires the server, the store and a loop per retailer |
 | `src/deals.ts` | `DealStore`: rules R1 and R2, builds the deals list |
-| `src/http.ts` | Pre-built response (gzip, ETag, 304, 503), routes, request logging |
+| `src/http.ts` | The deals response (JSON with caching headers, or 503 until ready), routes, request logging |
 | `src/scraper.ts` | One scrape, plus the loop with retry backoff |
 | `src/retailers/jd.ts` | The JD adapter (Algolia, paging, stale settings, partial results) |
 | `src/retailers/blocklist.ts` | Names to skip: team kits, caps… |
@@ -130,13 +130,14 @@ flowchart LR
 | Decision | Why | Trade-off |
 |---|---|---|
 | **No database, memory only** | The data is a few hundred items and fully re-creatable from JD; Render's free disk is wiped on restart | "Found" times reset on each deploy |
-| **Zero runtime dependencies** | Bun has the server, gzip and hashing built in: nothing to update or audit at runtime | Small HTTP details (gzip negotiation, ETags) are our own code, but tested |
+| **Zero runtime dependencies** | Bun has the server built in: nothing to update or audit at runtime | — |
+| **No compression or ETags in our code** | Render already compresses every response (Brotli); `Cache-Control` covers browser caching. Removing them halved `http.ts` | If we ever leave Render, add compression back (or use a host that does it) |
 | **Read JD's Algolia search directly** | One request per page of 1,000 items instead of scraping HTML | Depends on JD's page structure; it detects stale settings and re-reads them |
 | **Filter at 30% only when building the list** | Items that cross 30% appear automatically; sold-out detection stays accurate | The store holds more than it serves |
 | **Hold back drops below 50% once** | A "successful" but bad fetch can't empty the site | Genuine large drops show 5 minutes later (see #59) |
 | **Crash on a loop bug rather than catch it** | Render restarts the service instead of serving stale deals forever | — |
 | **Native git hooks, not Husky** | No root `package.json`; each app opts in through its own scripts | — |
-| **Classes only for long-lived state** | `DealStore` and `DealsResponse` hold state; everything else is plain functions | — |
+| **Classes only for long-lived state** | `DealStore` holds state; everything else is plain functions | — |
 
 ---
 
@@ -156,7 +157,7 @@ flowchart LR
 
 ```
 09:41:03.010 INFO  scraper  ✓ jd scraped  status=ok products=312 added=4 removed=2 took=888ms
-09:41:03.012 INFO  http     ✓ serving 280 deals  json=96.1KB gzip=18.2KB
+09:41:03.012 INFO  app      ✓ serving 280 deals
 ```
 
 `LOG_LEVEL=debug` adds JD's internal steps and health pings.
@@ -171,7 +172,7 @@ Everything is in [`FRONTEND_API.md`](../FRONTEND_API.md). The essentials:
 
 - Call **`GET /v1/deals`**, which returns a sorted array of `Deal`.
 - On **`503`**, wait `Retry-After` and retry for **about 2 minutes** (the current frontend gives up after about 30s).
-- Use a **plain `fetch`**: the browser handles gzip and ETags.
+- Use a **plain `fetch`**: the browser handles caching and decompression.
 - `gender` can be **`Unisex`**; `sizes` and `imageUrl` may be missing; prices are numbers in GBP; `inStock` is gone.
 
 ---

@@ -10,7 +10,7 @@ Where the fixes sit along the data flow (numbers = fixes in each part; CI has on
 flowchart LR
     config["⚙️ Config<br/><small>1</small>"] -. settings .-> loop
     loop["🔁 Scrape loop<br/><small>5</small>"] --> jd["🛒 JD adapter<br/><small>6 · blocklist 1</small>"]
-    jd --> store["🧠 Deal store<br/><small>3</small>"] --> http["🌐 HTTP<br/><small>5</small>"] --> fe["🖥️ Frontend<br/><small>3</small>"]
+    jd --> store["🧠 Deal store<br/><small>3</small>"] --> http["🌐 HTTP<br/><small>3</small>"] --> fe["🖥️ Frontend<br/><small>3</small>"]
 ```
 
 ---
@@ -49,10 +49,8 @@ flowchart LR
 | Problem it prevents | How it's handled today | Guarded by (`test/http.test.ts`, `test/app.test.ts`) |
 |---|---|---|
 | Health checks or pings aimed at `/` getting a 404 | `/` answers like `/health` | *answers health checks on / and /health…* |
-| Visitors seeing an empty site or error page right after a deploy | Instant `503` + `Retry-After: 10` until the first good scrape | *answers 503 with Retry-After until the first update* |
-| **The browser hiding `Retry-After`** from frontend code, and **blocking `/health`** (cross-origin) | `Access-Control-Expose-Headers: Retry-After, ETag`; CORS on `/health` too. Confirmed in Chromium before and after | *answers 503 with Retry-After…*, *answers health checks on / and /health…* |
-| Revalidation missing weak (`W/"…"`) or list-form ETags | Weak comparison; `*` and lists supported | *answers 304 when the ETag matches, including weak and list forms* |
-| gzip sent to clients that refuse it, and caches mixing gzip with plain | `q=0` honoured; gzip gets its own ETag (`"…-gz"`) | *honours q-values and the wildcard*, *sends pre-compressed gzip when accepted, with its own ETag* |
+| Visitors seeing an empty site or error page right after a deploy | Instant `503` + `Retry-After: 10` until the first good scrape | *answers 503 with a readable Retry-After until the first scrape* |
+| **The browser hiding `Retry-After`** from frontend code, and **blocking `/health`** (cross-origin) | `Access-Control-Expose-Headers: Retry-After`; CORS on `/health` too. Confirmed in Chromium before and after | *answers 503 with a readable Retry-After…*, *answers health checks on / and /health…* |
 
 ## ⚙️ Config (`src/config.ts`) and blocklist (`src/retailers/blocklist.ts`)
 
@@ -85,5 +83,6 @@ These fixes were real at the time, but the code they fixed was **removed** in th
 | Retry timer and failure counter; overlapping-run flag | Replaced by one simple loop per retailer |
 | Bounded shutdown on SIGTERM | Nothing to save any more, so the default exit is fine |
 | `POST /jobs/scrape` and its secret | Removed with the Supabase cron design |
+| Our own gzip (with `q=0` handling), ETags and 304s (weak and list matching) | Render already compresses every response (Brotli), and `Cache-Control` covers browser caching |
 
 Known limitations that were **parked on purpose** (edge cases, not normal running) are listed under "Open items" in [`docs/backend-v2-rewrite.md`](../docs/backend-v2-rewrite.md).
