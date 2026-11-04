@@ -10,11 +10,18 @@
 
 ## Architecture
 
-```
- scrape loop (every 5 min) ──► JD (Algolia) ──► deal store (in memory) ──► pre-built response
-                                                                              (JSON + gzip + ETag)
-                                                                                    │
- React app (Netlify) ──► GET /webscrape/getBestDeals ◄──────────────────────────────┘
+```mermaid
+flowchart LR
+    jd["🛒 JD Sports<br/><small>Algolia search</small>"]
+    loop["⏱️ Scrape loop<br/><small>every 5 min</small>"]
+    store["🧠 Deal store<br/><small>in memory</small>"]
+    response["📦 Pre-built response<br/><small>JSON · gzip · ETag</small>"]
+    app["🖥️ React app<br/><small>Netlify</small>"]
+
+    loop -- fetch sale listing --> jd
+    loop -- accepted listing --> store
+    store -- "deals ≥ 30% off" --> response
+    app -- "GET /v1/deals" --> response
 ```
 
 ## Features 🚀

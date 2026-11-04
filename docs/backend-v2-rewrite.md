@@ -27,25 +27,24 @@ About the same amount of code, doing much more, with nothing to install at runti
 
 ## 2. How it works now
 
-```
- ┌──────────────── one scrape loop per retailer (JD today) ────────────────┐
- │                                                                          │
- │  JD listing page ─► learn Algolia search settings (cached)               │
- │        │                                                                 │
- │        ▼                                                                 │
- │  Algolia (all pages) ─► parse: pence, sizes, gender, blocklist           │
- │        │                                                                 │
- │        ▼                                                                 │
- │  DealStore.accept()  ── rules R1 + R2 ──►  current products (in memory)  │
- │        │                                                                 │
- │        ▼                                                                 │
- │  sleep 5 min   (after a failure: 15s → 30s → 60s … up to 5 min)          │
- └──────────────────────────────────────────────────────────────────────────┘
-                     │ each accepted scrape
-                     ▼
-        deals ≥ 30% off, best first ─► DealsResponse (JSON + gzip + ETag, built once)
-                     │
-   Frontend ─► GET /v1/deals  ─►  200 deals │ 304 unchanged │ 503 "loading" + Retry-After
+```mermaid
+flowchart TB
+    subgraph loop["🔁 Scrape loop · one per retailer (JD today)"]
+        direction LR
+        page["JD listing page<br/><small>learn Algolia search settings · cached</small>"]
+        algolia["Algolia · every page<br/><small>parse: pence · sizes · gender · blocklist</small>"]
+        accept["DealStore.accept()<br/><small>rules R1 + R2 → products in memory</small>"]
+        wait["Sleep 5 min<br/><small>after a failure: 15s → 30s → 60s …</small>"]
+        page --> algolia --> accept --> wait
+        wait -. next scrape .-> page
+    end
+
+    built["📦 DealsResponse<br/><small>deals ≥ 30% off, best first<br/>JSON + gzip + ETag · built once</small>"]
+    client["🖥️ Frontend"]
+
+    accept -- each accepted scrape --> built
+    client -- "GET /v1/deals" --> built
+    built -- "200 deals · 304 unchanged · 503 loading" --> client
 ```
 
 ### The five rules everything is built around
@@ -88,10 +87,25 @@ About the same amount of code, doing much more, with nothing to install at runti
 
 The final design came out of several iterations. Each step taught something that shaped the next.
 
-```
-1 Plan ─► 2 Supabase build ─► 3 JSON file ─► 4 Swap in ─► 5 Reviews ×3 ─► 6 Tooling + CI
-                                                                               │
- 12 Docs ◄─ 11 Logs ◄─ 10 Hooks ◄─ 9 Contract ◄─ 8 Per-retailer loops ◄─ 7 Simplify (rewrite)
+```mermaid
+flowchart LR
+    subgraph build["🏗️ Build"]
+        direction TB
+        s1["1 · Plan"] --> s2["2 · Supabase build"] --> s3["3 · JSON file"] --> s4["4 · Swap into backend/"]
+    end
+    subgraph harden["🛡️ Harden"]
+        direction TB
+        s5["5 · Three review rounds"] --> s6["6 · Tooling + CI"]
+    end
+    subgraph simplify["✂️ Simplify"]
+        direction TB
+        s7["7 · Rewrite around 5 rules"] --> s8["8 · Per-retailer loops"]
+    end
+    subgraph polish["✨ Polish"]
+        direction TB
+        s9["9 · Frontend contract"] --> s10["10 · Git hooks"] --> s11["11 · Logging"] --> s12["12 · Docs"]
+    end
+    build --> harden --> simplify --> polish
 ```
 
 | # | Step | What happened | What it taught |
@@ -192,7 +206,7 @@ Everything is in [`FRONTEND_API.md`](../FRONTEND_API.md). The essentials:
 | `README.md` | Project overview |
 | `FRONTEND_API.md` | Frontend ↔ backend contract |
 | `backend/README.md` | Backend guide: rules, files, configuration, logs, development, deploy |
-| `backend/CODE_REVIEW_FIXES.md` | Detailed history of the three review rounds and the simplification |
+| `backend/CODE_REVIEW_FIXES.md` | The review fixes still in effect, by area, each with the test that guards it |
 | `backend/.env.example`, `tsconfig.json`, `biome.json`, `bunfig.toml`, `package.json` | Settings, types, lint, tests, scripts |
 | `.github/workflows/ci.yml` | CI |
 | `.githooks/` | Git hooks |

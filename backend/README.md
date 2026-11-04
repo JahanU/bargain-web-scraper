@@ -2,13 +2,24 @@
 
 The deals API and scraper. It runs on Bun with **zero runtime dependencies**: the HTTP server, gzip and hashing are built into Bun, and everything is held in memory.
 
-```
- scrape loop (one per retailer)                       requests
- ───────────────────────────                          ────────
- JD (Algolia) ─► Listing ─► DealStore.accept() ─► DealsResponse ◄── GET /webscrape/getBestDeals
-                            (rules R1, R2)        (JSON + gzip +      GET /v1/deals
-      ▲                                            ETag, built once
-      └── sleep 5 min (or 15s → 30s → … after a failure)   per scrape)
+```mermaid
+flowchart TB
+    subgraph loop["🔁 Scrape loop · one per retailer"]
+        direction LR
+        fetch["Fetch the sale listing<br/><small>JD listing page + every Algolia page</small>"]
+        parse["Parse products<br/><small>pence · sizes · gender · blocklist</small>"]
+        accept["DealStore.accept()<br/><small>rules R1 + R2</small>"]
+        wait["Sleep 5 min<br/><small>after a failure: 15s → 30s → …</small>"]
+        fetch --> parse --> accept --> wait
+        wait -. next scrape .-> fetch
+    end
+
+    built["📦 DealsResponse<br/><small>JSON + gzip + ETag<br/>built once per scrape</small>"]
+    client["🖥️ Frontend"]
+
+    accept -- "deals ≥ MIN_DISCOUNT, best first" --> built
+    client -- "GET /v1/deals" --> built
+    built -- "200 · 304 · 503 + Retry-After" --> client
 ```
 
 ## Rules
@@ -22,6 +33,27 @@ These are the behaviours the code is built around, and the end-to-end tests (`te
 | **R3** | Before the first good scrape, deal requests get an immediate `503` with `Retry-After: 10`, and the frontend retries. |
 | **R4** | One loop per retailer, so its scrapes never overlap and one failing retailer never makes the others scrape more often: scrape, then sleep 5 minutes, or 15s, 30s, 60s… (capped at 5 minutes) after a failure. |
 | **R5** | Memory only. Render's free tier wipes the disk anyway, so the app scrapes on boot. "Found" is when this process first saw the item. |
+
+How `DealStore.accept()` applies R1 and R2 to each scrape:
+
+```mermaid
+flowchart TD
+    start(["Scrape finished"]) --> fetched{"Fetch<br/>succeeded?"}
+    fetched -- no --> keep["Keep the current deals<br/><small>retry in 15s → 30s → 60s …</small>"]
+    fetched -- yes --> complete{"Whole listing<br/>returned?"}
+    complete -- "no (incomplete)" --> merge["Merge<br/><small>add new · update prices · drop items marked out of stock<br/>keep everything else</small>"]
+    complete -- yes --> drop{"Fewer than half<br/>of current items?"}
+    drop -- no --> replace["Replace<br/><small>the listing is the truth:<br/>missing or out-of-stock items are gone</small>"]
+    drop -- "yes, first time" --> hold["Hold back once<br/><small>merge for now</small>"]
+    drop -- "yes, again" --> replace
+
+    classDef good fill:#e8f5e9,stroke:#43a047,color:#1b5e20
+    classDef careful fill:#fff8e1,stroke:#f9a825,color:#5d4037
+    classDef bad fill:#ffebee,stroke:#e53935,color:#b71c1c
+    class replace good
+    class merge,hold careful
+    class keep bad
+```
 
 ## Files
 
