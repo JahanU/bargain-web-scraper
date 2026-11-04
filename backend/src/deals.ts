@@ -33,9 +33,9 @@ export interface AcceptResult {
  * half the sale selling out in five minutes. It is held back once; if the next run confirms the
  * smaller number (even zero), it is accepted.
  */
-export const MIN_KEPT_RATIO = 0.5;
+const MIN_KEPT_RATIO = 0.5;
 
-export const UNISEX = 'Unisex';
+const UNISEX = 'Unisex';
 
 interface StoredProduct extends Product {
     firstSeenAt: number;
