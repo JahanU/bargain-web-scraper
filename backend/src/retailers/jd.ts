@@ -5,7 +5,8 @@ import type { Listing, Product, Retailer } from '@/retailers/types';
 const log = createLogger('jd');
 
 const JD_BASE_URL = 'https://www.jdsports.co.uk';
-const LISTING_URLS = ['https://www.jdsports.co.uk/men/brand/nike/sale/'] as const;
+// const LISTING_URLS = ['https://www.jdsports.co.uk/men/brand/nike/sale/'] as const;
+const LISTING_URLS = ['https://www.jdsports.co.uk/men/mens-footwear/brand/nike/sale/'] as const;
 
 const REQUEST_TIMEOUT_MS = 15_000;
 
