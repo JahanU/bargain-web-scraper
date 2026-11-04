@@ -2,13 +2,24 @@
 
 The deals API and scraper. It runs on Bun with **zero runtime dependencies**: the HTTP server, gzip and hashing are built into Bun, and everything is held in memory.
 
-```
- scrape loop (one per retailer)                       requests
- ───────────────────────────                          ────────
- JD (Algolia) ─► Listing ─► DealStore.accept() ─► DealsResponse ◄── GET /webscrape/getBestDeals
-                            (rules R1, R2)        (JSON + gzip +      GET /v1/deals
-      ▲                                            ETag, built once
-      └── sleep 5 min (or 15s → 30s → … after a failure)   per scrape)
+```mermaid
+flowchart TB
+    subgraph loop["🔁 Scrape loop · one per retailer"]
+        direction LR
+        fetch["Fetch the sale listing<br/><small>JD listing page + every Algolia page</small>"]
+        parse["Parse products<br/><small>pence · sizes · gender · blocklist</small>"]
+        accept["DealStore.accept()<br/><small>rules R1 + R2</small>"]
+        wait["Sleep 5 min<br/><small>after a failure: 15s → 30s → …</small>"]
+        fetch --> parse --> accept --> wait
+        wait -. next scrape .-> fetch
+    end
+
+    built["📦 DealsResponse<br/><small>JSON + gzip + ETag<br/>built once per scrape</small>"]
+    client["🖥️ Frontend"]
+
+    accept -- "deals ≥ MIN_DISCOUNT, best first" --> built
+    client -- "GET /v1/deals" --> built
+    built -- "200 · 304 · 503 + Retry-After" --> client
 ```
 
 ## Rules
@@ -18,10 +29,31 @@ These are the behaviours the code is built around, and the end-to-end tests (`te
 | | Rule |
 |---|---|
 | **R1** | The deals served are the latest accepted listing. A product that sells out is simply gone. |
-| **R2** | A bad fetch never wipes deals. A failed fetch keeps the previous list. An incomplete listing adds, refreshes and drops what it says is out of stock, but removes nothing else. A sudden drop of over 50% is held back once, then accepted if the next scrape confirms it (even at zero). |
+| **R2** | A bad fetch never wipes deals. A failed fetch keeps the previous list. An incomplete listing adds, refreshes and drops what it says is out of stock, but removes nothing else. A sudden drop of over 50% is held back once, then accepted if the next scrape confirms it (even at zero). This may be removed later: see [#59](https://github.com/JahanU/bargain-web-scraper/issues/59). |
 | **R3** | Before the first good scrape, deal requests get an immediate `503` with `Retry-After: 10`, and the frontend retries. |
 | **R4** | One loop per retailer, so its scrapes never overlap and one failing retailer never makes the others scrape more often: scrape, then sleep 5 minutes, or 15s, 30s, 60s… (capped at 5 minutes) after a failure. |
 | **R5** | Memory only. Render's free tier wipes the disk anyway, so the app scrapes on boot. "Found" is when this process first saw the item. |
+
+How `DealStore.accept()` applies R1 and R2 to each scrape:
+
+```mermaid
+flowchart TD
+    start(["Scrape finished"]) --> fetched{"Fetch<br/>succeeded?"}
+    fetched -- no --> keep["Keep the current deals<br/><small>retry in 15s → 30s → 60s …</small>"]
+    fetched -- yes --> complete{"Whole listing<br/>returned?"}
+    complete -- "no (incomplete)" --> merge["Merge<br/><small>add new · update prices · drop items marked out of stock<br/>keep everything else</small>"]
+    complete -- yes --> drop{"Fewer than half<br/>of current items?"}
+    drop -- no --> replace["Replace<br/><small>the listing is the truth:<br/>missing or out-of-stock items are gone</small>"]
+    drop -- "yes, first time" --> hold["Hold back once<br/><small>merge for now</small>"]
+    drop -- "yes, again" --> replace
+
+    classDef good fill:#e8f5e9,stroke:#43a047,color:#1b5e20
+    classDef careful fill:#fff8e1,stroke:#f9a825,color:#5d4037
+    classDef bad fill:#ffebee,stroke:#e53935,color:#b71c1c
+    class replace good
+    class merge,hold careful
+    class keep bad
+```
 
 ## Files
 
@@ -37,6 +69,19 @@ These are the behaviours the code is built around, and the end-to-end tests (`te
 | `src/retailers/types.ts` | `Product`, `Listing` and `Retailer`. A new retailer is one new file |
 | `src/config.ts`, `src/log.ts` | Environment settings (validated at startup) and readable, levelled logging |
 
+## Configuration
+
+All settings are optional environment variables (see `.env.example`), validated at startup; an invalid value stops the app with a clear error.
+
+| Variable | Default | Range | What it does |
+|---|---|---|---|
+| `PORT` | `8000` | 1–65535 | Port to listen on (Render sets this) |
+| `MIN_DISCOUNT` | `30` | 0–100 | Lowest discount (%) served. Applied only when the deals list is built: the store keeps every in-stock sale item, so an item whose discount rises past the floor appears on the next scrape |
+| `SCRAPE_INTERVAL_MINUTES` | `5` | 1–1440 | Time between scrapes per retailer. After a failure it retries sooner (15s, doubling, up to this) |
+| `LOG_LEVEL` | `info` | `debug` `info` `warn` `error` `silent` | How much to log (see Logs) |
+
+Settings are read once at startup, so a change needs a restart or redeploy.
+
 ## Endpoints
 
 The full contract for the frontend (the `Deal` type, the loading state, caching, CORS) is in [`FRONTEND_API.md`](../FRONTEND_API.md).
@@ -45,7 +90,7 @@ The full contract for the frontend (the `Deal` type, the loading state, caching,
 |---|---|---|
 | GET | `/health` (also `/`) | `{ ok, ready, deals, runs }`, where `runs` is the last result per retailer. Use it for the keep-awake ping |
 | GET | `/v1/deals` | Deals, best first. ETag/304 and gzip |
-| GET | `/webscrape/getBestDeals` | Same payload; the path the frontend calls |
+| GET | `/webscrape/getBestDeals` | Same payload; the path the current frontend calls (new code should use `/v1/deals`) |
 
 ## Logs
 
@@ -97,7 +142,7 @@ bun run lint:fix       # format and auto-fix lint issues
 
 They only run for apps with changes (a docs-only commit runs nothing). Formatting fails? Run `bun run lint:fix`. In an emergency, `--no-verify` skips them; CI still checks everything.
 
-Import from `src` with the `@/` alias (e.g. `import { log } from '@/log'`). Bun resolves it from `tsconfig.json`, with no build step.
+Import from `src` with the `@/` alias (e.g. `import { createLogger } from '@/log'`). Bun resolves it from `tsconfig.json`, with no build step.
 
 | Tool | Role | Config |
 |---|---|---|
@@ -110,5 +155,5 @@ Import from `src` with the `@/` alias (e.g. `import { log } from '@/log'`). Bun 
 - **Root directory:** `backend`
 - **Build command:** `bun install`
 - **Start command:** `bun run start`
-- Optionally set `MIN_DISCOUNT` and `SCRAPE_INTERVAL_MINUTES`.
+- Optionally set `MIN_DISCOUNT`, `SCRAPE_INTERVAL_MINUTES` and `LOG_LEVEL` (see Configuration).
 - Point the keep-awake ping at `/health`.

@@ -10,11 +10,18 @@
 
 ## Architecture
 
-```
- scrape loop (every 5 min) ──► JD (Algolia) ──► deal store (in memory) ──► pre-built response
-                                                                              (JSON + gzip + ETag)
-                                                                                    │
- React app (Netlify) ──► GET /webscrape/getBestDeals ◄──────────────────────────────┘
+```mermaid
+flowchart LR
+    jd["🛒 JD Sports<br/><small>Algolia search</small>"]
+    loop["⏱️ Scrape loop<br/><small>every 5 min</small>"]
+    store["🧠 Deal store<br/><small>in memory</small>"]
+    response["📦 Pre-built response<br/><small>JSON · gzip · ETag</small>"]
+    app["🖥️ React app<br/><small>Netlify</small>"]
+
+    loop -- fetch sale listing --> jd
+    loop -- accepted listing --> store
+    store -- "deals ≥ 30% off" --> response
+    app -- "GET /v1/deals" --> response
 ```
 
 ## Features 🚀
@@ -31,6 +38,7 @@
 - Responses built once per scrape and served from memory, with ETag/304 and gzip
 - No database or files: everything lives in memory and is rebuilt by scraping on boot
 - See [backend/README.md](backend/README.md) for details, and [FRONTEND_API.md](FRONTEND_API.md) for the API contract the frontend relies on
+- [docs/backend-v2-rewrite.md](docs/backend-v2-rewrite.md): the story of the backend rewrite, its design decisions, the final result and open items
 
 ### Tech 💻
 - Frontend hosted on Netlify
