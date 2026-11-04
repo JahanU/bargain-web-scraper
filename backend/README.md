@@ -1,6 +1,6 @@
 # Backend
 
-The deals API and scraper. It runs on Bun with **zero runtime dependencies**: the HTTP server, gzip and hashing are built into Bun, and everything is held in memory.
+The deals API and scraper. It runs on Bun with **zero runtime dependencies**: the HTTP server is built into Bun, everything is held in memory, and Render compresses responses on the way out.
 
 ```mermaid
 flowchart TB
@@ -14,12 +14,12 @@ flowchart TB
         wait -. next scrape .-> fetch
     end
 
-    built["📦 DealsResponse<br/><small>JSON + gzip + ETag<br/>built once per scrape</small>"]
+    built["📦 Deals list<br/><small>rebuilt after each scrape<br/>served as JSON</small>"]
     client["🖥️ Frontend"]
 
     accept -- "deals ≥ MIN_DISCOUNT, best first" --> built
     client -- "GET /v1/deals" --> built
-    built -- "200 · 304 · 503 + Retry-After" --> client
+    built -- "200 deals · 503 + Retry-After" --> client
 ```
 
 ## Rules
@@ -62,7 +62,7 @@ flowchart TD
 | `src/index.ts` | Entry point: reads config and starts the app |
 | `src/app.ts` | Wires the store, a scrape loop per retailer and the server together |
 | `src/deals.ts` | `DealStore`: applies R1 and R2, and builds the deals list (≥ `MIN_DISCOUNT`, best first) |
-| `src/http.ts` | `DealsResponse` (pre-built JSON, gzip, ETag/304, 503 until ready) and the routes |
+| `src/http.ts` | The deals response (JSON with caching headers, or 503 until ready), the routes, and request logging |
 | `src/scraper.ts` | `scrapeRetailer` (one timed, failure-safe scrape) and the loop (R4) |
 | `src/retailers/jd.ts` | JD adapter: learns JD's Algolia settings from a listing page, reads every page, and flags incomplete results |
 | `src/retailers/blocklist.ts` | Names to skip (team kits, caps…), matched as whole words and plurals |
@@ -89,7 +89,7 @@ The full contract for the frontend (the `Deal` type, the loading state, caching,
 | Method | Path | Notes |
 |---|---|---|
 | GET | `/health` (also `/`) | `{ ok, ready, deals, runs }`, where `runs` is the last result per retailer. Use it for the keep-awake ping |
-| GET | `/v1/deals` | Deals, best first. ETag/304 and gzip |
+| GET | `/v1/deals` | Deals, best first, as JSON (cached by browsers for 60s) |
 | GET | `/webscrape/getBestDeals` | Same payload; the path the current frontend calls (new code should use `/v1/deals`) |
 
 ## Logs
@@ -100,9 +100,9 @@ One aligned, readable line per step, coloured in a terminal and plain text on Re
 09:41:02.121 INFO  app      ✓ listening on http://localhost:8000/  retailers=jd
 09:41:02.122 INFO  scraper  ▶ scraping jd
 09:41:03.010 INFO  scraper  ✓ jd scraped  status=ok products=312 added=4 removed=2 took=888ms
-09:41:03.012 INFO  http     ✓ serving 280 deals  json=96.1KB gzip=18.2KB
+09:41:03.012 INFO  app      ✓ serving 280 deals
 09:41:03.012 INFO  scraper  ⏱ jd: next scrape in 5m
-09:41:07.441 INFO  http     GET /v1/deals → 200  gzip=true took=0.3ms
+09:41:07.441 INFO  http     GET /v1/deals → 200  took=0.4ms
 09:46:03.990 ERROR scraper  ✗ jd scrape failed  error="Algolia search failed with status 503" took=410ms
 09:46:03.991 WARN  scraper  ↻ jd: retrying in 15s  failures=1
 ```

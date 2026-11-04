@@ -15,7 +15,7 @@ flowchart LR
     jd["🛒 JD Sports<br/><small>Algolia search</small>"]
     loop["⏱️ Scrape loop<br/><small>every 5 min</small>"]
     store["🧠 Deal store<br/><small>in memory</small>"]
-    response["📦 Pre-built response<br/><small>JSON · gzip · ETag</small>"]
+    response["📦 Deals list<br/><small>JSON · compressed by Render</small>"]
     app["🖥️ React app<br/><small>Netlify</small>"]
 
     loop -- fetch sale listing --> jd
@@ -32,10 +32,10 @@ flowchart LR
 - React Router (search params for filters)
 
 ### Backend
-- Bun with zero runtime dependencies (built-in HTTP server, gzip and hashing)
+- Bun with zero runtime dependencies (built-in HTTP server)
 - Reads JD's product search (Algolia) directly: one request per category instead of scraping HTML
 - Sold-out detection, with a safety check so a failed fetch never wipes the list
-- Responses built once per scrape and served from memory, with ETag/304 and gzip
+- The deals list is rebuilt after each scrape and served from memory with browser caching; Render compresses responses (Brotli)
 - No database or files: everything lives in memory and is rebuilt by scraping on boot
 - See [backend/README.md](backend/README.md) for details, and [FRONTEND_API.md](FRONTEND_API.md) for the API contract the frontend relies on
 - [docs/backend-v2-rewrite.md](docs/backend-v2-rewrite.md): the story of the backend rewrite, its design decisions, the final result and open items

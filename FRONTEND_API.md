@@ -1,14 +1,14 @@
 # Frontend ↔ Backend API contract
 
-Everything the frontend needs to know to work with the rewritten backend: the endpoints, the `Deal` type, the loading state, caching and ETags, CORS, and what changed from the old backend.
+Everything the frontend needs to know to work with the rewritten backend: the endpoints, the `Deal` type, the loading state, caching, CORS, and what changed from the old backend.
 
-> **Source of truth:** the `Deal` type lives in `backend/src/deals.ts`, and the HTTP behaviour (headers, 503, ETags) in `backend/src/http.ts`. If either changes, update this document in the same PR.
+> **Source of truth:** the `Deal` type lives in `backend/src/deals.ts`, and the HTTP behaviour (headers, 503) in `backend/src/http.ts`. If either changes, update this document in the same PR.
 
 ## TL;DR checklist
 
 - [ ] Call **`GET /v1/deals`**. It returns a plain JSON array of `Deal`.
 - [ ] Handle **`503` = "still loading"**: wait `Retry-After` seconds and retry. Keep retrying for about **2 minutes**, not 3 tries.
-- [ ] Use a **plain `fetch(url)`**: no custom headers and no `cache: 'no-store'`. The browser then handles gzip and ETags for you.
+- [ ] Use a **plain `fetch(url)`**: no custom headers and no `cache: 'no-store'`. The browser then handles caching and decompression for you.
 - [ ] Use **`deal.url` as the React key**; it's unique per product.
 - [ ] `sizes` and `imageUrl` can be **missing**. Prices are **numbers in GBP**.
 - [ ] Do filtering, sorting and search **in the browser**. The API always returns the full list.
@@ -89,7 +89,7 @@ Notes on the data:
 | Prices | Numbers in pounds (never strings like `"£54.99"`). Format with `new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP' })`. |
 | `discount` | The list only contains deals at or above the backend's floor (30%), so a frontend discount slider below 30 changes nothing. |
 | `sizes` / `imageUrl` | Optional: the key is missing rather than `null` or `[]`. Show "N/A" or a placeholder. |
-| Size of the list | A few hundred deals, about 100 KB of JSON (about 20 KB gzipped). There's no pagination; filter and sort client-side. |
+| Size of the list | A few hundred deals, about 100 KB of JSON, much smaller on the wire because Render compresses it. There's no pagination; filter and sort client-side. |
 | Sold-out items | Removed by the backend within about 5 minutes. Everything in the list was in stock at the last scrape. |
 
 ### Response: `503 Service Unavailable` (still loading)
@@ -129,7 +129,7 @@ export async function getDeals(signal?: AbortSignal): Promise<Deal[]> {
 
     while (true) {
         // Plain GET: no custom headers (they would trigger a CORS preflight the API doesn't answer)
-        // and no `cache` option (the browser's HTTP cache handles ETags and gzip for us).
+        // and no `cache` option (the browser's HTTP cache does the caching for us).
         const response = await fetch(`${BASE_URL}/v1/deals`, { signal });
 
         if (response.ok) {
@@ -151,18 +151,14 @@ export async function getDeals(signal?: AbortSignal): Promise<Deal[]> {
 
 ---
 
-## Caching and ETags
-
-The backend builds the response once per scrape and sends these headers:
+## Caching and compression
 
 | Header | Value | What it means for the frontend |
 |---|---|---|
-| `Cache-Control` | `public, max-age=60, stale-while-revalidate=300` | For 60s, repeat requests are answered **from the browser cache** with no network request. For up to 5 minutes after that, the cached copy may be shown while the browser re-checks in the background. |
-| `ETag` | e.g. `"k3j9x"`, or `"k3j9x-gz"` for gzip | When re-checking, the browser automatically sends `If-None-Match`. If the deals haven't changed, the server replies `304` with no body, and your `fetch` still sees a normal `200` with the cached JSON. |
-| `Content-Encoding` | `gzip` (when the browser accepts it) | Decompressed automatically by the browser. |
-| `Vary` | `Accept-Encoding` | Keeps the gzip and plain versions apart in caches. |
+| `Cache-Control` | `public, max-age=60, stale-while-revalidate=300` | For 60s, repeat requests are answered **from the browser cache** with no network request. For up to 5 minutes after that, the cached copy may be shown while the browser fetches a fresh one in the background. |
+| `Content-Encoding` | `br` (Brotli) or `gzip`, added by Render | Decompressed automatically by the browser. |
 
-**You don't need to write any ETag code.** All of this happens inside the browser, provided the request is a plain `fetch` (see above). Things that break it:
+**You don't need any caching or compression code.** It all happens inside the browser, provided the request is a plain `fetch` (see above). Things that break it:
 
 - `fetch(url, { cache: 'no-store' })` or `'reload'`, which skip the cache and always download the full list;
 - adding query strings like `?t=${Date.now()}` to "bust the cache";
@@ -179,7 +175,7 @@ The frontend (Netlify) and backend (Render) are on different domains, so the bro
 | | |
 |---|---|
 | Allowed origins | `*` (any) |
-| Readable response headers | The browser defaults, plus `Retry-After` and `ETag` |
+| Readable response headers | The browser defaults, plus `Retry-After` |
 | Allowed requests | Simple `GET`s only |
 
 **Don't add custom request headers** (for example `Content-Type` or `Authorization` on a GET). That turns the request into a "preflighted" one, the browser first sends an `OPTIONS` request, the API doesn't handle `OPTIONS`, and the real request is blocked. A plain `fetch(url)` needs nothing extra.
@@ -226,7 +222,7 @@ interface Health {
 | `timestamp` | Reset daily | First seen by the current backend process | See caveats |
 | Loading state | Empty list `[]` after a restart | **`503` + `Retry-After`** until the first scrape | Retry instead of showing "No items" or the error page |
 | Sold-out items | Shown for up to 24h | Gone within about 5 minutes | — |
-| Caching | None | `Cache-Control` + ETag/304 + gzip | Use a plain `fetch` |
+| Caching | None | `Cache-Control` (60s), compressed by Render | Use a plain `fetch` |
 | Removed endpoints | `/firebase/*`, `/telegram/*`, `/client/*` | — | Remove any calls to them |
 
 ## Caveats
