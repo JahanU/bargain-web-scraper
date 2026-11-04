@@ -1,0 +1,35 @@
+#!/bin/sh
+# The full checks CI runs (including tests), for each app changed in the commits being pushed.
+# Like most pre-push hooks, the checks run on your working copy, which normally is the commit
+# you're pushing. Uncommitted changes are included, so commit or stash them first.
+# Emergency skip: git push --no-verify
+zero=0000000000000000000000000000000000000000
+changed=""
+
+# Git passes one line per ref being pushed: <local ref> <local sha> <remote ref> <remote sha>
+while read -r _local_ref local_sha _remote_ref remote_sha; do
+    [ "$local_sha" = "$zero" ] && continue # deleting a branch: nothing to check
+
+    if [ "$remote_sha" = "$zero" ]; then
+        # New branch: compare with main, or check everything if main isn't known locally.
+        base="$(git merge-base origin/main "$local_sha" 2>/dev/null || true)"
+    else
+        base="$remote_sha"
+    fi
+
+    if [ -n "$base" ] && git cat-file -e "$base^{commit}" 2>/dev/null; then
+        changed="$changed
+$(git diff --name-only "$base" "$local_sha")"
+    else
+        changed="$changed
+$(git ls-files)"
+    fi
+done
+
+[ -n "$(printf '%s' "$changed" | tr -d '[:space:]')" ] || exit 0
+
+if ! "$(git rev-parse --show-toplevel)/.githooks/run-app-checks.sh" check:push "$changed"; then
+    echo "" >&2
+    echo "Push blocked: the checks CI would run failed. Fix them, then push again." >&2
+    exit 1
+fi

@@ -6,7 +6,6 @@ interface Item {
     url: string,
     imageUrl?: string,
     sizes: string[],
-    inStock?: string
     timestamp: number
     gender: string
 }

@@ -1,37 +1,31 @@
 {
   "compilerOptions": {
-    // Environment setup & latest features
-    "lib": [
-      "ESNext"
-    ],
-    "target": "ESNext", // Target ESNext for latest features
+    // Bun runs TypeScript directly; tsc only type-checks (`bun run typecheck`).
+    "lib": ["ESNext"],
+    "target": "ESNext",
     "module": "Preserve",
     "moduleDetection": "force",
-    "jsx": "react-jsx",
-    "allowJs": true,
-    // Bundler mode
-    "moduleResolution": "bundler", // Use bundler module resolution
-    "allowImportingTsExtensions": true, // Allow importing .ts files
-    "verbatimModuleSyntax": true, // Use verbatim module syntax
-    "noEmit": true, // Do not emit files
-    // Best practices
-    "strict": true, // Enable strict mode
-    "skipLibCheck": true, // Skip type checking of .d.ts files
-    "noFallthroughCasesInSwitch": true, // Enable no fallthrough cases in switch
-    "noUncheckedIndexedAccess": true, // Enable no unchecked indexed access
-    "noImplicitOverride": true, // Enable no implicit override
-    // Some stricter flags (disabled by default)
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "verbatimModuleSyntax": true,
+    "noEmit": true,
+    "types": ["bun-types"],
+
+    // `@/x` means `src/x`. Bun resolves this from tsconfig natively, at runtime and in tests.
+    "paths": {
+      "@/*": ["./src/*"]
+    },
+
+    // Strictness
+    "strict": true,
+    "skipLibCheck": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "noImplicitReturns": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
-    "noPropertyAccessFromIndexSignature": false,
-    "types": [
-      "bun-types"
-    ]
+    "forceConsistentCasingInFileNames": true
   },
-  "include": [
-    "src"
-  ],
-  "exclude": [
-    "**/*.spec.ts"
-  ]
+  "include": ["src", "test"]
 }

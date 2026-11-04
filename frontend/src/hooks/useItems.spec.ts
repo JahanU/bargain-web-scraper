@@ -1,4 +1,4 @@
-import { renderHook, act } from "@testing-library/react-hooks";
+import { renderHook } from "@testing-library/react-hooks";
 import { useItems } from "./useItems";
 import { getItemsService } from "../services/webScrape.service";
 import Item from "../interfaces/Item";

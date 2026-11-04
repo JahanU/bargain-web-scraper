@@ -3,7 +3,6 @@ import { render, screen, fireEvent } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import SearchBar from "./SearchBar";
 import * as useFilterParamsModule from "../../hooks/useFilterParams";
-import { Sort } from "../../interfaces/Sort";
 
 const mockSetSearch = jest.fn();
 

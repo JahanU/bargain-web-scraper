@@ -1,55 +1,56 @@
-# Bargain Web Scraper 
+# Bargain Web Scraper
 
-#### Try it out:  
-🕊 https://t.me/JD_sales_bot <br> 👕 https://bargain-scraper.netlify.app/
+#### Try it out:
+👕 https://bargain-scraper.netlify.app/
 
 ## Overview 🤔
-- Full-stack application to find discounted clothing items, with subsequent optimised HTTP calls to check whether they are truly in stock and get their sizes, display them to a clean minimal React Web App
-- Developed Telegram API Bot that handles user sign up, FAQ queries and sends live updates of when new items are found
-- ```Express, Node.js, Firebase, React.js```
+- Finds heavily discounted clothing on JD Sports UK every few minutes and shows it in a clean, minimal React web app
+- Tracks stock: sold-out items disappear from the site on the next scrape and come back if restocked
+- ```Bun, TypeScript, React, Redux, Tailwind CSS```
 
+## Architecture
+
+```
+ scrape loop (every 5 min) ──► JD (Algolia) ──► deal store (in memory) ──► pre-built response
+                                                                              (JSON + gzip + ETag)
+                                                                                    │
+ React app (Netlify) ──► GET /webscrape/getBestDeals ◄──────────────────────────────┘
+```
 
 ## Features 🚀
 ### Frontend
 - [React Web App](https://bargain-scraper.netlify.app/)
 - Redux
 - Tailwind CSS
-- React Router (Search Params)
+- React Router (search params for filters)
 
 ### Backend
-- Firebase/Firestore (Store Users)
-- Performed Typescript migration
-- Telegram API Bot (User Sign-up, FAQ queries, Live Updates)
-- Web Scraping via Cheerio library
+- Bun with zero runtime dependencies (built-in HTTP server, gzip and hashing)
+- Reads JD's product search (Algolia) directly: one request per category instead of scraping HTML
+- Sold-out detection, with a safety check so a failed fetch never wipes the list
+- Responses built once per scrape and served from memory, with ETag/304 and gzip
+- No database or files: everything lives in memory and is rebuilt by scraping on boot
+- See [backend/README.md](backend/README.md) for details, and [FRONTEND_API.md](FRONTEND_API.md) for the API contract the frontend relies on
 
 ### Tech 💻
-- Frontend hosted on Netlify 
-- Backend hosted on Heroku with New Relic APM (Application Performance Monitoring) addon
-- CI/CD (Quick automatic deployments from master branch)
+- Frontend hosted on Netlify
+- Backend hosted on Render
+- Git hooks (`.githooks/`, installed by `bun install` in `backend/`): typecheck + lint before each commit and the full checks before each push, for whichever app changed. An app opts in by defining `check:commit` / `check:push` scripts in its `package.json`
+- GitHub Actions CI on every PR and push to main (`.github/workflows/ci.yml`); require the **CI passed** check before merging
+- Automatic deployments from main
 - Google Analytics
-
-### Design
-#### Basic 
-![Web-Scraper-System-Design drawio](https://user-images.githubusercontent.com/34219176/177620459-f9cdb093-a84c-476b-ba8c-939084a710bc.png)
-
-#### intermediate
-![web-scraper-syste-design-intermediate drawio](https://user-images.githubusercontent.com/34219176/177883186-abcd6a7d-3a0c-40f3-afc7-3d0ff507949a.png)
-
-
-## Example
-### Telegram
-<p>
-<img width="405" alt="Telegram Bot example" src="https://user-images.githubusercontent.com/34219176/150880209-067e370c-8045-457b-a3ac-3980242cc4db.jpg">
-</p>
 
 ## Installation
 ```bash
 cd frontend
 npm install
 npm start
-
-cd backend
-npm install
-npm start
 ```
-- (Need your own Telegram & Firebase API Key; Or comment those files out from the index.ts as they are not required for solo development)
+
+```bash
+cd backend
+bun install
+bun run dev
+```
+
+No API keys or database needed.
