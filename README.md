@@ -31,6 +31,7 @@
 - Responses built once per scrape and served from memory, with ETag/304 and gzip
 - No database or files: everything lives in memory and is rebuilt by scraping on boot
 - See [backend/README.md](backend/README.md) for details, and [FRONTEND_API.md](FRONTEND_API.md) for the API contract the frontend relies on
+- [docs/backend-v2-rewrite.md](docs/backend-v2-rewrite.md): the story of the backend rewrite, its design decisions, the final result and open items
 
 ### Tech 💻
 - Frontend hosted on Netlify
