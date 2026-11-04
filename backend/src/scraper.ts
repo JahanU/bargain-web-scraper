@@ -1,5 +1,5 @@
 import type { AcceptStatus, DealStore } from '@/deals';
-import { log } from '@/log';
+import { createLogger, duration } from '@/log';
 import type { Listing, Retailer } from '@/retailers/types';
 
 export interface RetailerRun {
@@ -12,6 +12,8 @@ export interface RetailerRun {
     error?: string;
 }
 
+const log = createLogger('scraper');
+
 /** The first retry after a failure. It doubles each time, up to the normal interval. */
 export const FIRST_RETRY_MS = 15_000;
 
@@ -22,24 +24,35 @@ export const FIRST_RETRY_MS = 15_000;
 export async function scrapeRetailer(retailer: Retailer, store: DealStore): Promise<RetailerRun> {
     const at = new Date().toISOString();
     const started = Date.now();
+    log.info(`▶ scraping ${retailer.id}`);
+
     let listing: Listing;
     try {
         listing = await retailer.fetchListing();
     } catch (error) {
         const ms = Date.now() - started;
-        log.error('scrape failed', { retailer: retailer.id, ms, error });
+        log.error(`✗ ${retailer.id} scrape failed`, { error, took: duration(ms) });
         return { status: 'failed', at, ms, error: String(error) };
     }
 
     const ms = Date.now() - started;
     const result = store.accept(retailer.id, listing);
-    log[result.status === 'ok' ? 'info' : 'warn']('scrape finished', { retailer: retailer.id, ms, ...result });
+    const summary = { ...result, took: duration(ms) };
+    if (result.status === 'ok') {
+        log.info(`✓ ${retailer.id} scraped`, summary);
+    } else if (result.status === 'held') {
+        log.warn(`⚠ ${retailer.id}: sudden drop held back (applied if the next scrape confirms it)`, summary);
+    } else {
+        log.warn(`⚠ ${retailer.id}: incomplete listing (added and updated only, nothing removed)`, summary);
+    }
     return { at, ms, ...result };
 }
 
 export interface LoopOptions {
     /** Runs one scrape; resolves to whether it succeeded. */
     scrape: () => Promise<boolean>;
+    /** Used to label log lines, e.g. the retailer id. */
+    name?: string;
     intervalMs: number;
     firstRetryMs?: number;
     signal?: AbortSignal;
@@ -53,6 +66,7 @@ export interface LoopOptions {
  */
 export async function runScrapeLoop({
     scrape,
+    name = 'scrape',
     intervalMs,
     firstRetryMs = FIRST_RETRY_MS,
     signal,
@@ -63,6 +77,11 @@ export async function runScrapeLoop({
         const ok = await scrape();
         failures = ok ? 0 : failures + 1;
         const delay = ok ? intervalMs : Math.min(firstRetryMs * 2 ** (failures - 1), intervalMs);
+        if (ok) {
+            log.info(`⏱ ${name}: next scrape in ${duration(delay)}`);
+        } else {
+            log.warn(`↻ ${name}: retrying in ${duration(delay)}`, { failures });
+        }
         await sleep(delay, signal);
     }
 }

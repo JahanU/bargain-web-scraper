@@ -1,9 +1,16 @@
 import { startApp } from '@/app';
 import { loadConfig } from '@/config';
-import { log } from '@/log';
+import { createLogger, duration } from '@/log';
 import { createJDRetailer } from '@/retailers/jd';
 
+const log = createLogger('app');
 const config = loadConfig();
-const { server } = startApp({ ...config, retailers: [createJDRetailer()] });
 
-log.info('listening', { port: server.port, minDiscount: config.minDiscount });
+log.info('▶ starting', {
+    port: config.port,
+    minDiscount: config.minDiscount,
+    scrapeEvery: duration(config.scrapeIntervalMs),
+    logLevel: Bun.env.LOG_LEVEL || 'info',
+});
+
+startApp({ ...config, retailers: [createJDRetailer()] });

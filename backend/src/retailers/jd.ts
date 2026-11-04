@@ -1,6 +1,8 @@
-import { log } from '@/log';
+import { createLogger, duration } from '@/log';
 import { isBlockedName } from '@/retailers/blocklist';
 import type { Listing, Product, Retailer } from '@/retailers/types';
+
+const log = createLogger('jd');
 
 const JD_BASE_URL = 'https://www.jdsports.co.uk';
 const LISTING_URLS = ['https://www.jdsports.co.uk/men/brand/nike/sale/'] as const;
@@ -79,6 +81,9 @@ export function createJDRetailer({ fetch: fetchImpl = fetch, listingUrls = LISTI
             // renamed a facet): re-read the page once. A genuinely empty sale is then cached as such,
             // so it doesn't cost an extra page fetch every run.
             if (cached?.hadHits && !result.hits.length) {
+                log.warn('⚠ cached search found nothing; re-reading the listing page in case its filters changed', {
+                    url,
+                });
                 config = await bootstrapSearchConfig(url);
                 result = await runSearch(config);
             }
@@ -87,6 +92,7 @@ export function createJDRetailer({ fetch: fetchImpl = fetch, listingUrls = LISTI
             return result;
         } catch (error) {
             // Rotated key, renamed index or an unreadable response: relearn the config next run.
+            log.debug('forgetting the search config after an error; it will be re-learned next run', { url });
             configs.delete(url);
             throw error;
         }
@@ -115,7 +121,7 @@ export function createJDRetailer({ fetch: fetchImpl = fetch, listingUrls = LISTI
         // so the products it didn't return aren't treated as gone.
         const complete = typeof nbHits !== 'number' || hits.length >= nbHits || ranOut;
         if (!complete) {
-            log.warn('JD listing truncated: missing products will not be removed this run', {
+            log.warn('⚠ listing truncated by Algolia: products it held back will not be removed this run', {
                 nbHits,
                 returned: hits.length,
             });
@@ -125,6 +131,7 @@ export function createJDRetailer({ fetch: fetchImpl = fetch, listingUrls = LISTI
     }
 
     async function searchPage(config: JDSearchConfig, page: number): Promise<AlgoliaPage> {
+        const started = performance.now();
         const response = await fetchImpl(
             `https://${config.applicationId}-dsn.algolia.net/1/indexes/${config.indexName}/query`,
             {
@@ -158,10 +165,16 @@ export function createJDRetailer({ fetch: fetchImpl = fetch, listingUrls = LISTI
 
         // Newer Algolia responses report exhaustiveness under `exhaustive.nbHits`.
         const exhaustiveNbHits = body.exhaustiveNbHits ?? body.exhaustive?.nbHits;
+        log.debug(`algolia page ${page + 1}/${body.nbPages ?? 1}`, {
+            hits: body.hits.length,
+            total: body.nbHits,
+            took: duration(performance.now() - started),
+        });
         return { hits: body.hits, nbHits: body.nbHits, nbPages: body.nbPages, exhaustiveNbHits };
     }
 
     async function bootstrapSearchConfig(url: string): Promise<JDSearchConfig> {
+        log.debug('reading listing page for search settings', { url });
         const response = await fetchImpl(url, {
             headers: DEFAULT_HEADERS,
             signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
@@ -175,6 +188,7 @@ export function createJDRetailer({ fetch: fetchImpl = fetch, listingUrls = LISTI
             throw new Error('Listing page payload had no usable Algolia search config');
         }
 
+        log.debug('learned search settings', { index: config.indexName });
         return config;
     }
 
@@ -186,6 +200,14 @@ export function createJDRetailer({ fetch: fetchImpl = fetch, listingUrls = LISTI
                     const gender = getGenderFromUrl(url);
                     const { hits, complete } = await fetchHits(url);
                     const products = hits.map((hit) => parseHit(hit, gender)).filter((item) => item !== undefined);
+                    log.debug('listing parsed', {
+                        url,
+                        hits: hits.length,
+                        products: products.length,
+                        skipped: hits.length - products.length, // blocked names or incomplete hits
+                        outOfStock: products.filter((product) => !product.inStock).length,
+                        complete,
+                    });
                     return { products, complete };
                 }),
             );
@@ -202,7 +224,9 @@ export function createJDRetailer({ fetch: fetchImpl = fetch, listingUrls = LISTI
 
             // Some categories failed: keep the ones that worked, but the listing is not the whole catalogue.
             if (failures.length) {
-                log.warn('JD listings failed: missing products will not be removed this run', { failures });
+                log.warn('⚠ some listings failed: missing products will not be removed this run', {
+                    failed: failures.map((failure) => failure.url).join(','),
+                });
             }
 
             return {

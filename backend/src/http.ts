@@ -1,4 +1,7 @@
 import type { Deal } from '@/deals';
+import { bytes, createLogger, duration, type Level } from '@/log';
+
+const log = createLogger('http');
 
 // Browsers and CDNs may reuse a response for a minute, then revalidate in the background.
 const CACHE_CONTROL = 'public, max-age=60, stale-while-revalidate=300';
@@ -27,7 +30,12 @@ export class DealsResponse {
 
     update(deals: Deal[]): void {
         const body = JSON.stringify(deals);
-        this.built = { body, gzipped: Bun.gzipSync(body), hash: Bun.hash(body).toString(36), count: deals.length };
+        const gzipped = Bun.gzipSync(body);
+        this.built = { body, gzipped, hash: Bun.hash(body).toString(36), count: deals.length };
+        log.info(`✓ serving ${deals.length} deals`, {
+            json: bytes(Buffer.byteLength(body)),
+            gzip: bytes(gzipped.length),
+        });
     }
 
     get ready(): boolean {
@@ -70,8 +78,9 @@ export class DealsResponse {
 
 /** Route table for Bun.serve. Both deals paths serve the same response. */
 export function routes(deals: DealsResponse, health: () => object) {
-    const healthResponse = () => Response.json(health(), { headers: CORS });
-    const dealsRoute = { GET: (request: Request) => deals.respond(request) };
+    // Health checks are frequent keep-awake pings, so they only show at LOG_LEVEL=debug.
+    const healthResponse = logged(() => Response.json(health(), { headers: CORS }), 'debug');
+    const dealsRoute = { GET: logged((request) => deals.respond(request)) };
 
     return {
         // `/` as well, so a keep-awake ping or platform health check aimed at the root gets a 200.
@@ -80,6 +89,25 @@ export function routes(deals: DealsResponse, health: () => object) {
         '/v1/deals': dealsRoute,
         // The path the current frontend calls.
         '/webscrape/getBestDeals': dealsRoute,
+    };
+}
+
+/** Anything that isn't a known route. */
+export const notFound = logged(() => Response.json({ error: 'Not Found' }, { status: 404 }));
+
+const STATUS_NOTES: Record<number, string> = { 304: ' not modified', 404: ' not found', 503: ' still loading' };
+
+/** Wraps a handler to log each request: method, path, status, encoding and time taken. */
+function logged(handler: (request: Request) => Response, level: Level = 'info') {
+    return (request: Request) => {
+        const started = performance.now();
+        const response = handler(request);
+        const note = STATUS_NOTES[response.status] ?? '';
+        log[level](`${request.method} ${new URL(request.url).pathname} → ${response.status}${note}`, {
+            gzip: response.headers.get('Content-Encoding') === 'gzip' || undefined,
+            took: duration(performance.now() - started),
+        });
+        return response;
     };
 }
 

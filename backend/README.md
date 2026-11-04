@@ -35,7 +35,7 @@ These are the behaviours the code is built around, and the end-to-end tests (`te
 | `src/retailers/jd.ts` | JD adapter: learns JD's Algolia settings from a listing page, reads every page, and flags incomplete results |
 | `src/retailers/blocklist.ts` | Names to skip (team kits, caps…), matched as whole words and plurals |
 | `src/retailers/types.ts` | `Product`, `Listing` and `Retailer`. A new retailer is one new file |
-| `src/config.ts`, `src/log.ts` | Environment settings (validated at startup) and JSON-line logging |
+| `src/config.ts`, `src/log.ts` | Environment settings (validated at startup) and readable, levelled logging |
 
 ## Endpoints
 
@@ -46,6 +46,29 @@ The full contract for the frontend (the `Deal` type, the loading state, caching,
 | GET | `/health` (also `/`) | `{ ok, ready, deals, runs }`, where `runs` is the last result per retailer. Use it for the keep-awake ping |
 | GET | `/v1/deals` | Deals, best first. ETag/304 and gzip |
 | GET | `/webscrape/getBestDeals` | Same payload; the path the frontend calls |
+
+## Logs
+
+One aligned, readable line per step, coloured in a terminal and plain text on Render:
+
+```
+09:41:02.121 INFO  app      ✓ listening on http://localhost:8000/  retailers=jd
+09:41:02.122 INFO  scraper  ▶ scraping jd
+09:41:03.010 INFO  scraper  ✓ jd scraped  status=ok products=312 added=4 removed=2 took=888ms
+09:41:03.012 INFO  http     ✓ serving 280 deals  json=96.1KB gzip=18.2KB
+09:41:03.012 INFO  scraper  ⏱ jd: next scrape in 5m
+09:41:07.441 INFO  http     GET /v1/deals → 200  gzip=true took=0.3ms
+09:46:03.990 ERROR scraper  ✗ jd scrape failed  error="Algolia search failed with status 503" took=410ms
+09:46:03.991 WARN  scraper  ↻ jd: retrying in 15s  failures=1
+```
+
+| Symbol | Meaning |
+|---|---|
+| ▶ / ✓ / ✗ | step started / succeeded / failed (with an indented stack trace) |
+| ⚠ | something the safety rules handled, e.g. a drop held back or an incomplete listing |
+| ⏱ / ↻ | next scheduled scrape / retry after a failure |
+
+Set `LOG_LEVEL=debug` to also see JD's internal steps (listing page, each Algolia page, how many hits were skipped) and the `/health` pings, which are hidden by default. Use `warn` or `error` for quieter logs, or `silent` (as the tests do). Colours: `FORCE_COLOR=1` or `NO_COLOR=1`.
 
 If the scrape loop ever crashes (only possible through a bug), the process exits and Render restarts it, rather than serving stale deals.
 
