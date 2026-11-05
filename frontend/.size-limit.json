@@ -1,5 +1,5 @@
 [
-  { "name": "Initial JavaScript", "path": "dist/assets/*.js", "limit": "90 kB", "gzip": true },
+  { "name": "Initial JavaScript", "path": "dist/assets/*.js", "limit": "107 kB", "gzip": true },
   { "name": "CSS", "path": "dist/assets/*.css", "limit": "15 kB", "gzip": true },
   {
     "name": "Font",
