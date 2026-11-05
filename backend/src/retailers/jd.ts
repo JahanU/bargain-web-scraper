@@ -26,6 +26,15 @@ const NEXT_DATA_PATTERN = /<script id="__NEXT_DATA__" type="application\/json">(
 
 const DEFAULT_HEADERS = { 'User-Agent': 'Mozilla/5.0 (compatible; bargain-web-scraper/2.0)' };
 
+// Product pages fetched at once when checking live stock.
+const STOCK_CHECK_CONCURRENCY = 6;
+
+/** Live stock read from a product page; Algolia's copy can lag behind it. */
+export interface PageStock {
+    inStock: boolean;
+    sizes: string[];
+}
+
 /** Everything needed to query one listing's products directly. */
 export interface JDSearchConfig {
     applicationId: string;
@@ -70,6 +79,47 @@ export function createJDRetailer({ fetch: fetchImpl = fetch, listingUrls = LISTI
     // Search configs learned from listing pages, reused across runs. `hadHits` records whether the
     // config found products last time (see fetchHits).
     const configs = new Map<string, { config: JDSearchConfig; hadHits: boolean }>();
+    // Each product page's last stock and ETag, so an unchanged page costs a bodiless 304.
+    const pageStock = new Map<string, { etag: string; stock: PageStock }>();
+
+    /** Overrides Algolia's stock with the product page's. Keeps Algolia's if the page can't be read. */
+    async function checkStock(product: Product): Promise<Product> {
+        const cached = pageStock.get(product.url);
+        try {
+            const response = await fetchImpl(product.url, {
+                headers: cached ? { ...DEFAULT_HEADERS, 'if-none-match': cached.etag } : DEFAULT_HEADERS,
+                signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+            });
+            if (response.status === 304 && cached) {
+                return { ...product, ...cached.stock };
+            }
+            if (!response.ok) {
+                throw new Error(`status ${response.status}`);
+            }
+            const stock = extractPageStock(await response.text());
+            if (!stock) {
+                throw new Error('no product data on the page');
+            }
+            const etag = response.headers.get('etag');
+            if (etag) {
+                pageStock.set(product.url, { etag, stock });
+            }
+            return { ...product, ...stock };
+        } catch (error) {
+            log.debug('product page unreadable; keeping Algolia stock', { url: product.url, error: String(error) });
+            return product;
+        }
+    }
+
+    /** Checks only what Algolia says is in stock: its out-of-stock flag is never a false alarm here. */
+    async function checkAllStock(products: Product[]): Promise<Product[]> {
+        const checked: Product[] = [];
+        for (let i = 0; i < products.length; i += STOCK_CHECK_CONCURRENCY) {
+            const batch = products.slice(i, i + STOCK_CHECK_CONCURRENCY);
+            checked.push(...(await Promise.all(batch.map((p) => (p.inStock ? checkStock(p) : p)))));
+        }
+        return checked;
+    }
 
     async function fetchHits(url: string): Promise<SearchResult> {
         const cached = configs.get(url);
@@ -200,7 +250,9 @@ export function createJDRetailer({ fetch: fetchImpl = fetch, listingUrls = LISTI
                 listingUrls.map(async (url) => {
                     const gender = getGenderFromUrl(url);
                     const { hits, complete } = await fetchHits(url);
-                    const products = hits.map((hit) => parseHit(hit, gender)).filter((item) => item !== undefined);
+                    const products = await checkAllStock(
+                        hits.map((hit) => parseHit(hit, gender)).filter((item) => item !== undefined),
+                    );
                     log.debug('listing parsed', {
                         url,
                         hits: hits.length,
@@ -264,6 +316,23 @@ export function extractSearchConfig(html: string): JDSearchConfig | undefined {
         }
 
         return { applicationId, searchApiKey, indexName, facetFilters };
+    } catch {
+        return undefined;
+    }
+}
+
+/** Reads live stock from a product page: the sizes whose variant is available. */
+export function extractPageStock(html: string): PageStock | undefined {
+    const payload = html.match(NEXT_DATA_PATTERN)?.[1];
+    try {
+        const product = payload && JSON.parse(payload)?.props?.pageProps?.product;
+        if (!Array.isArray(product?.variants)) {
+            return undefined;
+        }
+        const sizes: string[] = product.variants
+            .filter((variant: { stock?: { available?: boolean } }) => variant?.stock?.available === true)
+            .map((variant: { size: string }) => variant.size);
+        return { inStock: product.isOutOfStock !== true && sizes.length > 0, sizes };
     } catch {
         return undefined;
     }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test';
-import { createJDRetailer, extractSearchConfig, getGenderFromUrl, parseHit } from '@/retailers/jd';
+import { createJDRetailer, extractPageStock, extractSearchConfig, getGenderFromUrl, parseHit } from '@/retailers/jd';
 
 const buildHit = (overrides: Record<string, unknown> = {}) => ({
     name: 'Nike Air Max 90',
@@ -17,6 +17,12 @@ const buildHit = (overrides: Record<string, unknown> = {}) => ({
 const buildPage = (pageProps: unknown) => `<html><body>
     <script id="__NEXT_DATA__" type="application/json">${JSON.stringify({ props: { pageProps } })}</script>
     </body></html>`;
+
+/** A product page whose variants are in stock where `available` says so. */
+const productPage = (variants: [string, boolean][], isOutOfStock = false) =>
+    buildPage({
+        product: { isOutOfStock, variants: variants.map(([size, available]) => ({ size, stock: { available } })) },
+    });
 
 const validPageProps = {
     algoliaConfig: {
@@ -85,6 +91,25 @@ describe('JD helpers', () => {
         expect(parseHit(buildHit({ discountPct: undefined }), 'Male')?.discount).toBe(0);
     });
 
+    it('reads available sizes and stock from a product page', () => {
+        expect(
+            extractPageStock(
+                productPage([
+                    ['8', true],
+                    ['9', false],
+                    ['10', true],
+                ]),
+            ),
+        ).toEqual({
+            inStock: true,
+            sizes: ['8', '10'],
+        });
+        expect(extractPageStock(productPage([['11', false]]))).toEqual({ inStock: false, sizes: [] });
+        expect(extractPageStock(productPage([['11', true]], true))).toEqual({ inStock: false, sizes: ['11'] });
+        expect(extractPageStock(buildPage({}))).toBeUndefined();
+        expect(extractPageStock('<html>no payload</html>')).toBeUndefined();
+    });
+
     it('drops incomplete and blocked hits', () => {
         expect(parseHit(buildHit({ slug: undefined }), 'Male')).toBeUndefined();
         expect(parseHit(buildHit({ objectID: undefined }), 'Male')).toBeUndefined();
@@ -95,19 +120,27 @@ describe('JD helpers', () => {
 
 describe('JD retailer', () => {
     /**
-     * A fake JD: listing pages come from `page` (default: a valid page) and Algolia searches from
-     * `algolia`, which receives the request body. Counts both kinds of request.
+     * A fake JD: listing pages come from `page` (default: a valid page), product pages from `product`
+     * (default: 404) and Algolia searches from `algolia`, which receives the request body. Counts each kind.
      */
     function fakeJD(options: {
         page?: (url: string) => Response;
+        product?: (url: string, headers: Record<string, string>) => Response;
         algolia: (body: { page: number; facetFilters: unknown }) => Response;
     }) {
-        const calls = { pages: 0, searches: 0 };
+        const calls = { pages: 0, searches: 0, products: 0 };
         const fetch = (async (input: string | URL | Request, init?: RequestInit) => {
             const url = String(input);
             if (url.includes('algolia.net')) {
                 calls.searches++;
                 return options.algolia(JSON.parse(String(init?.body)));
+            }
+            if (url.includes('/product/')) {
+                calls.products++;
+                return (
+                    options.product?.(url, init?.headers as Record<string, string>) ??
+                    new Response('not found', { status: 404 })
+                );
             }
             calls.pages++;
             return options.page?.(url) ?? new Response(buildPage(validPageProps));
@@ -254,5 +287,55 @@ describe('JD retailer', () => {
         await jd.fetchListing();
         await jd.fetchListing();
         expect(calls.pages).toBe(2);
+    });
+
+    it('takes stock from the product page, and reuses it when the page answers 304', async () => {
+        const { fetch, calls } = fakeJD({
+            algolia: () => Response.json({ hits: [buildHit()], nbHits: 1, nbPages: 1 }),
+            product: (_url, headers) =>
+                headers['if-none-match'] === '"v1"'
+                    ? new Response(null, { status: 304 })
+                    : new Response(
+                          productPage([
+                              ['7', false],
+                              ['8', true],
+                          ]),
+                          { headers: { etag: '"v1"' } },
+                      ),
+        });
+        const jd = createJDRetailer({ fetch });
+
+        for (let run = 0; run < 2; run++) {
+            expect((await jd.fetchListing()).products).toEqual([
+                expect.objectContaining({ inStock: true, sizes: ['8'] }),
+            ]);
+        }
+        expect(calls.products).toBe(2);
+    });
+
+    it('marks a product out of stock when its page says so, though Algolia says otherwise', async () => {
+        const { fetch } = fakeJD({
+            algolia: () => Response.json({ hits: [buildHit()], nbHits: 1, nbPages: 1 }),
+            product: () => new Response(productPage([['11', false]], true)),
+        });
+        expect((await createJDRetailer({ fetch }).fetchListing()).products).toEqual([
+            expect.objectContaining({ inStock: false, sizes: [] }),
+        ]);
+    });
+
+    it("keeps Algolia's stock when a product page can't be read, and skips pages for out-of-stock hits", async () => {
+        const { fetch, calls } = fakeJD({
+            algolia: () =>
+                Response.json({
+                    hits: [buildHit(), buildHit({ objectID: '2', slug: 'gone', inStock: false })],
+                    nbHits: 2,
+                    nbPages: 1,
+                }),
+        });
+        expect((await createJDRetailer({ fetch }).fetchListing()).products).toEqual([
+            expect.objectContaining({ externalId: '19686180', inStock: true, sizes: ['7', '8'] }),
+            expect.objectContaining({ externalId: '2', inStock: false }),
+        ]);
+        expect(calls.products).toBe(1);
     });
 });
