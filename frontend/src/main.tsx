@@ -2,7 +2,7 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { App } from "@/app/App";
 import { AppProviders } from "@/app/providers/AppProviders";
-import { queryClient } from "@/app/providers/queryClient";
+import { queryClient, restoreAndPersist } from "@/app/providers/queryClient";
 import { dealsQueryOptions } from "@/features/deals";
 import "@/styles/index.css";
 
@@ -12,7 +12,8 @@ if (import.meta.env.MODE === "mock") {
   await startMockWorker();
 }
 
-// Start the request before React renders anything.
+// Show the saved snapshot at once, then start the request before React renders anything.
+await restoreAndPersist();
 void queryClient.prefetchQuery(dealsQueryOptions);
 
 const root = document.getElementById("root");

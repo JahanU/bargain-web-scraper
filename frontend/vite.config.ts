@@ -30,11 +30,11 @@ export default defineConfig({
     },
   },
   fmt: {
-    ignorePatterns: ["legacy/**", "dist/**", "playwright-report/**", "test-results/**"],
+    ignorePatterns: ["dist/**", "playwright-report/**", "test-results/**"],
   },
   lint: {
     plugins: ["react", "typescript", "oxc", "import", "jsx-a11y"],
-    ignorePatterns: ["legacy/**", "dist/**"],
+    ignorePatterns: ["dist/**"],
     options: { typeAware: true, typeCheck: true },
     jsPlugins: [{ name: "vite-plus", specifier: "vite-plus/oxlint-plugin" }],
     rules: {

@@ -6,6 +6,7 @@ import {
   StaleBanner,
   useDealsQuery,
 } from "@/features/deals";
+import { useFilteredDeals, useFilters } from "@/features/filters";
 import { gbp } from "@/shared/lib/format";
 
 const WAKING_AFTER_MS = 3000;
@@ -14,6 +15,8 @@ const WAKING_AFTER_MS = 3000;
 export function DealsPage() {
   const query = useDealsQuery();
   const deals = query.data;
+  const [values] = useFilters();
+  const { visible } = useFilteredDeals(deals, values);
   const waking = useAfter(query.isPending, WAKING_AFTER_MS);
   const retry = () => void query.refetch();
 
@@ -23,16 +26,16 @@ export function DealsPage() {
       {deals && query.isError && (
         <StaleBanner updatedAt={query.dataUpdatedAt} onRetry={retry} retrying={query.isFetching} />
       )}
-      {deals ? (
+      {deals && visible ? (
         <>
           <ResultsSummary
-            shown={deals.length}
+            shown={visible.length}
             total={deals.length}
             updatedAt={query.dataUpdatedAt}
           />
           {/* Plain list until the deal grid lands (phase 4). */}
           <ul className="space-y-1 text-sm">
-            {deals.map((deal) => (
+            {visible.map((deal) => (
               <li key={deal.id}>
                 <a
                   href={deal.url}

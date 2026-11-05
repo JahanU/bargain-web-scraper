@@ -26,3 +26,22 @@ export function compareSizes(a: string, b: string): number {
 export function sortSizes(sizes: Iterable<string>): string[] {
   return [...new Set(sizes)].sort(compareSizes);
 }
+
+export type SizeFacet = { size: string; count: number };
+
+/** How many of these deals come in each size, grouped and in canonical order. Absent sizes are left out. */
+export function sizeFacets(
+  deals: readonly { sizes: readonly string[] }[],
+): Record<SizeGroup, SizeFacet[]> {
+  const counts = new Map<string, number>();
+  for (const deal of deals) {
+    for (const size of deal.sizes) counts.set(size, (counts.get(size) ?? 0) + 1);
+  }
+  const facets = [...counts]
+    .sort(([a], [b]) => compareSizes(a, b))
+    .map(([size, count]) => ({ size, count }));
+  return {
+    clothing: facets.filter((facet) => sizeGroup(facet.size) === "clothing"),
+    footwear: facets.filter((facet) => sizeGroup(facet.size) === "footwear"),
+  };
+}

@@ -101,11 +101,25 @@ test("cached snapshot: renders at once, and a failed refresh keeps it with a sta
   });
   server.use(scenarios["bad-gateway"]);
 
-  renderWithClient(<DealsPage />, client);
+  renderWithClient(<DealsPage />, { client });
 
   expect(screen.getByRole("link", { name: "Cached Tee" })).toBeInTheDocument();
   const banner = await screen.findByRole("status");
   expect(banner).toHaveTextContent(/Showing deals from \d\d:\d\d, couldn’t refresh/);
   expect(screen.getByRole("link", { name: "Cached Tee" })).toBeInTheDocument();
   expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+});
+
+test("a link shared before the rewrite shows the same deals: nike, sizes M or L, cheapest first", async () => {
+  renderWithClient(<DealsPage />, {
+    searchParams: "?search=nike&sizes=M,L&sort=price-low-to-high",
+  });
+
+  expect(await screen.findByText("19 of 81 deals")).toBeInTheDocument();
+  const names = screen.getAllByRole("link").map((link) => link.textContent);
+  expect(names.slice(0, 3)).toEqual([
+    "Nike NFL Las Vegas Raiders Helmet T-Shirt",
+    "Nike NFL Green Bay Packers Local T-Shirt",
+    "Nike Sportswear Club T-Shirt",
+  ]);
 });

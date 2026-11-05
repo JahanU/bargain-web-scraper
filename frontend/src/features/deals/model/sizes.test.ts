@@ -1,5 +1,5 @@
 import { expect, test } from "vite-plus/test";
-import { sizeGroup, sortSizes } from "./sizes";
+import { sizeFacets, sizeGroup, sortSizes } from "./sizes";
 
 test("numeric sizes are footwear, everything else is clothing", () => {
   expect(sizeGroup("8")).toBe("footwear");
@@ -18,4 +18,22 @@ test("canonical order: clothing XS→XXXL, odd clothing A→Z, then footwear asc
 
 test("duplicates are dropped", () => {
   expect(sortSizes(["M", "S", "M"])).toEqual(["S", "M"]);
+});
+
+test("size facets count deals per size, grouped, canonical, absent sizes left out", () => {
+  expect(
+    sizeFacets([
+      { sizes: ["M", "9"] },
+      { sizes: ["S", "M"] },
+      { sizes: [] },
+      { sizes: ["9", "OS"] },
+    ]),
+  ).toEqual({
+    clothing: [
+      { size: "S", count: 1 },
+      { size: "M", count: 2 },
+      { size: "OS", count: 1 },
+    ],
+    footwear: [{ size: "9", count: 2 }],
+  });
 });
