@@ -1,0 +1,80 @@
+import { apiUrl } from "@/shared/config/env";
+import { ApiError } from "./ApiError";
+import { parseDeals, type WireDeal } from "./dealSchema";
+
+const LOADING_DEADLINE_MS = 120_000;
+const DEFAULT_RETRY_AFTER_S = 10;
+
+export type FetchDealsOptions = {
+  attemptTimeoutMs?: number;
+  now?: () => number;
+  sleep?: (ms: number, signal?: AbortSignal) => Promise<void>;
+};
+
+/**
+ * GET /v1/deals. While the backend answers 503 (first scrape not finished) it waits Retry-After
+ * and tries again, for up to two minutes. Plain fetch: no headers (they'd trigger a CORS
+ * preflight) and no cache option (the browser's HTTP cache does the caching).
+ */
+export async function fetchDeals(
+  signal?: AbortSignal,
+  options: FetchDealsOptions = {},
+): Promise<WireDeal[]> {
+  const { attemptTimeoutMs = 20_000, now = Date.now, sleep = abortableSleep } = options;
+  const deadline = now() + LOADING_DEADLINE_MS;
+
+  for (;;) {
+    const response = await request(signal, attemptTimeoutMs);
+    if (response.status === 503) {
+      if (now() >= deadline) throw new ApiError("still-loading", 503);
+      await sleep(retryAfterMs(response.headers.get("Retry-After")), signal);
+      continue;
+    }
+    // 500 and 502 may be a platform HTML page, so check the status before parsing.
+    if (!response.ok) throw new ApiError("http", response.status);
+
+    let body: unknown;
+    try {
+      body = await response.json();
+    } catch {
+      throw new ApiError("invalid-body");
+    }
+    return parseDeals(body);
+  }
+}
+
+async function request(signal: AbortSignal | undefined, timeoutMs: number): Promise<Response> {
+  const timeout = AbortSignal.timeout(timeoutMs);
+  try {
+    return await fetch(`${apiUrl}/v1/deals`, {
+      signal: signal ? AbortSignal.any([signal, timeout]) : timeout,
+    });
+  } catch (error) {
+    if (signal?.aborted) throw error; // cancelled by the caller, not a failure
+    throw new ApiError(timeout.aborted ? "timeout" : "network");
+  }
+}
+
+/** Retry-After in ms: default 10 s, clamped to 1–60 s. */
+export function retryAfterMs(header: string | null): number {
+  const seconds = header === null || header.trim() === "" ? Number.NaN : Number(header);
+  const safe = Number.isFinite(seconds)
+    ? Math.min(Math.max(seconds, 1), 60)
+    : DEFAULT_RETRY_AFTER_S;
+  return safe * 1000;
+}
+
+function abortableSleep(ms: number, signal?: AbortSignal): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (signal?.aborted) return reject(signal.reason);
+    const timer = setTimeout(resolve, ms);
+    signal?.addEventListener(
+      "abort",
+      () => {
+        clearTimeout(timer);
+        reject(signal.reason);
+      },
+      { once: true },
+    );
+  });
+}

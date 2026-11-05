@@ -1,9 +1,26 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./test";
 
-test("the page loads", async ({ page }) => {
+test("the page loads the deals", async ({ page }) => {
   await page.goto("/");
-  await expect(page.getByRole("banner")).toBeVisible();
-  await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+  await expect(page.getByText("81 deals")).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: "Nike NFL Las Vegas Raiders Helmet T-Shirt" }),
+  ).toBeVisible();
+  await expect(page.getByRole("contentinfo")).toContainText(/Last updated \d\d:\d\d/);
+});
+
+test("a returning visitor sees the saved snapshot even when the API is down", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.getByText("81 deals")).toBeVisible();
+  // Saves are throttled (1 s), so wait until the deals themselves are stored.
+  await page.waitForFunction(() =>
+    localStorage.getItem("bargain-deals")?.includes("Las Vegas Raiders"),
+  );
+
+  await page.route("**/v1/deals", (route) => route.abort());
+  await page.reload();
+
+  await expect(page.getByText("81 deals")).toBeVisible();
 });
 
 test("the self-hosted Archivo font loads", async ({ page }) => {

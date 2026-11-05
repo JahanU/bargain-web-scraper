@@ -5,12 +5,13 @@
   "type": "module",
   "scripts": {
     "dev": "vp dev",
+    "dev:mock": "vp dev --mode mock",
     "build": "vp build",
     "preview": "vp preview",
     "test": "vp test",
     "test:e2e": "playwright test",
     "size": "size-limit",
-    "check": "vp check && vp test && vp build && size-limit",
+    "check": "vp check && vp test --coverage && vp build && size-limit",
     "ci": "bun run check && bun run test:e2e --project=chromium",
     "check:commit": "vp check",
     "check:push": "bun run check",
@@ -18,11 +19,15 @@
   },
   "dependencies": {
     "@base-ui/react": "1.9.0",
+    "@tanstack/query-sync-storage-persister": "5.106.1",
+    "@tanstack/react-query": "5.106.1",
+    "@tanstack/react-query-persist-client": "5.106.1",
     "class-variance-authority": "0.7.1",
     "clsx": "2.1.1",
     "lucide-react": "1.69.0",
     "react": "19.3.1",
-    "react-dom": "19.3.1"
+    "react-dom": "19.3.1",
+    "zod": "4.6.7"
   },
   "devDependencies": {
     "@axe-core/playwright": "4.14.0",
@@ -37,6 +42,7 @@
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",
     "@vitejs/plugin-react": "6.2.1",
+    "@vitest/coverage-v8": "5.1.0",
     "jsdom": "30.1.3",
     "msw": "3.0.3",
     "oxc-transform-react": "0.156.0",

@@ -1,4 +1,4 @@
 import { setupServer } from "msw/node";
+import { handlers } from "./handlers";
 
-// Handlers arrive with the data layer (phase 2). Tests add their own with server.use().
-export const server = setupServer();
+export const server = setupServer(...handlers);

@@ -45,3 +45,16 @@ Precedence: backend code > spec > guide.
 - The header's deal count and the footer's last-updated time need data, so they arrive in phase 2.
 - The theme toggle is a two-state "Dark theme" button (`aria-pressed`). A stored choice overrides the system from then on; there is no "back to system" option because the spec doesn't ask for one.
 - Tailwind's default colour palette and radii are switched off in `theme.css`, so only the spec's tokens and the 2/4/6/8 px radii exist. Motion durations are `duration-fast`, `duration-base` and `duration-slow` utilities.
+
+### Phase 2
+
+- **Initial JavaScript budget can't be met with the specced stack (needs your call).** Measured gzipped, each in isolation: React + React DOM 19.3 is 67.2 KB (the spec assumed about 45), TanStack Query 10.5, zod/mini 7.2, the persister 2.7, three Lucide icons 2.5. Phase 2 builds at 96.99 KB against 90 KB; nuqs (phase 3) and Base UI (phase 5, about 15) will push it to about 120 KB. `bun run check` fails only on this, so phase 2 is committed but not pushed.
+- **Fixed a persistence gap.** `main.tsx` prefetches before render, so the first response can land before the persister subscribes and never be saved. `AppProviders` now saves once restoring finishes. An e2e test (returning visitor, API down) fails without the fix.
+- Retry-After: the old spec treated an unreasonable value (99999) as "use 10 s"; this spec says clamp to 1–60, so it waits 60 s.
+- "Three attempts" for network and 5xx is read as TanStack's three retries (four requests in all).
+- An unknown `gender` becomes "Unisex" instead of dropping the deal, since the backend types it as a plain string.
+- `070` counts as footwear and sorts as 70, after 12. Its real meaning is unknown.
+- The fixture is the old `mock-data.json` converted to the current contract: bare absolute Amplience URLs, no `inStock`, backend sort order. `legacy/mock-data.json` and `legacy/webScrape.service.spec.ts` are deleted now that they're ported; the 503 cases from that spec live on in `dealsApi.test.ts`.
+- `dev:mock` serves the fixture through MSW; add `?mock=loading`, `?mock=bad-gateway` or `?mock=offline` to see the failure states. `public/mockServiceWorker.js` is copied into `dist` but never loaded there, and no MSW code ends up in the production JavaScript.
+- Tests get `VITE_API_URL` from `vite.config.ts` (`test.env`); `dev:mock` reads `.env.mock`.
+- **Header deal count left out.** The layout shows "JD Sports UK · 81 deals" in the header, but the spec makes `DealsPage` the only reader of deal state and marks the header presentational; the count is in the results summary. The footer's "Last updated" is a small deals-feature component that reads the query (server state only).

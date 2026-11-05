@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./test";
 
 const theme = (page: import("@playwright/test").Page) =>
   page.evaluate(() => document.documentElement.dataset.theme);

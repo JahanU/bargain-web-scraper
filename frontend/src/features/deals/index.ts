@@ -1,0 +1,10 @@
+export { ApiError } from "./api/ApiError";
+export type { WireDeal } from "./api/dealSchema";
+export { dealsKeys } from "./api/queryKeys";
+export { DealGridSkeleton } from "./components/DealGridSkeleton";
+export { ErrorState } from "./components/ErrorState";
+export { LastUpdated } from "./components/LastUpdated";
+export { ResultsSummary } from "./components/ResultsSummary";
+export { StaleBanner } from "./components/StaleBanner";
+export { dealsQueryOptions, useDealsQuery } from "./hooks/useDealsQuery";
+export type { Deal } from "./model/Deal";

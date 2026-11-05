@@ -1,11 +1,12 @@
-import { render, screen } from "@testing-library/react";
+import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { expect, test } from "vite-plus/test";
 import { axe } from "vitest-axe";
+import { renderWithClient } from "@/test/render";
 import { App } from "./App";
 
 test("has header, main and footer landmarks and no axe violations", async () => {
-  const { container } = render(<App />);
+  const { container } = renderWithClient(<App />);
 
   expect(screen.getByRole("banner")).toBeInTheDocument();
   expect(screen.getByRole("main")).toBeInTheDocument();
@@ -15,7 +16,7 @@ test("has header, main and footer landmarks and no axe violations", async () => 
 });
 
 test("the first Tab lands on a skip link to the main content", async () => {
-  render(<App />);
+  renderWithClient(<App />);
 
   await userEvent.tab();
 
@@ -26,7 +27,7 @@ test("the first Tab lands on a skip link to the main content", async () => {
 });
 
 test("the GitHub link says it opens a new tab", () => {
-  render(<App />);
+  renderWithClient(<App />);
 
   expect(screen.getByRole("link", { name: "GitHub (opens in a new tab)" })).toHaveAttribute(
     "target",
