@@ -8,9 +8,18 @@ import {
   ResultsSummary,
   StaleBanner,
   serverStartOf,
+  useDealFacets,
   useDealsQuery,
 } from "@/features/deals";
-import { type FilterState, explainEmpty, useFilteredDeals, useFilters } from "@/features/filters";
+import {
+  ActiveFilterChips,
+  FilterBar,
+  type FilterState,
+  discountCounts,
+  explainEmpty,
+  useFilteredDeals,
+  useFilters,
+} from "@/features/filters";
 
 const WAKING_AFTER_MS = 3000;
 
@@ -19,13 +28,26 @@ export function DealsPage() {
   const query = useDealsQuery();
   const deals = query.data;
   const [values, actions] = useFilters();
-  const { visible } = useFilteredDeals(deals, values);
+  const { visible, withoutSizeFilter, withoutDiscountFilter } = useFilteredDeals(deals, values);
+  const sizeFacets = useDealFacets(withoutSizeFilter);
+  const change = (next: Partial<FilterState>) => void actions.set(next);
+  const clearAll = () => void actions.clearAll();
   const waking = useAfter(query.isPending, WAKING_AFTER_MS);
   const retry = () => void query.refetch();
 
   return (
     <>
       <h1 className="sr-only">Deals from JD Sports UK</h1>
+      <FilterBar
+        values={values}
+        onChange={change}
+        onClearAll={clearAll}
+        sizeFacets={sizeFacets}
+        discountCounts={withoutDiscountFilter && discountCounts(withoutDiscountFilter)}
+        resultCount={visible?.length}
+        busy={!deals}
+      />
+      <ActiveFilterChips values={values} onChange={change} onClearAll={clearAll} />
       {deals && query.isError && (
         <StaleBanner updatedAt={query.dataUpdatedAt} onRetry={retry} retrying={query.isFetching} />
       )}
@@ -39,12 +61,7 @@ export function DealsPage() {
           {visible.length > 0 ? (
             <DealGrid deals={visible} serverStart={serverStartOf(deals)} />
           ) : (
-            <NoDeals
-              deals={deals}
-              values={values}
-              onChange={(next) => void actions.set(next)}
-              onClearAll={() => void actions.clearAll()}
-            />
+            <NoDeals deals={deals} values={values} onChange={change} onClearAll={clearAll} />
           )}
         </>
       ) : query.isError ? (

@@ -6,6 +6,8 @@ import { defineFilter, type FilterChip, type FilterDefinition } from "./types";
 
 export const SEARCH_MAX_LENGTH = 64;
 export const DEFAULT_DISCOUNT = 30;
+/** The backend's MIN_DISCOUNT: stops below it show the same deals as it does. */
+export const BACKEND_MIN_DISCOUNT = 30;
 export const DISCOUNT_STOPS = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100] as const;
 
 const sameList = (a: readonly string[], b: readonly string[]) =>
@@ -102,5 +104,12 @@ export function activeChips(values: FilterValues): ActiveChip[] {
           .chips(values[key])
           .map((chip) => ({ ...chip, filter: key }) as ActiveChip)
       : [],
+  );
+}
+
+/** How many deals each discount stop would show (pass deals filtered by everything else). */
+export function discountCounts(deals: readonly { discount: number }[]): Record<number, number> {
+  return Object.fromEntries(
+    DISCOUNT_STOPS.map((stop) => [stop, deals.filter((deal) => deal.discount >= stop).length]),
   );
 }

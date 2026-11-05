@@ -6,7 +6,8 @@ import { chip } from "./chipStyles";
 
 type ToggleGroupProps = {
   label: string;
-  items: readonly { value: string; label: ReactNode }[];
+  /** `name` overrides the visible label as the accessible name (it must contain it). */
+  items: readonly { value: string; label: ReactNode; name?: string }[];
   value: readonly string[];
   onValueChange: (value: string[]) => void;
   className?: string;
@@ -26,10 +27,11 @@ export function ToggleGroup({ label, items, value, onValueChange, className }: T
         <Toggle
           key={item.value}
           value={item.value}
+          aria-label={item.name}
           className={(state) =>
             cn(
               chip({ tone: state.pressed ? "selected" : "neutral", interactive: true }),
-              "min-w-11 justify-center",
+              "min-w-11 justify-center max-sm:h-11",
             )
           }
         >

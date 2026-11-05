@@ -83,3 +83,15 @@ Precedence: backend code > spec > guide.
 - The skeleton / empty / error / cards switch stays in `DealsPage`; `DealGrid` renders cards only.
 - Phase 4's "Playwright screenshots at 390 px and 1280 px" are attached to the report, but not compared against baselines: this sandbox's Chromium (1243) and CI's (1248) render differently, so pixel baselines would fail on one of them. The same tests assert the behaviour: 2 and 5 columns, no horizontal scroll, layout shift under 0.05. Product images are stubbed in e2e, so tests never reach the CDN.
 - "+N" for sizes: the narrow-screen variant (3 shown) is hidden from screen readers so the count isn't read twice; they hear the wide-screen one.
+
+### Phase 5
+
+- **Bundle: Base UI's Popover is heavy (for review).** Initial JS went from 103 KB to 152.6 KB. Measured in isolation (gzipped): Base UI Popover about 40 KB (it brings its positioning engine), ToggleGroup about 10 KB, Dialog about 24 KB (unused so far). The spec expected Base UI at about 15 KB. The limit is now measured + 10 % (168 KB). Lighter options for later: plain `aria-pressed` buttons instead of ToggleGroup (about -10 KB); and for the sizes popover, either an inline disclosure or the native `popover` attribute once the browser floor allows it (Safari 17). The filter sheet is its own lazy chunk at 1.5 KB (budget 4 KB), now a separate size-limit entry.
+- **Discount is native radio inputs, not `role="radio"` buttons.** Same radio pattern as the spec's sample, but the browser provides arrow keys, roving focus and form semantics, with no key handler. Each radio is named "50%" (`aria-label`); the visible text is "50".
+- **Faint stops stay operable.** The spec's sample sets `aria-disabled` on empty stops, but its text says they "stay clickable", and `aria-disabled` would announce them as unavailable. They're only styled faint.
+- **Explicit names on discount stops and size toggles.** Real Chrome adds spaces around visually hidden spans, so names came out as "50 %" and "XS , 21 deals". They now use `aria-label` ("50%", "XS, 21 deals") that contains the visible text, which keeps axe's label-in-name check green in the browser.
+- The toolbar is `<form role="search">`, not the `<search>` element (lint's preference): `<search>` needs Safari 17 and the spec's floor is 16.4.
+- The mobile sheet uses `SortSelect` (a native select) rather than the radio list in the mockup, so phones get their own picker. It's lazy, prefetched on pointer down, and returns focus to Filters on close; tapping the backdrop closes it too.
+- The "Filters (n)" count leaves out search, since search sits outside the sheet.
+- A selected size that the other filters have emptied still shows (count 0), so it can be turned off.
+- jsdom has no `showModal`; `src/test/setup.ts` adds a minimal stand-in, and the real modal behaviour (focus, Escape, axe with the sheet open) is tested in Playwright.

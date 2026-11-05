@@ -1,3 +1,5 @@
+export { ActiveFilterChips } from "./components/ActiveFilterChips";
+export { FilterBar } from "./components/FilterBar";
 export { useFilteredDeals } from "./hooks/useFilteredDeals";
 export { useFilters } from "./hooks/useFilters";
 export { type FilterState, applyFilters } from "./model/applyFilters";
@@ -7,6 +9,7 @@ export {
   activeChips,
   DEFAULT_DISCOUNT,
   DISCOUNT_STOPS,
+  discountCounts,
   type FilterKey,
   type FilterValues,
   SEARCH_MAX_LENGTH,
