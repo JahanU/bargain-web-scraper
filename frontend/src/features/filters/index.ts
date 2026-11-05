@@ -1,6 +1,7 @@
 export { useFilteredDeals } from "./hooks/useFilteredDeals";
 export { useFilters } from "./hooks/useFilters";
 export { type FilterState, applyFilters } from "./model/applyFilters";
+export { type EmptyExplanation, explainEmpty } from "./model/explainEmpty";
 export {
   type ActiveChip,
   activeChips,
