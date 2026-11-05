@@ -1,11 +1,5 @@
 {
     "editor.autoClosingQuotes": "always",
-    "editor.codeActionsOnSave": {
-        "source.fixAll.eslint": "explicit"
-    },
-    "eslint.validate": [
-        "javascript"
-    ],
     "cSpell.words": [
         "Firestore"
     ]
