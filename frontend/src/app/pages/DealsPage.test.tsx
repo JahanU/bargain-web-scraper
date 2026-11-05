@@ -31,10 +31,11 @@ test("success: every deal is listed with its count, and axe is clean", async () 
   const { container } = renderWithClient(<DealsPage />);
 
   expect(await screen.findByText("81 deals")).toBeInTheDocument();
-  expect(screen.getAllByRole("listitem")).toHaveLength(81);
-  expect(
-    screen.getByRole("link", { name: "Nike NFL Las Vegas Raiders Helmet T-Shirt" }),
-  ).toHaveAttribute(
+  expect(screen.getAllByRole("link")).toHaveLength(81);
+  const card = screen.getByRole("link", {
+    name: /^Nike NFL Las Vegas Raiders Helmet T-Shirt £10 was £30/,
+  });
+  expect(card).toHaveAttribute(
     "href",
     "https://www.jdsports.co.uk/product/black-nike-nfl-las-vegas-raiders-helmet-t-shirt/19599668/",
   );
@@ -45,8 +46,45 @@ test("an empty list is a valid result, not an error", async () => {
   server.use(http.get(URL, () => HttpResponse.json([])));
   renderWithClient(<DealsPage />);
 
-  expect(await screen.findByText("0 deals")).toBeInTheDocument();
+  expect(await screen.findByRole("heading", { name: "No deals right now" })).toBeInTheDocument();
+  expect(screen.getByText("0 deals")).toBeInTheDocument();
   expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+});
+
+test("filtered to nothing: says why, and each way out is one tap that rewrites the URL", async () => {
+  server.use(
+    http.get(URL, () =>
+      HttpResponse.json([
+        makeDeal({ name: "Tee M", discount: 50, sizes: ["M"] }),
+        makeDeal({ name: "Tee L", discount: 70, sizes: ["L"] }),
+      ]),
+    ),
+  );
+  const onUrlUpdate = vi.fn();
+  renderWithClient(<DealsPage />, { searchParams: "?discount=70&sizes=M", onUrlUpdate });
+
+  expect(
+    await screen.findByRole("heading", { name: "No deals at 70% or more in size M" }),
+  ).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Show 1 deal in any size" })).toBeInTheDocument();
+
+  await userEvent.click(screen.getByRole("button", { name: "Show 1 deal at 50% or more" }));
+
+  expect(onUrlUpdate).toHaveBeenLastCalledWith(
+    expect.objectContaining({ queryString: "?discount=50&sizes=M" }),
+  );
+  expect(await screen.findByRole("link", { name: /^Tee M / })).toBeInTheDocument();
+});
+
+test("a search with no matches quotes the term and offers to clear it", async () => {
+  const onUrlUpdate = vi.fn();
+  renderWithClient(<DealsPage />, { searchParams: "?search=zzz", onUrlUpdate });
+
+  expect(await screen.findByRole("heading", { name: "Nothing matches “zzz”" })).toBeInTheDocument();
+  await userEvent.click(screen.getByRole("button", { name: "Show 81 deals without the search" }));
+
+  expect(onUrlUpdate).toHaveBeenLastCalledWith(expect.objectContaining({ queryString: "" }));
+  expect(await screen.findByText("81 deals")).toBeInTheDocument();
 });
 
 test("http error: explains the status once, without retrying a 4xx", async () => {
@@ -73,7 +111,7 @@ test("network error: retried 3 times, then the waking copy and a working Try aga
   server.use(http.get(URL, () => HttpResponse.json([makeDeal({ name: "Back Online Tee" })])));
   await userEvent.click(within(alert).getByRole("button", { name: "Try again" }));
 
-  expect(await screen.findByRole("link", { name: "Back Online Tee" })).toBeInTheDocument();
+  expect(await screen.findByRole("link", { name: /^Back Online Tee / })).toBeInTheDocument();
   expect(screen.queryByRole("alert")).not.toBeInTheDocument();
 });
 
@@ -103,10 +141,10 @@ test("cached snapshot: renders at once, and a failed refresh keeps it with a sta
 
   renderWithClient(<DealsPage />, { client });
 
-  expect(screen.getByRole("link", { name: "Cached Tee" })).toBeInTheDocument();
+  expect(screen.getByRole("link", { name: /^Cached Tee / })).toBeInTheDocument();
   const banner = await screen.findByRole("status");
   expect(banner).toHaveTextContent(/Showing deals from \d\d:\d\d, couldn’t refresh/);
-  expect(screen.getByRole("link", { name: "Cached Tee" })).toBeInTheDocument();
+  expect(screen.getByRole("link", { name: /^Cached Tee / })).toBeInTheDocument();
   expect(screen.queryByRole("alert")).not.toBeInTheDocument();
 });
 
@@ -116,7 +154,7 @@ test("a link shared before the rewrite shows the same deals: nike, sizes M or L,
   });
 
   expect(await screen.findByText("19 of 81 deals")).toBeInTheDocument();
-  const names = screen.getAllByRole("link").map((link) => link.textContent);
+  const names = screen.getAllByRole("heading", { level: 2 }).map((heading) => heading.textContent);
   expect(names.slice(0, 3)).toEqual([
     "Nike NFL Las Vegas Raiders Helmet T-Shirt",
     "Nike NFL Green Bay Packers Local T-Shirt",

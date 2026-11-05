@@ -1,13 +1,16 @@
 import { useEffect, useState } from "react";
 import {
+  type Deal,
+  DealGrid,
   DealGridSkeleton,
+  EmptyState,
   ErrorState,
   ResultsSummary,
   StaleBanner,
+  serverStartOf,
   useDealsQuery,
 } from "@/features/deals";
-import { useFilteredDeals, useFilters } from "@/features/filters";
-import { gbp } from "@/shared/lib/format";
+import { type FilterState, explainEmpty, useFilteredDeals, useFilters } from "@/features/filters";
 
 const WAKING_AFTER_MS = 3000;
 
@@ -15,7 +18,7 @@ const WAKING_AFTER_MS = 3000;
 export function DealsPage() {
   const query = useDealsQuery();
   const deals = query.data;
-  const [values] = useFilters();
+  const [values, actions] = useFilters();
   const { visible } = useFilteredDeals(deals, values);
   const waking = useAfter(query.isPending, WAKING_AFTER_MS);
   const retry = () => void query.refetch();
@@ -33,22 +36,16 @@ export function DealsPage() {
             total={deals.length}
             updatedAt={query.dataUpdatedAt}
           />
-          {/* Plain list until the deal grid lands (phase 4). */}
-          <ul className="space-y-1 text-sm">
-            {visible.map((deal) => (
-              <li key={deal.id}>
-                <a
-                  href={deal.url}
-                  target="_blank"
-                  rel="noopener"
-                  className="underline-offset-2 hover:underline"
-                >
-                  {deal.name}
-                </a>{" "}
-                <span className="font-bold">{gbp(deal.nowPrice)}</span>
-              </li>
-            ))}
-          </ul>
+          {visible.length > 0 ? (
+            <DealGrid deals={visible} serverStart={serverStartOf(deals)} />
+          ) : (
+            <NoDeals
+              deals={deals}
+              values={values}
+              onChange={(next) => void actions.set(next)}
+              onClearAll={() => void actions.clearAll()}
+            />
+          )}
         </>
       ) : query.isError ? (
         <ErrorState error={query.error} onRetry={retry} retrying={query.isFetching} />
@@ -61,6 +58,39 @@ export function DealsPage() {
         </div>
       )}
     </>
+  );
+}
+
+type NoDealsProps = {
+  deals: readonly Deal[];
+  values: FilterState;
+  onChange: (next: Partial<FilterState>) => void;
+  onClearAll: () => void;
+};
+
+function NoDeals({ deals, values, onChange, onClearAll }: NoDealsProps) {
+  if (deals.length === 0) {
+    return (
+      <EmptyState
+        title="No deals right now"
+        hint="Nothing in the sale is 30% off or more at the moment. The list refreshes every 5 minutes."
+        actions={[]}
+      />
+    );
+  }
+  const { title, hint, suggestions } = explainEmpty(deals, values);
+  return (
+    <EmptyState
+      title={title}
+      hint={hint}
+      actions={[
+        ...suggestions.map((suggestion) => ({
+          label: suggestion.label,
+          onClick: () => onChange(suggestion.next),
+        })),
+        { label: "Clear all filters", onClick: onClearAll },
+      ]}
+    />
   );
 }
 

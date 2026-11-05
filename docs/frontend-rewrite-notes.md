@@ -73,3 +73,13 @@ Precedence: backend code > spec > guide.
 - Old toggle-to-clear sort behaviour is gone, as specced; a test pins it.
 - Legacy specs are fully ported and `frontend/legacy/` is deleted.
 - JS is 103.17 KB, under the interim 107 KB limit.
+
+### Phase 4
+
+- **Card name: content, not `aria-label` (spec code vs WCAG).** The spec's card sets `aria-label={describeDeal(deal)}`. axe in a real browser flags all 81 cards for "label in name" (WCAG 2.5.3): the label replaces the visible text, so speech-input users can't say what they see. The link is now named by its own content, with visually hidden words where a visual cue needs them ("was", ", 67% off", "Sizes", ", new"). Badges stay `aria-hidden`, so the price and discount are read once; a test pins the whole name.
+- **NEW marker and "found" time vs the backend clock.** Timestamps reset on every deploy, so a plain "found under 2 h ago" would mark the whole list NEW after each deploy. The earliest timestamp in the full list is taken as the server start: deals from that batch show no found time and are never NEW; only later arrivals are. (The contract suggests hiding the label near backend start; this does that without calling `/health`.)
+- Card titles are `h2`, not the spec's `h3`: axe flags a jump from the page `h1` straight to `h3`.
+- The empty state gives one button per way out ("Show 12 deals at 50% or more", "Show 30 deals in any size", "Show 5 deals without the search", "Clear all filters") under a title like "No deals at 70% or more in size M", instead of the spec's longer sentence. The reasoning lives in `filters/model/explainEmpty.ts`; `EmptyState` only renders it. An empty backend list gets its own "No deals right now".
+- The skeleton / empty / error / cards switch stays in `DealsPage`; `DealGrid` renders cards only.
+- Phase 4's "Playwright screenshots at 390 px and 1280 px" are attached to the report, but not compared against baselines: this sandbox's Chromium (1243) and CI's (1248) render differently, so pixel baselines would fail on one of them. The same tests assert the behaviour: 2 and 5 columns, no horizontal scroll, layout shift under 0.05. Product images are stubbed in e2e, so tests never reach the CDN.
+- "+N" for sizes: the narrow-screen variant (3 shown) is hidden from screen readers so the count isn't read twice; they hear the wide-screen one.
