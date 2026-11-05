@@ -12,4 +12,4 @@ export { useDealFacets } from "./hooks/useDealFacets";
 export { dealsQueryOptions, useDealsQuery } from "./hooks/useDealsQuery";
 export type { Deal } from "./model/Deal";
 export { serverStartOf } from "./model/describe";
-export { compareSizes, type SizeFacet, type SizeGroup } from "./model/sizes";
+export { compareSizes, type SizeFacet, type SizeGroup, sizeGroup } from "./model/sizes";

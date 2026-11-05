@@ -11,6 +11,13 @@ export const SORTS = [
 export type SortId = (typeof SORTS)[number];
 export const DEFAULT_SORT: SortId = "discount-high-to-low";
 
+export const SORT_LABELS: Record<SortId, string> = {
+  "discount-high-to-low": "Best discount",
+  "discount-low-to-high": "Smallest discount",
+  "price-low-to-high": "Lowest price",
+  "price-high-to-low": "Highest price",
+};
+
 export const sortParser = parseAsStringLiteral(SORTS).withDefault(DEFAULT_SORT);
 
 // Each sort breaks its own ties with the other key; equal deals keep their incoming order.
