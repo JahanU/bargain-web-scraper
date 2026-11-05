@@ -1,9 +1,6 @@
 # Bun's own configuration: https://bun.com/docs/runtime/bunfig
 
 [install]
-# Always the public npm registry, whatever a machine's global ~/.bunfig.toml or ~/.npmrc says,
-# so the lockfile stays portable (it records non-default registries as full tarball URLs).
-registry = "https://registry.npmjs.org/"
 # `bun add` writes exact versions ("1.2.3", not "^1.2.3"), so installs are reproducible.
 exact = true
 
