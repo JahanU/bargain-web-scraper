@@ -6,5 +6,7 @@ export { ErrorState } from "./components/ErrorState";
 export { LastUpdated } from "./components/LastUpdated";
 export { ResultsSummary } from "./components/ResultsSummary";
 export { StaleBanner } from "./components/StaleBanner";
+export { useDealFacets } from "./hooks/useDealFacets";
 export { dealsQueryOptions, useDealsQuery } from "./hooks/useDealsQuery";
 export type { Deal } from "./model/Deal";
+export { compareSizes, type SizeFacet, type SizeGroup } from "./model/sizes";

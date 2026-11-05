@@ -51,7 +51,7 @@ Precedence: backend code > spec > guide.
 ### Phase 2
 
 - **Initial JavaScript budget can't be met with the specced stack (needs your call).** Measured gzipped, each in isolation: React + React DOM 19.3 is 67.2 KB (the spec assumed about 45), TanStack Query 10.5, zod/mini 7.2, the persister 2.7, three Lucide icons 2.5. Phase 2 builds at 96.99 KB against 90 KB; nuqs (phase 3) and Base UI (phase 5, about 15) will push it to about 120 KB. **Decision (owner, 5 Nov):** don't let the budget block the rewrite; review later. The limit now tracks measured + 10 % (107 KB at phase 2) and is raised the same way when a phase adds a library, each time noted here.
-- **Fixed a persistence gap.** `main.tsx` prefetches before render, so the first response can land before the persister subscribes and never be saved. `AppProviders` now saves once restoring finishes. An e2e test (returning visitor, API down) fails without the fix.
+- **Fixed a persistence gap.** `main.tsx` prefetches before render, so the first response could land before the persister subscribed and never be saved. (Phase 3 replaced the first fix, which still raced; see below.) An e2e test (returning visitor, API down) covers it.
 - Retry-After: the old spec treated an unreasonable value (99999) as "use 10 s"; this spec says clamp to 1–60, so it waits 60 s.
 - "Three attempts" for network and 5xx is read as TanStack's three retries (four requests in all).
 - An unknown `gender` becomes "Unisex" instead of dropping the deal, since the backend types it as a plain string.
@@ -60,3 +60,16 @@ Precedence: backend code > spec > guide.
 - `dev:mock` serves the fixture through MSW; add `?mock=loading`, `?mock=bad-gateway` or `?mock=offline` to see the failure states. `public/mockServiceWorker.js` is copied into `dist` but never loaded there, and no MSW code ends up in the production JavaScript.
 - Tests get `VITE_API_URL` from `vite.config.ts` (`test.env`); `dev:mock` reads `.env.mock`.
 - **Header deal count left out.** The layout shows "JD Sports UK · 81 deals" in the header, but the spec makes `DealsPage` the only reader of deal state and marks the header presentational; the count is in the results summary. The footer's "Last updated" is a small deals-feature component that reads the query (server state only).
+
+### Phase 3
+
+- **`useDealFacets` placement (conflict inside the spec).** The tree puts `useDealFacets(deals, values)` in `deals/`, but it needs filter values and deals must never import filters. It's `useDealFacets(deals)` in `deals/`, counting sizes over whatever list it gets; `useFilteredDeals` (filters) returns both the visible deals and the deals filtered by everything except sizes, and the page passes the latter in.
+- **filters → deals carries one function, not only types.** Writing sizes "in canonical order" needs the size order, which lives in `deals/model/sizes.ts`, so the registry imports `compareSizes` from `@/features/deals`. Deals still never imports filters.
+- **Persistence, done properly.** `PersistQueryClientProvider` saves in `onSuccess` but subscribes only after the next render, so a response landing in between was lost (the e2e test failed about 2 runs in 3). `main.tsx` now restores, subscribes, then prefetches, then renders (`persistQueryClient` from TanStack); `AppProviders` is a plain `QueryClientProvider`. Side benefit: a saved snapshot is in the cache before the first render. 5 of 5 runs pass.
+- Sizes in a URL keep their given order when read (as before) and are written in canonical order.
+- Search is trimmed when read and when written, and capped at 64 characters when read.
+- `clearAll` resets the filters but keeps the sort, since sort isn't a filter.
+- Discount is a filter only when it isn't the default (30), as the spec says ("composes only the active predicates"). That equals the backend floor today; if `MIN_DISCOUNT` is ever lowered, the default view would show deals under 30 %.
+- Old toggle-to-clear sort behaviour is gone, as specced; a test pins it.
+- Legacy specs are fully ported and `frontend/legacy/` is deleted.
+- JS is 103.17 KB, under the interim 107 KB limit.

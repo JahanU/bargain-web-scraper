@@ -1,0 +1,21 @@
+import { useDeferredValue, useMemo } from "react";
+import type { Deal } from "@/features/deals";
+import { type FilterState, applyFilters } from "../model/applyFilters";
+
+/**
+ * The visible deals, plus the deals filtered by everything except sizes (for the size counts).
+ * Search is deferred so typing stays responsive while the list catches up.
+ */
+export function useFilteredDeals(deals: readonly Deal[] | undefined, values: FilterState) {
+  const search = useDeferredValue(values.search);
+  const { discount, sizes, sort } = values;
+  // The one explicit memo: the filter pass is the only per-keystroke work over every deal.
+  return useMemo(() => {
+    if (!deals) return { visible: undefined, withoutSizeFilter: undefined };
+    const deferred = { search, discount, sizes, sort };
+    return {
+      visible: applyFilters(deals, deferred),
+      withoutSizeFilter: applyFilters(deals, deferred, "sizes"),
+    };
+  }, [deals, search, discount, sizes, sort]);
+}
