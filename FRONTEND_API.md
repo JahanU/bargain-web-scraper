@@ -31,7 +31,7 @@ Everything the frontend needs to know to work with the rewritten backend: the en
 | `GET` | `/webscrape/getBestDeals` | Same response. Kept for the current frontend; switch to `/v1/deals`. |
 | `GET` | `/health` (also `/`) | Backend status (optional: a status banner, debugging) |
 
-Anything else returns `404` with `{ "error": "Not Found" }`. The old `/firebase/*`, `/telegram/*`, `/client/*` and `/jobs/scrape` endpoints are gone.
+Anything else returns `404` with `{ "error": "Not Found" }`. The old `/firebase/*`, `/telegram/*` and `/client/*` endpoints are gone.
 
 ---
 
@@ -57,7 +57,7 @@ export interface Deal {
     imageUrl?: string;
     /** Sizes in stock, e.g. ["7", "8", "9"]. The key is absent if unknown. */
     sizes?: string[];
-    /** When the backend first saw this product, in ms since epoch (see caveats). */
+    /** When the backend first saw this product in the sale, in ms since epoch (see caveats). */
     timestamp: number;
     /** From the sale listing it came from; "Unisex" if it's in both men's and women's sales. */
     gender: 'Male' | 'Female' | 'Unisex';
@@ -227,6 +227,6 @@ interface Health {
 
 ## Caveats
 
-- **`timestamp` resets on every backend deploy or restart.** The backend keeps everything in memory, so right after a deploy every deal shows the same "found" time. Prefer a relative label ("found 2h ago"), and consider hiding it when it's within a few minutes of the backend starting.
+- **`timestamp` resets on every backend deploy or restart**, and when an item sells out and later comes back. The backend keeps everything in memory, so right after a deploy every deal shows the same "found" time. Prefer a relative label ("found 2h ago"), and consider hiding it when it's within a few minutes of the backend starting.
 - **`gender` comes from the sale listing URL**, not the product itself, so treat it as a hint.
 - **One retailer (JD Sports UK) today.** More retailers would appear in the same list with the same shape; nothing in this contract would change.

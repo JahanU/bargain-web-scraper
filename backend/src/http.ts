@@ -42,7 +42,7 @@ export function routes(deals: () => Deal[] | undefined, health: () => object) {
 }
 
 /** Anything that isn't a known route. */
-export const notFound = logged(() => Response.json({ error: 'Not Found' }, { status: 404 }));
+export const notFound = logged(() => Response.json({ error: 'Not Found' }, { status: 404, headers: CORS }));
 
 const STATUS_NOTES: Record<number, string> = { 404: ' not found', 503: ' still loading' };
 
