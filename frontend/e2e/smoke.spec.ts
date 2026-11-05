@@ -31,3 +31,28 @@ test("the self-hosted Archivo font loads", async ({ page }) => {
   });
   expect(loaded).toBe(true);
 });
+
+test("the head declares a real title, description, manifest and icons, and they are served", async ({
+  page,
+  request,
+}) => {
+  await page.goto("/");
+  await expect(page).toHaveTitle("Bargain: the biggest discounts on JD Sports UK");
+  await expect(page.locator('meta[name="description"]')).toHaveAttribute(
+    "content",
+    /30% off or more/,
+  );
+
+  for (const path of [
+    "/manifest.webmanifest",
+    "/favicon.svg",
+    "/apple-touch-icon.png",
+    "/icon-192.png",
+    "/icon-512.png",
+    "/robots.txt",
+  ]) {
+    expect((await request.get(path)).status(), path).toBe(200);
+  }
+  const manifest = await (await request.get("/manifest.webmanifest")).json();
+  expect(manifest).toMatchObject({ short_name: "Bargain", start_url: "/", display: "standalone" });
+});

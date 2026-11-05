@@ -95,3 +95,13 @@ Precedence: backend code > spec > guide.
 - The "Filters (n)" count leaves out search, since search sits outside the sheet.
 - A selected size that the other filters have emptied still shows (count 0), so it can be turned off.
 - jsdom has no `showModal`; `src/test/setup.ts` adds a minimal stand-in, and the real modal behaviour (focus, Escape, axe with the sheet open) is tested in Playwright.
+
+### Phase 6
+
+- **Lighthouse (needs the deploy preview).** Measured locally against `vp preview` with a local API serving the fixture (mobile, simulated throttling): performance 90, accessibility 100, best practices 96, SEO 100; CLS 0, FCP 0.8 s, LCP 3.0 s, TBT 240 ms. This sandbox can't reach the image CDN, so the scores are indicative and the spec's check (≥ 95 / 100) has to run on the Netlify deploy preview. The LCP element was the first card title, painted once about 550 ms of script has run under 4× CPU throttling; the largest long task (256 ms) is in the vendor chunk with Base UI. If the preview lands under 95, the levers are the Base UI items in the phase 5 notes (about 50 KB), then inlining the 6 KB stylesheet (Lighthouse estimates 150 ms of render blocking).
+- **Budgets tightened to measured + 10 %:** initial JS 170 KB (measured 154.9), filter sheet 1.8 KB (1.6), About dialog 4 KB (3.6; the spec said about 2), CSS 6.8 KB (6.0, the spec allowed 15). The font stays at 40 KB (39.96 KB).
+- The About dialog imports `Dialog` from its own file rather than the `shared/ui` index: through the index, Base UI's Dialog landed in the initial bundle. `Dialog` is no longer exported from the index.
+- The API preconnect comes from `VITE_API_URL` (Vite's `%VITE_API_URL%` in `index.html`), so each build preconnects to its own backend.
+- The favicon is the diamond alone, as the spec says. The PNG icons (180, 192, 512 maskable) are the traced emblem on the light page colour, inside the maskable safe zone. `og:image` uses the 512 icon; there is no 1200×630 social image.
+- About copy is factual: what's listed (30 % off or more, JD Sports UK), refresh every 5 minutes, sold-out items drop off, check prices on JD before buying, not affiliated, link to the source.
+- README: frontend stack, commands (`dev`, `dev:mock`, `check`) and links to the spec and these notes; the Redux and Google Analytics mentions are gone.

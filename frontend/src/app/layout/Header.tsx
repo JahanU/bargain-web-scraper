@@ -1,4 +1,5 @@
 import { ExternalLink } from "lucide-react";
+import { AboutButton } from "@/features/about";
 import { ThemeToggle } from "@/features/theme";
 import { Brand } from "./Brand";
 
@@ -11,6 +12,7 @@ export function Header() {
         <Brand />
         <div className="ml-auto flex items-center gap-1">
           <ThemeToggle />
+          <AboutButton />
           <a
             href={REPO_URL}
             target="_blank"

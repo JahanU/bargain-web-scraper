@@ -44,3 +44,18 @@ test("the GitHub link says it opens a new tab", () => {
     "_blank",
   );
 });
+
+test("the About button opens a factual dialog, and Escape returns focus", async () => {
+  renderWithClient(<App />);
+  const about = screen.getByRole("button", { name: "About Bargain" });
+
+  await userEvent.click(about);
+
+  const dialog = await screen.findByRole("dialog", { name: "About Bargain" });
+  expect(dialog).toHaveTextContent("30% off or more");
+  expect(dialog).toHaveTextContent("Not affiliated with JD Sports.");
+
+  await userEvent.keyboard("{Escape}");
+  await expect.poll(() => screen.queryByRole("dialog")).toBeNull();
+  expect(about).toHaveFocus();
+});

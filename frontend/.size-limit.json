@@ -1,17 +1,23 @@
 [
   {
     "name": "Initial JavaScript",
-    "path": ["dist/assets/*.js", "!dist/assets/FilterSheet-*.js"],
-    "limit": "168 kB",
+    "path": ["dist/assets/*.js", "!dist/assets/FilterSheet-*.js", "!dist/assets/AboutDialog-*.js"],
+    "limit": "170 kB",
     "gzip": true
   },
   {
     "name": "Filter sheet (lazy)",
     "path": "dist/assets/FilterSheet-*.js",
+    "limit": "1.8 kB",
+    "gzip": true
+  },
+  {
+    "name": "About dialog (lazy)",
+    "path": "dist/assets/AboutDialog-*.js",
     "limit": "4 kB",
     "gzip": true
   },
-  { "name": "CSS", "path": "dist/assets/*.css", "limit": "15 kB", "gzip": true },
+  { "name": "CSS", "path": "dist/assets/*.css", "limit": "6.8 kB", "gzip": true },
   {
     "name": "Font",
     "path": "public/fonts/archivo-vf.woff2",

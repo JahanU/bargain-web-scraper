@@ -3,11 +3,11 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Bargain: the biggest discounts on JD Sports UK</title>
     <meta
       name="description"
-      content="The best discounts on JD Sports UK, updated every 5 minutes."
+      content="The biggest discounts on JD Sports UK, 30% off or more, refreshed every 5 minutes. Filter by size, discount and price."
     />
-    <title>Bargain</title>
     <!-- Sets the theme before first paint (no flash). Same rule as features/theme/themeStore.ts. -->
     <script>
       try {
@@ -17,6 +17,22 @@
         document.documentElement.dataset.theme = t;
       } catch (e) {}
     </script>
+    <!-- Start the connections the first render needs: the deals API and the image CDN. -->
+    <link rel="preconnect" href="%VITE_API_URL%" crossorigin />
+    <link rel="preconnect" href="https://i8.amplience.net" />
+    <link rel="preload" href="/fonts/archivo-vf.woff2" as="font" type="font/woff2" crossorigin />
+    <meta name="theme-color" content="#fbfaf8" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#161412" media="(prefers-color-scheme: dark)" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Bargain" />
+    <meta property="og:title" content="Bargain: the biggest discounts on JD Sports UK" />
+    <meta property="og:description" content="30% off or more, refreshed every 5 minutes." />
+    <meta property="og:url" content="https://bargain-scraper.netlify.app/" />
+    <meta property="og:image" content="https://bargain-scraper.netlify.app/icon-512.png" />
+    <meta name="twitter:card" content="summary" />
   </head>
   <body>
     <div id="root"></div>

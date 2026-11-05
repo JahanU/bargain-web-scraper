@@ -4,9 +4,9 @@
 👕 https://bargain-scraper.netlify.app/
 
 ## Overview 🤔
-- Finds heavily discounted clothing on JD Sports UK every few minutes and shows it in a clean, minimal React web app
+- Finds heavily discounted clothing on JD Sports UK every few minutes and shows it in a fast, accessible React web app that works on phones and desktops
 - Tracks stock: sold-out items disappear from the site on the next scrape and come back if restocked
-- ```Bun, TypeScript, React, Redux, Tailwind CSS```
+- ```Bun, TypeScript, React 19, Vite+, Tailwind CSS 4, TanStack Query, nuqs```
 
 ## Architecture
 
@@ -26,10 +26,11 @@ flowchart LR
 
 ## Features 🚀
 ### Frontend
-- [React Web App](https://bargain-scraper.netlify.app/)
-- Redux
-- Tailwind CSS
-- React Router (search params for filters)
+- [React Web App](https://bargain-scraper.netlify.app/): search, minimum discount, clothing and footwear sizes, and sort, all kept in the URL so links can be shared
+- Bun + Vite+ (Vite, Vitest, Oxlint, Oxfmt in one `vite.config.ts`), React 19 with the React Compiler, Tailwind CSS 4 with light and dark themes
+- TanStack Query with the last list saved in the browser, so returning visitors see deals at once while the server wakes
+- Tests assert behaviour (roles, names, URL writes, network effects): Vitest with Testing Library, MSW and axe; Playwright end to end with axe in both themes
+- See [docs/frontend-rewrite-spec.md](docs/frontend-rewrite-spec.md) for the design and [docs/frontend-rewrite-notes.md](docs/frontend-rewrite-notes.md) for decisions made while building it
 
 ### Backend
 - Bun with zero runtime dependencies (built-in HTTP server)
@@ -43,16 +44,17 @@ flowchart LR
 ### Tech 💻
 - Frontend hosted on Netlify
 - Backend hosted on Render
-- Git hooks (`.githooks/`, installed by `bun install` in `backend/`): typecheck + lint before each commit and the full checks before each push, for whichever app changed. An app opts in by defining `check:commit` / `check:push` scripts in its `package.json`
+- Git hooks (`.githooks/`, installed by `bun install` in `backend/` or `frontend/`): typecheck + lint before each commit and the full checks before each push, for whichever app changed. An app opts in by defining `check:commit` / `check:push` scripts in its `package.json`
 - GitHub Actions CI on every PR and push to main (`.github/workflows/ci.yml`); require the **CI passed** check before merging
 - Automatic deployments from main
-- Google Analytics
 
 ## Installation
 ```bash
 cd frontend
-npm install
-npm start
+bun install
+bun run dev        # against the backend on localhost:8000
+bun run dev:mock   # no backend needed: serves a saved list (add ?mock=loading, ?mock=bad-gateway or ?mock=offline)
+bun run check      # what CI runs: format, lint, types, tests, build, size budgets
 ```
 
 ```bash

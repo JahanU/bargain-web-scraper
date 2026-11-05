@@ -1,7 +1,6 @@
 export { Badge } from "./Badge";
 export { Button } from "./Button";
 export { Chip } from "./Chip";
-export { Dialog } from "./Dialog";
 export { IconButton } from "./IconButton";
 export { Popover } from "./Popover";
 export { Skeleton } from "./Skeleton";
