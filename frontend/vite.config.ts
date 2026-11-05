@@ -22,6 +22,12 @@ export default defineConfig({
     environment: "jsdom",
     setupFiles: ["./src/test/setup.ts"],
     include: ["src/**/*.test.{ts,tsx}"],
+    env: { VITE_API_URL: "http://localhost:8000" },
+    coverage: {
+      provider: "v8",
+      include: ["src/features/*/model/**", "src/features/*/api/**"],
+      thresholds: { lines: 90, functions: 90, branches: 90, statements: 90 },
+    },
   },
   fmt: {
     ignorePatterns: ["legacy/**", "dist/**", "playwright-report/**", "test-results/**"],

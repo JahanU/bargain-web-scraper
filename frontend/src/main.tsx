@@ -1,13 +1,27 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { App } from "@/app/App";
+import { AppProviders } from "@/app/providers/AppProviders";
+import { queryClient } from "@/app/providers/queryClient";
+import { dealsQueryOptions } from "@/features/deals";
 import "@/styles/index.css";
+
+// `bun run dev:mock` serves the fixture through MSW; the import is dropped from other builds.
+if (import.meta.env.MODE === "mock") {
+  const { startMockWorker } = await import("@/mocks/browser");
+  await startMockWorker();
+}
+
+// Start the request before React renders anything.
+void queryClient.prefetchQuery(dealsQueryOptions);
 
 const root = document.getElementById("root");
 if (!root) throw new Error("#root is missing from index.html");
 
 createRoot(root).render(
   <StrictMode>
-    <App />
+    <AppProviders client={queryClient}>
+      <App />
+    </AppProviders>
   </StrictMode>,
 );
