@@ -1,8 +1,10 @@
-// Phase 0 placeholder; replaced by AppProviders > AppShell > DealsPage.
+import { AppShell } from "./layout/AppShell";
+
+// Phase placeholder until DealsPage (phase 2); AppProviders arrive with the data layer.
 export function App() {
   return (
-    <main>
-      <h1>Bargain</h1>
-    </main>
+    <AppShell>
+      <h1 className="text-sm font-semibold text-text-muted">Deals</h1>
+    </AppShell>
   );
 }

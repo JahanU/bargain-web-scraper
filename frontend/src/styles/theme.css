@@ -1,0 +1,57 @@
+/* Design tokens (spec: Design system). Utilities read the variables, so dark mode is a
+   variable swap on [data-theme="dark"], set before first paint by the script in index.html. */
+@theme {
+  /* Only these colours exist; Tailwind's default palette is switched off. */
+  --color-*: initial;
+  --color-accent: oklch(53% 0.2 20);
+  --color-accent-fg: oklch(100% 0 0);
+  --color-surface: oklch(98.5% 0.004 80);
+  --color-surface-raised: oklch(100% 0 0);
+  --color-surface-sunken: oklch(96% 0.006 80);
+  --color-image-plate: oklch(97% 0.004 80);
+  --color-border: oklch(90% 0.006 80);
+  --color-border-strong: oklch(80% 0.006 80);
+  --color-text: oklch(18% 0.006 80);
+  --color-text-muted: oklch(50% 0.006 80);
+  --color-text-faint: oklch(65% 0.006 80);
+  --color-warning-bg: oklch(93% 0.06 85);
+  --color-warning-fg: oklch(35% 0.08 75);
+  --color-focus: var(--color-accent);
+
+  --radius-*: initial;
+  --radius-xs: 2px;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+
+  --font-sans: "Archivo", "Archivo Fallback", ui-sans-serif, system-ui, sans-serif;
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+  --color-accent: oklch(70% 0.19 20);
+  --color-accent-fg: oklch(16% 0.006 80);
+  --color-surface: oklch(16% 0.006 80);
+  --color-surface-raised: oklch(20% 0.007 80);
+  --color-surface-sunken: oklch(13% 0.005 80);
+  /* Stays light: product photos are baked onto white. */
+  --color-image-plate: oklch(90% 0.006 80);
+  --color-border: oklch(28% 0.006 80);
+  --color-border-strong: oklch(38% 0.006 80);
+  --color-text: oklch(95% 0.006 80);
+  --color-text-muted: oklch(70% 0.006 80);
+  --color-text-faint: oklch(55% 0.006 80);
+  --color-warning-bg: oklch(28% 0.05 80);
+  --color-warning-fg: oklch(85% 0.12 85);
+}
+
+/* Motion: 120, 180 and 260 ms, all off under reduced motion (base.css). */
+@utility duration-fast {
+  transition-duration: 120ms;
+}
+@utility duration-base {
+  transition-duration: 180ms;
+}
+@utility duration-slow {
+  transition-duration: 260ms;
+}

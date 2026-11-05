@@ -34,3 +34,14 @@ Precedence: backend code > spec > guide.
 - `playwright.config.ts` honours an optional `PLAYWRIGHT_CHROMIUM_PATH`, for machines with a preinstalled Chromium that doesn't match Playwright's version. CI installs its own.
 - CI `frontend` job keeps `actions/setup-node` (pinned through `.node-version`) next to `setup-bun`, because Vite+ runs on Node and the spec needs Node 22.18 or later.
 - The 90 percent coverage gate on `model` and `api` folders is added in phase 2, when those folders exist.
+
+### Phase 1
+
+- **Font budget vs font spec (conflict inside the spec).** Archivo with the full axes (weight 100–900, width 62–125) is 90 KB as a latin woff2, and 46 KB even cut down to the glyphs this page uses. The budget is 40 KB. The axes are narrowed to what the type scale uses (weight 400–800, width 90–125), and the glyphs to ASCII plus `£ · × ≥ − – — … ‘ ’ “ ”`: 39,960 bytes. A heavier or narrower cut, or a new character, means re-cutting the file (fonttools `varLib.instancer` then `pyftsubset`) or raising the budget.
+- The fallback face's metric overrides were measured against Liberation Sans, which shares Arial's metrics.
+- The traced emblem is 2.4 KB gzipped (spec: about 1–2 KB). Its strokes use the text colour so they stay visible in dark mode; the diamond uses the accent.
+- **Dialog: Base UI or native `<dialog>`?** The stack table lists Base UI Dialog; the binding accessibility list says the mobile sheet is a native `dialog` opened modally. `shared/ui/Dialog` wraps Base UI (for AboutDialog), and phase 5's FilterSheet will be a native `<dialog>`. Say if you'd rather have one mechanism.
+- **Telegram link left out.** The desktop layout shows "GitHub↗ Telegram↗", but the bot is gone from the backend and no Telegram URL appears anywhere in the repo or spec. Header has GitHub only.
+- The header's deal count and the footer's last-updated time need data, so they arrive in phase 2.
+- The theme toggle is a two-state "Dark theme" button (`aria-pressed`). A stored choice overrides the system from then on; there is no "back to system" option because the spec doesn't ask for one.
+- Tailwind's default colour palette and radii are switched off in `theme.css`, so only the spec's tokens and the 2/4/6/8 px radii exist. Motion durations are `duration-fast`, `duration-base` and `duration-slow` utilities.

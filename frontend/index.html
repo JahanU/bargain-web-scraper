@@ -8,6 +8,15 @@
       content="The best discounts on JD Sports UK, updated every 5 minutes."
     />
     <title>Bargain</title>
+    <!-- Sets the theme before first paint (no flash). Same rule as features/theme/themeStore.ts. -->
+    <script>
+      try {
+        var t = localStorage.getItem("theme");
+        if (t !== "light" && t !== "dark")
+          t = matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+        document.documentElement.dataset.theme = t;
+      } catch (e) {}
+    </script>
   </head>
   <body>
     <div id="root"></div>
