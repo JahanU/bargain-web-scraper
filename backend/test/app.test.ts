@@ -173,6 +173,9 @@ describe('HTTP', () => {
         // Callable from the browser frontend (a different origin).
         expect((await get('/health')).headers.get('Access-Control-Allow-Origin')).toBe('*');
         expect((await get('/')).status).toBe(200);
-        expect((await get('/nope')).status).toBe(404);
+        const notFound = await get('/nope');
+        expect(notFound.status).toBe(404);
+        // Readable from the browser frontend, rather than surfacing as a CORS network error.
+        expect(notFound.headers.get('Access-Control-Allow-Origin')).toBe('*');
     });
 });
