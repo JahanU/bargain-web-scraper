@@ -87,20 +87,24 @@ jobs:
 
       - uses: actions/setup-node@v7
         with:
-          node-version: 22
-          cache: npm
-          cache-dependency-path: frontend/package-lock.json
+          node-version-file: frontend/.node-version
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.4
 
       - name: Install
-        run: npm ci
+        run: bun install --frozen-lockfile
 
-      - name: Typecheck
-        run: npx tsc --noEmit
+      # vp check (format, lint, types) + vp test + vp build + size-limit
+      - name: Check
+        run: bun run check
 
-      - name: Test
-        run: npm test -- --watchAll=false
-        env:
-          CI: true
+      - name: Install Playwright Chromium
+        run: bunx playwright install --with-deps chromium
+
+      - name: End-to-end (Chromium)
+        run: bun run test:e2e --project=chromium
 
   # The one check to mark as required in the branch ruleset. It always runs, passes when
   # every job above passed or was skipped (nothing relevant changed), and fails otherwise.

@@ -81,7 +81,7 @@ The backend was rewritten on the `feature/v2-rewrite` branch: Bun with zero runt
 | `url` | string | Unique per product; the React key. |
 | `imageUrl` | string, absent when unknown | Amplience CDN, now a bare `/i/jpl/<id>` path with no size parameters; the client appends `w`, `h`, `qlt` and `fmt=auto`. |
 | `sizes` | string array, absent when unknown | Never an empty array. The current listing is men's Nike footwear, so values are mostly shoe sizes; clothing sizes return when more listings are enabled. |
-| `timestamp` | number (ms) | When this backend process first saw the product. **Resets on every deploy or restart**, so right after a deploy every deal shares the same time. |
+| `timestamp` | number (ms) | When this backend process first saw the product. **Resets on every deploy or restart**, and again when an item sells out and later returns, so right after a deploy every deal shares the same time. |
 | `gender` | "Male", "Female" or "Unisex" | Derived from the listing URL; Unisex when a product sits in both. Treat as a hint. |
 
 Removed from the old shape: `inStock` (everything listed is in stock).

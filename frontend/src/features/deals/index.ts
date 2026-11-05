@@ -1,0 +1,15 @@
+export { ApiError } from "./api/ApiError";
+export type { WireDeal } from "./api/dealSchema";
+export { dealsKeys } from "./api/queryKeys";
+export { DealGrid } from "./components/DealGrid";
+export { DealGridSkeleton } from "./components/DealGridSkeleton";
+export { EmptyState } from "./components/EmptyState";
+export { ErrorState } from "./components/ErrorState";
+export { LastUpdated } from "./components/LastUpdated";
+export { ResultsSummary } from "./components/ResultsSummary";
+export { StaleBanner } from "./components/StaleBanner";
+export { useDealFacets } from "./hooks/useDealFacets";
+export { dealsQueryOptions, useDealsQuery } from "./hooks/useDealsQuery";
+export type { Deal } from "./model/Deal";
+export { serverStartOf } from "./model/describe";
+export { compareSizes, type SizeFacet, type SizeGroup, sizeGroup } from "./model/sizes";

@@ -1,0 +1,19 @@
+/* Archivo variable, latin subset, cut to the axes the type scale uses (weight 400–800,
+   width 90–125) so it fits the 40 KB budget. SIL OFL: public/fonts/archivo-OFL.txt. */
+@font-face {
+  font-family: "Archivo";
+  src: url("/fonts/archivo-vf.woff2") format("woff2");
+  font-weight: 400 800;
+  font-stretch: 90% 125%;
+  font-display: swap;
+}
+
+/* Arial resized to Archivo's metrics, so swapping fonts doesn't move the layout. */
+@font-face {
+  font-family: "Archivo Fallback";
+  src: local("Arial"), local("Liberation Sans");
+  size-adjust: 100.46%;
+  ascent-override: 87.4%;
+  descent-override: 20.9%;
+  line-gap-override: 0%;
+}
