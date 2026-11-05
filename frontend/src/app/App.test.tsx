@@ -1,9 +1,19 @@
 import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { expect, test } from "vite-plus/test";
+import { http, HttpResponse } from "msw";
+import { beforeEach, expect, test } from "vite-plus/test";
 import { axe } from "vitest-axe";
+import { server } from "@/mocks/server";
+import { makeDeal } from "@/test/makeDeal";
 import { renderWithClient } from "@/test/render";
 import { App } from "./App";
+
+// The shell doesn't need the full fixture; a short list keeps these tests fast.
+beforeEach(() => {
+  server.use(
+    http.get("http://localhost:8000/v1/deals", () => HttpResponse.json([makeDeal(), makeDeal()])),
+  );
+});
 
 test("has header, main and footer landmarks and no axe violations", async () => {
   const { container } = renderWithClient(<App />);

@@ -27,18 +27,30 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-test("success: every deal is listed with its count, and axe is clean", async () => {
-  const { container } = renderWithClient(<DealsPage />);
+test("success: every deal is listed with its count", async () => {
+  renderWithClient(<DealsPage />);
 
   expect(await screen.findByText("81 deals")).toBeInTheDocument();
   expect(screen.getAllByRole("link")).toHaveLength(81);
-  const card = screen.getByRole("link", {
-    name: /^Nike NFL Las Vegas Raiders Helmet T-Shirt £10 was £30/,
-  });
+  // Naming one card directly: computing names for all 81 links is slow in jsdom.
+  const card = screen.getByText("Nike NFL Las Vegas Raiders Helmet T-Shirt").closest("a");
+  expect(card).toHaveAccessibleName(/^Nike NFL Las Vegas Raiders Helmet T-Shirt £10 was £30/);
   expect(card).toHaveAttribute(
     "href",
     "https://www.jdsports.co.uk/product/black-nike-nfl-las-vegas-raiders-helmet-t-shirt/19599668/",
   );
+});
+
+test("the loaded page has no axe violations", async () => {
+  // A few deals: axe over all 81 cards takes ~5 s in jsdom; the full page is checked in e2e.
+  server.use(
+    http.get(URL, () =>
+      HttpResponse.json([makeDeal(), makeDeal({ sizes: undefined, wasPrice: 0 })]),
+    ),
+  );
+  const { container } = renderWithClient(<DealsPage />);
+
+  expect(await screen.findByText("2 deals")).toBeInTheDocument();
   expect(await axe(container)).toHaveNoViolations();
 });
 
