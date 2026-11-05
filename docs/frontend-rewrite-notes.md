@@ -6,6 +6,8 @@ conflicted with the spec, where the spec and the backend code disagree, and call
 
 Precedence: backend code > spec > guide.
 
+**Owner's standing instruction (5 Nov):** anything flexible (budgets, small spec gaps) must not block the rewrite. Make the sensible call, record it here, and it gets reviewed afterwards.
+
 ## Guide vs spec (spec wins)
 
 | Guide says | Spec says | What was done |
@@ -48,7 +50,7 @@ Precedence: backend code > spec > guide.
 
 ### Phase 2
 
-- **Initial JavaScript budget can't be met with the specced stack (needs your call).** Measured gzipped, each in isolation: React + React DOM 19.3 is 67.2 KB (the spec assumed about 45), TanStack Query 10.5, zod/mini 7.2, the persister 2.7, three Lucide icons 2.5. Phase 2 builds at 96.99 KB against 90 KB; nuqs (phase 3) and Base UI (phase 5, about 15) will push it to about 120 KB. `bun run check` fails only on this, so phase 2 is committed but not pushed.
+- **Initial JavaScript budget can't be met with the specced stack (needs your call).** Measured gzipped, each in isolation: React + React DOM 19.3 is 67.2 KB (the spec assumed about 45), TanStack Query 10.5, zod/mini 7.2, the persister 2.7, three Lucide icons 2.5. Phase 2 builds at 96.99 KB against 90 KB; nuqs (phase 3) and Base UI (phase 5, about 15) will push it to about 120 KB. **Decision (owner, 5 Nov):** don't let the budget block the rewrite; review later. The limit now tracks measured + 10 % (107 KB at phase 2) and is raised the same way when a phase adds a library, each time noted here.
 - **Fixed a persistence gap.** `main.tsx` prefetches before render, so the first response can land before the persister subscribes and never be saved. `AppProviders` now saves once restoring finishes. An e2e test (returning visitor, API down) fails without the fix.
 - Retry-After: the old spec treated an unreasonable value (99999) as "use 10 s"; this spec says clamp to 1–60, so it waits 60 s.
 - "Three attempts" for network and 5xx is read as TanStack's three retries (four requests in all).
