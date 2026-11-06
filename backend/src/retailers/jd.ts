@@ -60,6 +60,8 @@ interface AlgoliaPage {
     hits: JDHit[];
     nbHits?: number;
     nbPages?: number;
+    /** False when nbHits is an estimate rather than an exact count. */
+    exhaustive?: { nbHits?: boolean };
 }
 
 interface SearchResult {
@@ -76,14 +78,14 @@ export interface JDOptions {
 export function createJDRetailer({ fetch: fetchImpl = fetch, listingUrls = LISTING_URLS }: JDOptions = {}): Retailer {
     // Search configs learned from listing pages, reused across runs.
     const configs = new Map<string, JDSearchConfig>();
-    // Each product page's last stock and ETag, so an unchanged page costs a bodiless 304.
-    const pageStock = new Map<string, { etag: string; stock: PageStock }>();
+    // Each product page's last stock, and its ETag so an unchanged page costs a bodiless 304.
+    const pageStock = new Map<string, { etag: string | null; stock: PageStock }>();
 
     /** Reads a product page's live stock. Throws if the page can't be read. */
     async function readPageStock(url: string): Promise<PageStock> {
         const cached = pageStock.get(url);
         const response = await fetchImpl(url, {
-            headers: cached ? { ...DEFAULT_HEADERS, 'if-none-match': cached.etag } : DEFAULT_HEADERS,
+            headers: cached?.etag ? { ...DEFAULT_HEADERS, 'if-none-match': cached.etag } : DEFAULT_HEADERS,
             signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
         });
         if (response.status === 304 && cached) {
@@ -96,44 +98,53 @@ export function createJDRetailer({ fetch: fetchImpl = fetch, listingUrls = LISTI
         if (!stock) {
             throw new Error('no product data on the page');
         }
-        const etag = response.headers.get('etag');
-        if (etag) {
-            pageStock.set(url, { etag, stock });
-        }
+        pageStock.set(url, { etag: response.headers.get('etag'), stock });
         return stock;
     }
 
     /**
-     * Overrides Algolia's stock with each product page's. An unreadable page falls back to its last
-     * known stock, then to Algolia's. Checks only what Algolia says is in stock: its out-of-stock
-     * flag is never a false alarm here.
+     * Overrides Algolia's stock with each product page's, reading every page once even when a
+     * product is in several listings. An unreadable page falls back to its last known stock, then
+     * to Algolia's. Checks only what Algolia says is in stock: its out-of-stock flag is never a
+     * false alarm here.
      */
     async function checkAllStock(products: Product[]): Promise<Product[]> {
+        const urls = [...new Set(products.filter((product) => product.inStock).map((product) => product.url))];
+        const stock = new Map<string, PageStock | undefined>();
         let failed = 0;
-        const check = async (product: Product): Promise<Product> => {
-            if (!product.inStock) {
-                return product;
-            }
-            try {
-                return { ...product, ...(await readPageStock(product.url)) };
-            } catch (error) {
-                failed++;
-                log.debug('product page unreadable', { url: product.url, error: String(error) });
-                return { ...product, ...pageStock.get(product.url)?.stock };
+
+        // A pool of workers sharing one queue, so one slow page never holds up the others.
+        const queue = urls.values();
+        const worker = async () => {
+            for (const url of queue) {
+                try {
+                    stock.set(url, await readPageStock(url));
+                } catch (error) {
+                    failed++;
+                    log.debug('product page unreadable', { url, error: String(error) });
+                    stock.set(url, pageStock.get(url)?.stock);
+                }
             }
         };
+        await Promise.all(Array.from({ length: STOCK_CHECK_CONCURRENCY }, worker));
 
-        const checked: Product[] = [];
-        for (let i = 0; i < products.length; i += STOCK_CHECK_CONCURRENCY) {
-            checked.push(...(await Promise.all(products.slice(i, i + STOCK_CHECK_CONCURRENCY).map(check))));
-        }
         if (failed) {
             log.warn("⚠ product pages unreadable: using their last known stock, or Algolia's", {
                 failed,
-                checked: products.length,
+                checked: urls.length,
             });
         }
-        return checked;
+        return products.map((product) => (product.inStock ? { ...product, ...stock.get(product.url) } : product));
+    }
+
+    /** Forgets pages for products no longer listed. Only safe after a complete listing. */
+    function pruneStockCache(products: Product[]) {
+        const listed = new Set(products.map((product) => product.url));
+        for (const url of pageStock.keys()) {
+            if (!listed.has(url)) {
+                pageStock.delete(url);
+            }
+        }
     }
 
     async function fetchHits(url: string): Promise<SearchResult> {
@@ -178,9 +189,13 @@ export function createJDRetailer({ fetch: fetchImpl = fetch, listingUrls = LISTI
         }
 
         const nbHits = last?.nbHits;
+        // When Algolia says its count is only an estimate, a short last page is the real end of the list.
+        // An empty page is not: it is also what a page past Algolia's pagination cap looks like.
+        const ranOut = last?.exhaustive?.nbHits === false && last.hits.length > 0 && last.hits.length < HITS_PER_PAGE;
+
         // Algolia can cap how deep pagination goes. Keep what we got, but say it is not everything,
         // so the products it didn't return aren't treated as gone.
-        const complete = typeof nbHits !== 'number' || hits.length >= nbHits;
+        const complete = typeof nbHits !== 'number' || hits.length >= nbHits || ranOut;
         if (!complete) {
             log.warn('⚠ listing truncated by Algolia: products it held back will not be removed this run', {
                 nbHits,
@@ -229,7 +244,7 @@ export function createJDRetailer({ fetch: fetchImpl = fetch, listingUrls = LISTI
             total: body.nbHits,
             took: duration(performance.now() - started),
         });
-        return { hits: body.hits, nbHits: body.nbHits, nbPages: body.nbPages };
+        return { hits: body.hits, nbHits: body.nbHits, nbPages: body.nbPages, exhaustive: body.exhaustive };
     }
 
     async function bootstrapSearchConfig(url: string): Promise<JDSearchConfig> {
@@ -258,15 +273,12 @@ export function createJDRetailer({ fetch: fetchImpl = fetch, listingUrls = LISTI
                 listingUrls.map(async (url) => {
                     const gender = getGenderFromUrl(url);
                     const { hits, complete } = await fetchHits(url);
-                    const products = await checkAllStock(
-                        hits.map((hit) => parseHit(hit, gender)).filter((item) => item !== undefined),
-                    );
+                    const products = hits.map((hit) => parseHit(hit, gender)).filter((item) => item !== undefined);
                     log.debug('listing parsed', {
                         url,
                         hits: hits.length,
                         products: products.length,
                         skipped: hits.length - products.length, // blocked names or incomplete hits
-                        outOfStock: products.filter((product) => !product.inStock).length,
                         complete,
                     });
                     return { products, complete };
@@ -290,10 +302,13 @@ export function createJDRetailer({ fetch: fetchImpl = fetch, listingUrls = LISTI
                 });
             }
 
-            return {
-                products: listings.flatMap((listing) => listing.products),
-                complete: !failures.length && listings.every((listing) => listing.complete),
-            };
+            const products = await checkAllStock(listings.flatMap((listing) => listing.products));
+            const complete = !failures.length && listings.every((listing) => listing.complete);
+            if (complete) {
+                pruneStockCache(products);
+            }
+            log.debug('stock checked', { outOfStock: products.filter((product) => !product.inStock).length });
+            return { products, complete };
         },
     };
 }
@@ -362,7 +377,8 @@ export function parseHit(hit: JDHit, gender: string): Product | undefined {
         url: `${JD_BASE_URL}/product/${hit.slug}/${hit.objectID}/`,
         imageUrl: hit.image ?? null,
         gender,
-        sizes: hit.size ?? [],
+        // JD occasionally ships a truncated size facet, e.g. "6 (EU 39".
+        sizes: (hit.size ?? []).filter((size) => !size.includes('(')),
         wasPricePence: toPence(hit.wasPrice),
         nowPricePence: toPence(hit.price),
         discount: Number.parseInt(hit.discountPct ?? '', 10) || 0,

@@ -9,7 +9,7 @@ Where the fixes sit along the data flow (numbers = fixes in each part; CI has on
 ```mermaid
 flowchart LR
     config["⚙️ Config<br/><small>1</small>"] -. settings .-> loop
-    loop["🔁 Scrape loop<br/><small>5</small>"] --> jd["🛒 JD adapter<br/><small>5 · blocklist 1</small>"]
+    loop["🔁 Scrape loop<br/><small>5</small>"] --> jd["🛒 JD adapter<br/><small>8 · blocklist 1</small>"]
     jd --> store["🧠 Deal store<br/><small>3</small>"] --> http["🌐 HTTP<br/><small>3</small>"] --> fe["🖥️ Frontend<br/><small>3</small>"]
 ```
 
@@ -20,10 +20,13 @@ flowchart LR
 | Problem it prevents | How it's handled today | Guarded by (`test/jd.test.ts`) |
 |---|---|---|
 | Sales over 1,000 items failed every scrape | Reads every Algolia page (up to 10) | *reads every page of a large listing* |
-| Algolia silently holding products back (pagination cap) | The listing is marked **incomplete**, so nothing is removed | *keeps a truncated listing but marks it incomplete…*, *treats an exact count with missing products as incomplete* |
+| Algolia silently holding products back (pagination cap) | The listing is marked **incomplete**, so nothing is removed | *keeps a truncated listing but marks it incomplete…*, *treats an empty page past the pagination cap as truncation…* |
+| Algolia's estimated counts making listings look incomplete forever | A short, non-empty last page counts as the real end; an exact count with missing items stays incomplete | *trusts a short last page when Algolia says its count is an estimate*, *treats an exact count with missing products as incomplete* |
 | One failed category throwing away the others | Keeps the categories that worked and marks the run incomplete; fails only if *every* category fails | *keeps the listings that worked when one fails…*, *fails the run when every listing fails* |
 | Stale search filters (JD renames a facet) emptying the site | Re-reads the listing page whenever cached settings find nothing; a genuinely empty sale costs one extra page read per run | *re-reads the listing page when a cached config suddenly finds nothing*, *accepts a genuinely empty sale* |
 | Rotated keys or a changed index failing forever | On any error, the cached settings are forgotten and relearned next run | *throws when Algolia errors, and relearns the config next time* |
+| Algolia's stale stock showing sold-out products | Each in-stock product's page is read for live stock and sizes (6 at a time, each page once). ETags make unchanged pages a bodiless 304; pages that leave a complete listing are forgotten | *takes stock from the product page, and reuses it when the page answers 304*, *marks a product out of stock when its page says so…*, *reads a product page once when the product is in several listings*, *stops sending an old ETag…*, *forgets product pages that leave a complete listing* |
+| An unreadable product page bringing a sold-out product back | Falls back to the page's last known stock, then Algolia's, and warns once per run with the failure count | *falls back to the last known page stock when a product page fails, and warns*, *keeps Algolia's stock when a product page can't be read…* |
 
 ## 🧠 Deal store (`src/deals.ts`)
 

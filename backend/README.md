@@ -64,7 +64,7 @@ flowchart TD
 | `src/deals.ts` | `DealStore`: applies R1 and R2, and builds the deals list (≥ `MIN_DISCOUNT`, best first) |
 | `src/http.ts` | The deals response (JSON with caching headers, or 503 until ready), the routes, and request logging |
 | `src/scraper.ts` | `scrapeRetailer` (one timed, failure-safe scrape) and the loop (R4) |
-| `src/retailers/jd.ts` | JD adapter: learns JD's Algolia settings from a listing page, reads every page, and flags incomplete results |
+| `src/retailers/jd.ts` | JD adapter: learns JD's Algolia settings from a listing page, reads every page, flags incomplete results, and checks live stock on each product page |
 | `src/retailers/blocklist.ts` | Names to skip (team kits, caps…), matched as whole words and plurals |
 | `src/retailers/types.ts` | `Product`, `Listing` and `Retailer`. A new retailer is one new file |
 | `src/config.ts`, `src/log.ts` | Environment settings (validated at startup) and readable, levelled logging |

@@ -9,7 +9,7 @@ const buildHit = (overrides: Record<string, unknown> = {}) => ({
     wasPrice: 135,
     price: 54.99,
     image: 'https://i8.amplience.net/i/jpl/jd_752441_plc',
-    size: ['7', '8'],
+    size: ['7', '8', '6 (EU 39'],
     inStock: true,
     ...overrides,
 });
@@ -70,7 +70,7 @@ describe('JD helpers', () => {
         expect(extractSearchConfig(buildPage(replicasOnly))).toBeUndefined();
     });
 
-    it('maps a hit to a product with prices in pence', () => {
+    it('maps a hit to a product with prices in pence and truncated sizes dropped', () => {
         expect(parseHit(buildHit(), 'Male')).toEqual({
             externalId: '19686180',
             name: 'Nike Air Max 90',
@@ -220,6 +220,26 @@ describe('JD retailer', () => {
         await expect(jd.fetchListing()).rejects.toThrow('status 500');
     });
 
+    it('trusts a short last page when Algolia says its count is an estimate', async () => {
+        const { fetch } = fakeJD({
+            algolia: paged(hitsFrom(0, 1000), hitsFrom(1000, 12), {
+                nbHits: 1100,
+                nbPages: 2,
+                exhaustive: { nbHits: false },
+            }),
+        });
+        const listing = await createJDRetailer({ fetch }).fetchListing();
+        expect(listing).toMatchObject({ complete: true });
+        expect(listing.products).toHaveLength(1012);
+    });
+
+    it('treats an empty page past the pagination cap as truncation, even with an estimated count', async () => {
+        const { fetch } = fakeJD({
+            algolia: paged(hitsFrom(0, 1000), [], { nbHits: 1400, nbPages: 2, exhaustive: { nbHits: false } }),
+        });
+        expect((await createJDRetailer({ fetch }).fetchListing()).complete).toBe(false);
+    });
+
     it('treats an exact count with missing products as incomplete', async () => {
         const { fetch } = fakeJD({
             algolia: paged(hitsFrom(0, 1000), [], { nbHits: 1150, nbPages: 2, exhaustive: { nbHits: true } }),
@@ -339,5 +359,60 @@ describe('JD retailer', () => {
             err.mockRestore();
             Bun.env.LOG_LEVEL = 'silent';
         }
+    });
+
+    it('reads a product page once when the product is in several listings', async () => {
+        const { fetch, calls } = fakeJD({
+            algolia: () => Response.json({ hits: [buildHit()], nbHits: 1, nbPages: 1 }),
+            product: () => new Response(productPage([['8', true]])),
+        });
+        const jd = createJDRetailer({ fetch, listingUrls: ['https://jd/men/a/', 'https://jd/women/b/'] });
+
+        expect((await jd.fetchListing()).products).toEqual([
+            expect.objectContaining({ gender: 'Male', sizes: ['8'] }),
+            expect.objectContaining({ gender: 'Female', sizes: ['8'] }),
+        ]);
+        expect(calls.products).toBe(1);
+    });
+
+    it('stops sending an old ETag once a page answers without one', async () => {
+        const sent: (string | undefined)[] = [];
+        const { fetch } = fakeJD({
+            algolia: () => Response.json({ hits: [buildHit()], nbHits: 1, nbPages: 1 }),
+            product: (_url, headers) => {
+                sent.push(headers['if-none-match']);
+                return sent.length === 1
+                    ? new Response(productPage([['11', false]], true), { headers: { etag: '"v1"' } })
+                    : new Response(productPage([['9', true]]));
+            },
+        });
+        const jd = createJDRetailer({ fetch });
+        await jd.fetchListing();
+        await jd.fetchListing();
+
+        expect((await jd.fetchListing()).products).toEqual([expect.objectContaining({ inStock: true, sizes: ['9'] })]);
+        expect(sent).toEqual([undefined, '"v1"', undefined]);
+    });
+
+    it('forgets product pages that leave a complete listing', async () => {
+        let hits = [buildHit()];
+        const sent: (string | undefined)[] = [];
+        const { fetch } = fakeJD({
+            algolia: () => Response.json({ hits, nbHits: hits.length, nbPages: 1 }),
+            product: (_url, headers) => {
+                sent.push(headers['if-none-match']);
+                return new Response(productPage([['8', true]]), { headers: { etag: '"v1"' } });
+            },
+        });
+        const jd = createJDRetailer({ fetch });
+        await jd.fetchListing();
+
+        hits = [buildHit({ objectID: '2', slug: 'other' })];
+        await jd.fetchListing();
+        hits = [buildHit()];
+        await jd.fetchListing();
+
+        // The first product's page is read afresh: its ETag was dropped while it was unlisted.
+        expect(sent).toEqual([undefined, undefined, undefined]);
     });
 });
