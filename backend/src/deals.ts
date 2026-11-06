@@ -35,7 +35,7 @@ export interface AcceptResult {
  */
 const MIN_KEPT_RATIO = 0.5;
 
-const UNISEX = 'Unisex';
+export const UNISEX = 'Unisex';
 
 interface StoredProduct extends Product {
     firstSeenAt: number;
