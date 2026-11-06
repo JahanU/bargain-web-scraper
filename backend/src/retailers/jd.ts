@@ -5,7 +5,6 @@ import type { Listing, Product, Retailer } from '@/retailers/types';
 const log = createLogger('jd');
 
 const JD_BASE_URL = 'https://www.jdsports.co.uk';
-// const LISTING_URLS = ['https://www.jdsports.co.uk/men/brand/nike/sale/'] as const;
 const LISTING_URLS = ['https://www.jdsports.co.uk/men/mens-footwear/brand/nike/sale/'] as const;
 
 const REQUEST_TIMEOUT_MS = 15_000;
@@ -16,7 +15,8 @@ const HITS_PER_PAGE = 1000;
 // A ceiling on pages per listing, so a misbehaving response can never loop for long.
 const MAX_PAGES = 10;
 
-// Without this the response carries every merchandising field JD holds: 85KB instead of ~2MB.
+// Without this the response carries every merchandising field JD holds: 28KB instead of 3KB for
+// 36 products, 569KB instead of 41KB for 2,455 (gzipped).
 const PRODUCT_ATTRIBUTES = ['name', 'slug', 'objectID', 'discountPct', 'price', 'wasPrice', 'image', 'size', 'inStock'];
 
 // A JD listing page server-renders only its first 24 products; the browser fetches the rest from
@@ -25,6 +25,15 @@ const PRODUCT_ATTRIBUTES = ['name', 'slug', 'objectID', 'discountPct', 'price', 
 const NEXT_DATA_PATTERN = /<script id="__NEXT_DATA__" type="application\/json">([\s\S]*?)<\/script>/;
 
 const DEFAULT_HEADERS = { 'User-Agent': 'Mozilla/5.0 (compatible; bargain-web-scraper/2.0)' };
+
+// Product pages fetched at once when checking live stock.
+const STOCK_CHECK_CONCURRENCY = 6;
+
+/** Live stock read from a product page; Algolia's copy can lag behind it. */
+export interface PageStock {
+    inStock: boolean;
+    sizes: string[];
+}
 
 /** Everything needed to query one listing's products directly. */
 export interface JDSearchConfig {
@@ -52,7 +61,7 @@ interface AlgoliaPage {
     nbHits?: number;
     nbPages?: number;
     /** False when nbHits is an estimate rather than an exact count. */
-    exhaustiveNbHits?: boolean;
+    exhaustive?: { nbHits?: boolean };
 }
 
 interface SearchResult {
@@ -67,21 +76,87 @@ export interface JDOptions {
 
 /** JD Sports UK, read straight from the Algolia index behind its listing pages. */
 export function createJDRetailer({ fetch: fetchImpl = fetch, listingUrls = LISTING_URLS }: JDOptions = {}): Retailer {
-    // Search configs learned from listing pages, reused across runs. `hadHits` records whether the
-    // config found products last time (see fetchHits).
-    const configs = new Map<string, { config: JDSearchConfig; hadHits: boolean }>();
+    // Search configs learned from listing pages, reused across runs.
+    const configs = new Map<string, JDSearchConfig>();
+    // Each product page's last stock, and its ETag so an unchanged page costs a bodiless 304.
+    const pageStock = new Map<string, { etag: string | null; stock: PageStock }>();
+
+    /** Reads a product page's live stock. Throws if the page can't be read. */
+    async function readPageStock(url: string): Promise<PageStock> {
+        const cached = pageStock.get(url);
+        const response = await fetchImpl(url, {
+            headers: cached?.etag ? { ...DEFAULT_HEADERS, 'if-none-match': cached.etag } : DEFAULT_HEADERS,
+            signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+        });
+        if (response.status === 304 && cached) {
+            return cached.stock;
+        }
+        if (!response.ok) {
+            throw new Error(`status ${response.status}`);
+        }
+        const stock = extractPageStock(await response.text());
+        if (!stock) {
+            throw new Error('no product data on the page');
+        }
+        pageStock.set(url, { etag: response.headers.get('etag'), stock });
+        return stock;
+    }
+
+    /**
+     * Overrides Algolia's stock with each product page's, reading every page once even when a
+     * product is in several listings. An unreadable page falls back to its last known stock, then
+     * to Algolia's. Checks only what Algolia says is in stock: its out-of-stock flag is never a
+     * false alarm here.
+     */
+    async function checkAllStock(products: Product[]): Promise<Product[]> {
+        const urls = [...new Set(products.filter((product) => product.inStock).map((product) => product.url))];
+        const stock = new Map<string, PageStock | undefined>();
+        let failed = 0;
+
+        // A pool of workers sharing one queue, so one slow page never holds up the others.
+        const queue = urls.values();
+        const worker = async () => {
+            for (const url of queue) {
+                try {
+                    stock.set(url, await readPageStock(url));
+                } catch (error) {
+                    failed++;
+                    log.debug('product page unreadable', { url, error: String(error) });
+                    stock.set(url, pageStock.get(url)?.stock);
+                }
+            }
+        };
+        await Promise.all(Array.from({ length: STOCK_CHECK_CONCURRENCY }, worker));
+
+        if (failed) {
+            log.warn("⚠ product pages unreadable: using their last known stock, or Algolia's", {
+                failed,
+                checked: urls.length,
+            });
+        }
+        return products.map((product) => (product.inStock ? { ...product, ...stock.get(product.url) } : product));
+    }
+
+    /** Forgets pages for products no longer listed. Only safe after a complete listing. */
+    function pruneStockCache(products: Product[]) {
+        const listed = new Set(products.map((product) => product.url));
+        for (const url of pageStock.keys()) {
+            if (!listed.has(url)) {
+                pageStock.delete(url);
+            }
+        }
+    }
 
     async function fetchHits(url: string): Promise<SearchResult> {
         const cached = configs.get(url);
 
         try {
-            let config = cached?.config ?? (await bootstrapSearchConfig(url));
+            let config = cached ?? (await bootstrapSearchConfig(url));
             let result = await runSearch(config);
 
-            // A config that found products last time and finds none now may have stale filters (JD
-            // renamed a facet): re-read the page once. A genuinely empty sale is then cached as such,
-            // so it doesn't cost an extra page fetch every run.
-            if (cached?.hadHits && !result.hits.length) {
+            // A cached config that finds nothing may have stale filters (JD renamed a facet): re-read
+            // the page. A genuinely empty sale costs one extra page read per run.
+            if (cached && !result.hits.length) {
                 log.warn('⚠ cached search found nothing; re-reading the listing page in case its filters changed', {
                     url,
                 });
@@ -89,7 +164,7 @@ export function createJDRetailer({ fetch: fetchImpl = fetch, listingUrls = LISTI
                 result = await runSearch(config);
             }
 
-            configs.set(url, { config, hadHits: result.hits.length > 0 });
+            configs.set(url, config);
             return result;
         } catch (error) {
             // Rotated key, renamed index or an unreadable response: relearn the config next run.
@@ -116,7 +191,7 @@ export function createJDRetailer({ fetch: fetchImpl = fetch, listingUrls = LISTI
         const nbHits = last?.nbHits;
         // When Algolia says its count is only an estimate, a short last page is the real end of the list.
         // An empty page is not: it is also what a page past Algolia's pagination cap looks like.
-        const ranOut = last?.exhaustiveNbHits === false && last.hits.length > 0 && last.hits.length < HITS_PER_PAGE;
+        const ranOut = last?.exhaustive?.nbHits === false && last.hits.length > 0 && last.hits.length < HITS_PER_PAGE;
 
         // Algolia can cap how deep pagination goes. Keep what we got, but say it is not everything,
         // so the products it didn't return aren't treated as gone.
@@ -159,19 +234,17 @@ export function createJDRetailer({ fetch: fetchImpl = fetch, listingUrls = LISTI
         }
 
         // Throws on a soft-200 non-JSON body, which the caller treats as a stale config.
-        const body = (await response.json()) as Partial<AlgoliaPage> & { exhaustive?: { nbHits?: boolean } };
+        const body = (await response.json()) as Partial<AlgoliaPage>;
         if (!Array.isArray(body.hits)) {
             throw new Error('Algolia response contained no hits');
         }
 
-        // Newer Algolia responses report exhaustiveness under `exhaustive.nbHits`.
-        const exhaustiveNbHits = body.exhaustiveNbHits ?? body.exhaustive?.nbHits;
         log.debug(`algolia page ${page + 1}/${body.nbPages ?? 1}`, {
             hits: body.hits.length,
             total: body.nbHits,
             took: duration(performance.now() - started),
         });
-        return { hits: body.hits, nbHits: body.nbHits, nbPages: body.nbPages, exhaustiveNbHits };
+        return { hits: body.hits, nbHits: body.nbHits, nbPages: body.nbPages, exhaustive: body.exhaustive };
     }
 
     async function bootstrapSearchConfig(url: string): Promise<JDSearchConfig> {
@@ -206,7 +279,6 @@ export function createJDRetailer({ fetch: fetchImpl = fetch, listingUrls = LISTI
                         hits: hits.length,
                         products: products.length,
                         skipped: hits.length - products.length, // blocked names or incomplete hits
-                        outOfStock: products.filter((product) => !product.inStock).length,
                         complete,
                     });
                     return { products, complete };
@@ -230,10 +302,13 @@ export function createJDRetailer({ fetch: fetchImpl = fetch, listingUrls = LISTI
                 });
             }
 
-            return {
-                products: listings.flatMap((listing) => listing.products),
-                complete: !failures.length && listings.every((listing) => listing.complete),
-            };
+            const products = await checkAllStock(listings.flatMap((listing) => listing.products));
+            const complete = !failures.length && listings.every((listing) => listing.complete);
+            if (complete) {
+                pruneStockCache(products);
+            }
+            log.debug('stock checked', { outOfStock: products.filter((product) => !product.inStock).length });
+            return { products, complete };
         },
     };
 }
@@ -269,6 +344,23 @@ export function extractSearchConfig(html: string): JDSearchConfig | undefined {
     }
 }
 
+/** Reads live stock from a product page: the sizes whose variant is available. */
+export function extractPageStock(html: string): PageStock | undefined {
+    const payload = html.match(NEXT_DATA_PATTERN)?.[1];
+    try {
+        const product = payload && JSON.parse(payload)?.props?.pageProps?.product;
+        if (!Array.isArray(product?.variants)) {
+            return undefined;
+        }
+        const sizes: string[] = product.variants
+            .filter((variant: { stock?: { available?: boolean } }) => variant?.stock?.available === true)
+            .map((variant: { size: string }) => variant.size);
+        return { inStock: product.isOutOfStock !== true && sizes.length > 0, sizes };
+    } catch {
+        return undefined;
+    }
+}
+
 /**
  * Maps one hit to a product, or nothing if it is incomplete or blocked. Out-of-stock hits are
  * kept (inStock: false), so even an incomplete listing can drop them.
@@ -279,16 +371,14 @@ export function parseHit(hit: JDHit, gender: string): Product | undefined {
         return undefined;
     }
 
-    // JD occasionally ships a truncated size facet, e.g. "6 (EU 39".
-    const sizes = (hit.size ?? []).filter((size) => !size.includes('('));
-
     return {
         externalId: hit.objectID,
         name,
         url: `${JD_BASE_URL}/product/${hit.slug}/${hit.objectID}/`,
         imageUrl: hit.image ?? null,
         gender,
-        sizes,
+        // JD occasionally ships a truncated size facet, e.g. "6 (EU 39".
+        sizes: (hit.size ?? []).filter((size) => !size.includes('(')),
         wasPricePence: toPence(hit.wasPrice),
         nowPricePence: toPence(hit.price),
         discount: Number.parseInt(hit.discountPct ?? '', 10) || 0,
