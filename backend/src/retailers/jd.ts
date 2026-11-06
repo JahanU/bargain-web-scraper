@@ -32,7 +32,6 @@ const ATTRIBUTES = [
 ];
 
 const REQUEST_TIMEOUT_MS = 15_000;
-const HEADERS = { 'User-Agent': 'Mozilla/5.0 (compatible; bargain-web-scraper/2.0)' };
 
 interface SearchConfig {
     applicationId: string;
@@ -60,35 +59,36 @@ interface SearchPage {
 }
 
 /** JD Sports UK's men's and women's sale, read straight from the Algolia index behind its site. */
-export function createJDRetailer({ fetch: fetchImpl = fetch }: { fetch?: typeof fetch } = {}): Retailer {
+export function createJDRetailer(): Retailer {
     // Learned once, and forgotten after any error (rotated key, renamed index) so the next run relearns it.
     let config: SearchConfig | undefined;
 
+    /** Reads the Algolia credentials and main product index out of a listing page. */
     async function learnConfig(): Promise<SearchConfig> {
-        const response = await fetchImpl(CONFIG_PAGE_URL, {
-            headers: HEADERS,
-            signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
-        });
+        const response = await fetch(CONFIG_PAGE_URL, { signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS) });
         if (!response.ok) {
             throw new Error(`Listing page returned status ${response.status}`);
         }
-        const learned = extractSearchConfig(await response.text());
-        if (!learned) {
+        const payload = JSON.parse((await response.text()).match(NEXT_DATA_PATTERN)?.[1] ?? 'null');
+        const { applicationId, searchApiKey, indices } = payload?.props?.pageProps?.algoliaConfig ?? {};
+        const indexName = indices?.find((index: { type: string }) => index.type === 'main')?.name;
+        if (!applicationId || !searchApiKey || !indexName) {
             throw new Error('Listing page has no Algolia search config');
         }
-        return learned;
+        return { applicationId, searchApiKey, indexName };
     }
 
     async function searchPage({ applicationId, searchApiKey, indexName }: SearchConfig, page: number) {
         const started = performance.now();
-        const response = await fetchImpl(`https://${applicationId}-dsn.algolia.net/1/indexes/${indexName}/query`, {
+        const response = await fetch(`https://${applicationId}-dsn.algolia.net/1/indexes/${indexName}/query`, {
             method: 'POST',
-            headers: { ...HEADERS, 'x-algolia-application-id': applicationId, 'x-algolia-api-key': searchApiKey },
+            headers: { 'x-algolia-application-id': applicationId, 'x-algolia-api-key': searchApiKey },
             body: JSON.stringify({
                 facetFilters: FACET_FILTERS,
                 hitsPerPage: HITS_PER_PAGE,
                 page,
                 attributesToRetrieve: ATTRIBUTES,
+                // Without this, Algolia adds match highlighting to every hit: 2.5MB a page instead of 320KB.
                 attributesToHighlight: [],
             }),
             signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
@@ -136,20 +136,8 @@ export function createJDRetailer({ fetch: fetchImpl = fetch }: { fetch?: typeof 
     };
 }
 
-/** Pulls the Algolia credentials and main product index out of a listing page. */
-export function extractSearchConfig(html: string): SearchConfig | undefined {
-    try {
-        const payload = JSON.parse(html.match(NEXT_DATA_PATTERN)?.[1] ?? '');
-        const { applicationId, searchApiKey, indices } = payload.props.pageProps.algoliaConfig;
-        const indexName = indices.find((index: { type: string }) => index.type === 'main')?.name;
-        return applicationId && searchApiKey && indexName ? { applicationId, searchApiKey, indexName } : undefined;
-    } catch {
-        return undefined;
-    }
-}
-
 /** Maps one hit to a product, or nothing if its name is blocked. */
-export function parseHit(hit: Hit): Product | undefined {
+function parseHit(hit: Hit): Product | undefined {
     if (isBlockedName(hit.name)) {
         return undefined;
     }
