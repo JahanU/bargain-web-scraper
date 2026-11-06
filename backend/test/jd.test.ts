@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'bun:test';
+import { describe, expect, it, spyOn } from 'bun:test';
 import { createJDRetailer, extractPageStock, extractSearchConfig, getGenderFromUrl, parseHit } from '@/retailers/jd';
 
 const buildHit = (overrides: Record<string, unknown> = {}) => ({
@@ -312,5 +312,32 @@ describe('JD retailer', () => {
             expect.objectContaining({ externalId: '2', inStock: false }),
         ]);
         expect(calls.products).toBe(1);
+    });
+
+    it('falls back to the last known page stock when a product page fails, and warns', async () => {
+        let pageUp = true;
+        const { fetch } = fakeJD({
+            algolia: () => Response.json({ hits: [buildHit()], nbHits: 1, nbPages: 1 }),
+            product: () =>
+                pageUp
+                    ? new Response(productPage([['11', false]], true), { headers: { etag: '"v1"' } })
+                    : new Response('down', { status: 503 }),
+        });
+        const jd = createJDRetailer({ fetch });
+        await jd.fetchListing();
+
+        pageUp = false;
+        Bun.env.LOG_LEVEL = 'warn';
+        const err = spyOn(console, 'error').mockImplementation(() => {});
+        try {
+            expect((await jd.fetchListing()).products).toEqual([
+                expect.objectContaining({ inStock: false, sizes: [] }),
+            ]);
+            expect(err).toHaveBeenCalledTimes(1);
+            expect(String(err.mock.calls[0]?.[0])).toContain('product pages unreadable');
+        } finally {
+            err.mockRestore();
+            Bun.env.LOG_LEVEL = 'silent';
+        }
     });
 });

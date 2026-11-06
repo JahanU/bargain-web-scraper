@@ -79,41 +79,59 @@ export function createJDRetailer({ fetch: fetchImpl = fetch, listingUrls = LISTI
     // Each product page's last stock and ETag, so an unchanged page costs a bodiless 304.
     const pageStock = new Map<string, { etag: string; stock: PageStock }>();
 
-    /** Overrides Algolia's stock with the product page's. Keeps Algolia's if the page can't be read. */
-    async function checkStock(product: Product): Promise<Product> {
-        const cached = pageStock.get(product.url);
-        try {
-            const response = await fetchImpl(product.url, {
-                headers: cached ? { ...DEFAULT_HEADERS, 'if-none-match': cached.etag } : DEFAULT_HEADERS,
-                signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
-            });
-            if (response.status === 304 && cached) {
-                return { ...product, ...cached.stock };
-            }
-            if (!response.ok) {
-                throw new Error(`status ${response.status}`);
-            }
-            const stock = extractPageStock(await response.text());
-            if (!stock) {
-                throw new Error('no product data on the page');
-            }
-            const etag = response.headers.get('etag');
-            if (etag) {
-                pageStock.set(product.url, { etag, stock });
-            }
-            return { ...product, ...stock };
-        } catch (error) {
-            log.debug('product page unreadable; keeping Algolia stock', { url: product.url, error: String(error) });
-            return product;
+    /** Reads a product page's live stock. Throws if the page can't be read. */
+    async function readPageStock(url: string): Promise<PageStock> {
+        const cached = pageStock.get(url);
+        const response = await fetchImpl(url, {
+            headers: cached ? { ...DEFAULT_HEADERS, 'if-none-match': cached.etag } : DEFAULT_HEADERS,
+            signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+        });
+        if (response.status === 304 && cached) {
+            return cached.stock;
         }
+        if (!response.ok) {
+            throw new Error(`status ${response.status}`);
+        }
+        const stock = extractPageStock(await response.text());
+        if (!stock) {
+            throw new Error('no product data on the page');
+        }
+        const etag = response.headers.get('etag');
+        if (etag) {
+            pageStock.set(url, { etag, stock });
+        }
+        return stock;
     }
 
-    /** Checks only what Algolia says is in stock: its out-of-stock flag is never a false alarm here. */
+    /**
+     * Overrides Algolia's stock with each product page's. An unreadable page falls back to its last
+     * known stock, then to Algolia's. Checks only what Algolia says is in stock: its out-of-stock
+     * flag is never a false alarm here.
+     */
     async function checkAllStock(products: Product[]): Promise<Product[]> {
+        let failed = 0;
+        const check = async (product: Product): Promise<Product> => {
+            if (!product.inStock) {
+                return product;
+            }
+            try {
+                return { ...product, ...(await readPageStock(product.url)) };
+            } catch (error) {
+                failed++;
+                log.debug('product page unreadable', { url: product.url, error: String(error) });
+                return { ...product, ...pageStock.get(product.url)?.stock };
+            }
+        };
+
         const checked: Product[] = [];
         for (let i = 0; i < products.length; i += STOCK_CHECK_CONCURRENCY) {
-            const batch = products.slice(i, i + STOCK_CHECK_CONCURRENCY);
-            checked.push(...(await Promise.all(batch.map((p) => (p.inStock ? checkStock(p) : p)))));
+            checked.push(...(await Promise.all(products.slice(i, i + STOCK_CHECK_CONCURRENCY).map(check))));
+        }
+        if (failed) {
+            log.warn("⚠ product pages unreadable: using their last known stock, or Algolia's", {
+                failed,
+                checked: products.length,
+            });
         }
         return checked;
     }
