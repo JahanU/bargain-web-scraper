@@ -9,7 +9,7 @@ const buildHit = (overrides: Record<string, unknown> = {}) => ({
     wasPrice: 135,
     price: 54.99,
     image: 'https://i8.amplience.net/i/jpl/jd_752441_plc',
-    size: ['7', '8', '6 (EU 39'],
+    size: ['7', '8'],
     inStock: true,
     ...overrides,
 });
@@ -70,7 +70,7 @@ describe('JD helpers', () => {
         expect(extractSearchConfig(buildPage(replicasOnly))).toBeUndefined();
     });
 
-    it('maps a hit to a product with prices in pence and truncated sizes dropped', () => {
+    it('maps a hit to a product with prices in pence', () => {
         expect(parseHit(buildHit(), 'Male')).toEqual({
             externalId: '19686180',
             name: 'Nike Air Max 90',
@@ -220,26 +220,6 @@ describe('JD retailer', () => {
         await expect(jd.fetchListing()).rejects.toThrow('status 500');
     });
 
-    it('trusts a short last page when Algolia says its count is an estimate', async () => {
-        const { fetch } = fakeJD({
-            algolia: paged(hitsFrom(0, 1000), hitsFrom(1000, 12), {
-                nbHits: 1100,
-                nbPages: 2,
-                exhaustiveNbHits: false,
-            }),
-        });
-        const listing = await createJDRetailer({ fetch }).fetchListing();
-        expect(listing).toMatchObject({ complete: true });
-        expect(listing.products).toHaveLength(1012);
-    });
-
-    it('treats an empty page past the pagination cap as truncation, even with an estimated count', async () => {
-        const { fetch } = fakeJD({
-            algolia: paged(hitsFrom(0, 1000), [], { nbHits: 1400, nbPages: 2, exhaustiveNbHits: false }),
-        });
-        expect((await createJDRetailer({ fetch }).fetchListing()).complete).toBe(false);
-    });
-
     it('treats an exact count with missing products as incomplete', async () => {
         const { fetch } = fakeJD({
             algolia: paged(hitsFrom(0, 1000), [], { nbHits: 1150, nbPages: 2, exhaustive: { nbHits: true } }),
@@ -273,7 +253,7 @@ describe('JD retailer', () => {
         expect(calls.pages).toBe(2);
     });
 
-    it('accepts a genuinely empty sale after re-reading the page only once', async () => {
+    it('accepts a genuinely empty sale', async () => {
         let hits = [buildHit()];
         const { fetch, calls } = fakeJD({ algolia: () => Response.json({ hits, nbHits: hits.length, nbPages: 1 }) });
         const jd = createJDRetailer({ fetch });
@@ -281,11 +261,6 @@ describe('JD retailer', () => {
 
         hits = [];
         expect(await jd.fetchListing()).toEqual({ products: [], complete: true });
-        expect(calls.pages).toBe(2);
-
-        // Once confirmed empty, later runs don't re-read the page every time.
-        await jd.fetchListing();
-        await jd.fetchListing();
         expect(calls.pages).toBe(2);
     });
 

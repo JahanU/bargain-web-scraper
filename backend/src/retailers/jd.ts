@@ -5,7 +5,6 @@ import type { Listing, Product, Retailer } from '@/retailers/types';
 const log = createLogger('jd');
 
 const JD_BASE_URL = 'https://www.jdsports.co.uk';
-// const LISTING_URLS = ['https://www.jdsports.co.uk/men/brand/nike/sale/'] as const;
 const LISTING_URLS = ['https://www.jdsports.co.uk/men/mens-footwear/brand/nike/sale/'] as const;
 
 const REQUEST_TIMEOUT_MS = 15_000;
@@ -16,7 +15,8 @@ const HITS_PER_PAGE = 1000;
 // A ceiling on pages per listing, so a misbehaving response can never loop for long.
 const MAX_PAGES = 10;
 
-// Without this the response carries every merchandising field JD holds: 85KB instead of ~2MB.
+// Without this the response carries every merchandising field JD holds: 28KB instead of 3KB for
+// 36 products, 569KB instead of 41KB for 2,455 (gzipped).
 const PRODUCT_ATTRIBUTES = ['name', 'slug', 'objectID', 'discountPct', 'price', 'wasPrice', 'image', 'size', 'inStock'];
 
 // A JD listing page server-renders only its first 24 products; the browser fetches the rest from
@@ -60,8 +60,6 @@ interface AlgoliaPage {
     hits: JDHit[];
     nbHits?: number;
     nbPages?: number;
-    /** False when nbHits is an estimate rather than an exact count. */
-    exhaustiveNbHits?: boolean;
 }
 
 interface SearchResult {
@@ -76,9 +74,8 @@ export interface JDOptions {
 
 /** JD Sports UK, read straight from the Algolia index behind its listing pages. */
 export function createJDRetailer({ fetch: fetchImpl = fetch, listingUrls = LISTING_URLS }: JDOptions = {}): Retailer {
-    // Search configs learned from listing pages, reused across runs. `hadHits` records whether the
-    // config found products last time (see fetchHits).
-    const configs = new Map<string, { config: JDSearchConfig; hadHits: boolean }>();
+    // Search configs learned from listing pages, reused across runs.
+    const configs = new Map<string, JDSearchConfig>();
     // Each product page's last stock and ETag, so an unchanged page costs a bodiless 304.
     const pageStock = new Map<string, { etag: string; stock: PageStock }>();
 
@@ -125,13 +122,12 @@ export function createJDRetailer({ fetch: fetchImpl = fetch, listingUrls = LISTI
         const cached = configs.get(url);
 
         try {
-            let config = cached?.config ?? (await bootstrapSearchConfig(url));
+            let config = cached ?? (await bootstrapSearchConfig(url));
             let result = await runSearch(config);
 
-            // A config that found products last time and finds none now may have stale filters (JD
-            // renamed a facet): re-read the page once. A genuinely empty sale is then cached as such,
-            // so it doesn't cost an extra page fetch every run.
-            if (cached?.hadHits && !result.hits.length) {
+            // A cached config that finds nothing may have stale filters (JD renamed a facet): re-read
+            // the page. A genuinely empty sale costs one extra page read per run.
+            if (cached && !result.hits.length) {
                 log.warn('⚠ cached search found nothing; re-reading the listing page in case its filters changed', {
                     url,
                 });
@@ -139,7 +135,7 @@ export function createJDRetailer({ fetch: fetchImpl = fetch, listingUrls = LISTI
                 result = await runSearch(config);
             }
 
-            configs.set(url, { config, hadHits: result.hits.length > 0 });
+            configs.set(url, config);
             return result;
         } catch (error) {
             // Rotated key, renamed index or an unreadable response: relearn the config next run.
@@ -164,13 +160,9 @@ export function createJDRetailer({ fetch: fetchImpl = fetch, listingUrls = LISTI
         }
 
         const nbHits = last?.nbHits;
-        // When Algolia says its count is only an estimate, a short last page is the real end of the list.
-        // An empty page is not: it is also what a page past Algolia's pagination cap looks like.
-        const ranOut = last?.exhaustiveNbHits === false && last.hits.length > 0 && last.hits.length < HITS_PER_PAGE;
-
         // Algolia can cap how deep pagination goes. Keep what we got, but say it is not everything,
         // so the products it didn't return aren't treated as gone.
-        const complete = typeof nbHits !== 'number' || hits.length >= nbHits || ranOut;
+        const complete = typeof nbHits !== 'number' || hits.length >= nbHits;
         if (!complete) {
             log.warn('⚠ listing truncated by Algolia: products it held back will not be removed this run', {
                 nbHits,
@@ -209,19 +201,17 @@ export function createJDRetailer({ fetch: fetchImpl = fetch, listingUrls = LISTI
         }
 
         // Throws on a soft-200 non-JSON body, which the caller treats as a stale config.
-        const body = (await response.json()) as Partial<AlgoliaPage> & { exhaustive?: { nbHits?: boolean } };
+        const body = (await response.json()) as Partial<AlgoliaPage>;
         if (!Array.isArray(body.hits)) {
             throw new Error('Algolia response contained no hits');
         }
 
-        // Newer Algolia responses report exhaustiveness under `exhaustive.nbHits`.
-        const exhaustiveNbHits = body.exhaustiveNbHits ?? body.exhaustive?.nbHits;
         log.debug(`algolia page ${page + 1}/${body.nbPages ?? 1}`, {
             hits: body.hits.length,
             total: body.nbHits,
             took: duration(performance.now() - started),
         });
-        return { hits: body.hits, nbHits: body.nbHits, nbPages: body.nbPages, exhaustiveNbHits };
+        return { hits: body.hits, nbHits: body.nbHits, nbPages: body.nbPages };
     }
 
     async function bootstrapSearchConfig(url: string): Promise<JDSearchConfig> {
@@ -348,16 +338,13 @@ export function parseHit(hit: JDHit, gender: string): Product | undefined {
         return undefined;
     }
 
-    // JD occasionally ships a truncated size facet, e.g. "6 (EU 39".
-    const sizes = (hit.size ?? []).filter((size) => !size.includes('('));
-
     return {
         externalId: hit.objectID,
         name,
         url: `${JD_BASE_URL}/product/${hit.slug}/${hit.objectID}/`,
         imageUrl: hit.image ?? null,
         gender,
-        sizes,
+        sizes: hit.size ?? [],
         wasPricePence: toPence(hit.wasPrice),
         nowPricePence: toPence(hit.price),
         discount: Number.parseInt(hit.discountPct ?? '', 10) || 0,
