@@ -22,6 +22,17 @@ if (!("showModal" in HTMLDialogElement.prototype)) {
   });
 }
 
+// jsdom has no layout, so the virtualised deal grid would measure every row at 0 px and render an
+// arbitrary window. Its rows (marked data-index) get a nominal height, so tests see the first rows
+// as a browser would. Real sizes and scrolling are tested in e2e.
+const offsetHeight = Object.getOwnPropertyDescriptor(HTMLElement.prototype, "offsetHeight")!;
+Object.defineProperty(HTMLElement.prototype, "offsetHeight", {
+  configurable: true,
+  get(this: HTMLElement) {
+    return this.hasAttribute("data-index") ? 100 : offsetHeight.get!.call(this);
+  },
+});
+
 beforeAll(() => server.listen({ onUnhandledFrame: "error" }));
 beforeEach(() => {
   installMatchMedia();
