@@ -55,3 +55,21 @@ test("the layout doesn't shift when deals replace the skeleton", async ({ page }
   );
   expect(shift).toBeLessThan(0.05);
 });
+
+test("only the rows near the viewport are rendered, and scrolling reaches the last deal", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.goto("/");
+  await expect(page.getByText("81 deals")).toBeVisible();
+  const cards = page
+    .getByRole("main")
+    .getByRole("listitem")
+    .filter({ has: page.getByRole("link") });
+
+  expect(await cards.count()).toBeLessThan(81);
+
+  await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+  await expect(cards.last()).toHaveAttribute("aria-posinset", "81");
+  await expect(cards.last()).toBeInViewport();
+});

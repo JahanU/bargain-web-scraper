@@ -79,6 +79,19 @@ test("a deal from the server-start batch has no found time and no marker", () =>
   expect(screen.queryByText(/Found/)).not.toBeInTheDocument();
 });
 
+test("the grid renders only the rows near the viewport, each card knowing its place in the list", () => {
+  const deals = Array.from({ length: 200 }, () => deal());
+  const { container } = render(<DealGrid deals={deals} serverStart={0} />);
+  const items = [...container.querySelectorAll('[role="listitem"]')]; // not the size chips' <li>s
+
+  expect(items.length).toBeGreaterThan(0);
+  expect(items.length).toBeLessThan(deals.length);
+  expect(items.map((item) => item.getAttribute("aria-posinset"))).toEqual(
+    items.map((_, index) => String(index + 1)),
+  );
+  expect(items.every((item) => item.getAttribute("aria-setsize") === "200")).toBe(true);
+});
+
 test("the grid loads the first ten images eagerly at high priority and the rest lazily", () => {
   const deals = Array.from({ length: 12 }, () => deal());
   const { container } = render(<DealGrid deals={deals} serverStart={0} />);
