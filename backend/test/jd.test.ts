@@ -26,21 +26,26 @@ const algoliaConfig = {
 const page = (pageProps: object) =>
     `<script id="__NEXT_DATA__" type="application/json">${JSON.stringify({ props: { pageProps } })}</script>`;
 
-/** Algolia holding `total` hits, 1000 per page, but serving only the first `served`. */
+/** Algolia holding `total` hits per category, 1000 per page, but serving only the first `served`. */
 const serve =
     (total: number, served = total) =>
-    (pageNumber: number) => {
+    (pageNumber: number, category: string) => {
         const count = Math.max(0, Math.min(1000, served - pageNumber * 1000));
-        const hits = Array.from({ length: count }, (_, i) => hit({ objectID: String(pageNumber * 1000 + i) }));
+        const hits = Array.from({ length: count }, (_, i) =>
+            hit({ objectID: `${category}-${pageNumber * 1000 + i}`, hierarchicalCategories: { lvl0: [category] } }),
+        );
         return Response.json({ hits, nbHits: total, nbPages: Math.ceil(total / 1000) });
     };
 
-/** Algolia serving exactly these hits on one page. */
-const serveHits = (hits: object[]) => () => Response.json({ hits, nbHits: hits.length, nbPages: 1 });
+/** Algolia holding exactly these hits, answering each category query with the hits in that category. */
+const serveHits = (hits: ReturnType<typeof hit>[]) => (_: number, category: string) => {
+    const matching = hits.filter((item) => item.hierarchicalCategories.lvl0.includes(category));
+    return Response.json({ hits: matching, nbHits: matching.length, nbPages: 1 });
+};
 
 /**
  * Points the global fetch at a fake JD: `listing` for the listing page, `algolia` for searches.
- * Searches only succeed against the main index with the page's credentials. Counts both.
+ * Searches only succeed against the main index with the page's credentials and a sale filter. Counts both.
  */
 function fakeJD({ listing = () => new Response(page({ algoliaConfig })), algolia = serve(1) } = {}) {
     const calls = { pages: 0, searches: 0 };
@@ -51,11 +56,16 @@ function fakeJD({ listing = () => new Response(page({ algoliaConfig })), algolia
         }
         calls.searches++;
         const headers = init?.headers as Record<string, string>;
+        const { page: pageNumber, facetFilters } = JSON.parse(String(init?.body));
+        const [[sale], [category]] = facetFilters;
         const authorised =
             url === 'https://APP-dsn.algolia.net/1/indexes/jd_main/query' &&
             headers['x-algolia-application-id'] === 'APP' &&
-            headers['x-algolia-api-key'] === 'KEY';
-        return authorised ? algolia(JSON.parse(String(init?.body)).page) : new Response('bad search', { status: 400 });
+            headers['x-algolia-api-key'] === 'KEY' &&
+            sale === 'onSale:true';
+        return authorised
+            ? algolia(pageNumber, category.replace('hierarchicalCategories.lvl0:', ''))
+            : new Response('bad search', { status: 400 });
     }) as typeof fetch);
     return { jd: createJDRetailer(), calls };
 }
@@ -63,7 +73,7 @@ function fakeJD({ listing = () => new Response(page({ algoliaConfig })), algolia
 afterEach(() => mock.restore());
 
 describe('JD products', () => {
-    const productsFor = async (hits: object[]) =>
+    const productsFor = async (hits: ReturnType<typeof hit>[]) =>
         (await fakeJD({ algolia: serveHits(hits) }).jd.fetchListing()).products;
 
     it('maps a hit to a product, closing truncated size labels', async () => {
@@ -83,11 +93,18 @@ describe('JD products', () => {
         ]);
     });
 
-    it("reads gender from JD's top-level categories", async () => {
+    it("reads gender from JD's top-level categories, listing a unisex product once", async () => {
         const products = await productsFor(
-            [['Men'], ['Women'], ['Men', 'Women']].map((lvl0) => hit({ hierarchicalCategories: { lvl0 } })),
+            [['Men'], ['Women'], ['Men', 'Women']].map((lvl0) =>
+                hit({ objectID: lvl0.join('+'), hierarchicalCategories: { lvl0 } }),
+            ),
         );
-        expect(products.map((product) => product.gender)).toEqual(['Male', 'Female', 'Unisex']);
+        expect(products).toHaveLength(3);
+        expect(Object.fromEntries(products.map((product) => [product.externalId, product.gender]))).toEqual({
+            Men: 'Male',
+            Women: 'Female',
+            'Men+Women': 'Unisex',
+        });
     });
 
     it('drops blocked names', async () => {
@@ -96,20 +113,23 @@ describe('JD products', () => {
 });
 
 describe('JD fetching', () => {
-    it('reads every page with the learned credentials, learning them once', async () => {
+    it('reads every page of each category with the learned credentials, learning them once', async () => {
         const { jd, calls } = fakeJD({ algolia: serve(2150) });
 
         const listing = await jd.fetchListing();
-        expect(listing.products).toHaveLength(2150);
+        expect(listing.products).toHaveLength(4300);
         expect(listing.complete).toBe(true);
 
         await jd.fetchListing();
-        expect(calls).toEqual({ pages: 1, searches: 6 });
+        expect(calls).toEqual({ pages: 1, searches: 12 });
     });
 
-    it('marks a listing truncated by the pagination cap as incomplete', async () => {
-        const { jd } = fakeJD({ algolia: serve(6000, 5000) });
-        expect(await jd.fetchListing()).toMatchObject({ products: { length: 5000 }, complete: false });
+    it('marks the listing incomplete when one category hits the pagination cap', async () => {
+        const { jd } = fakeJD({
+            algolia: (pageNumber, category) =>
+                (category === 'Men' ? serve(6000, 5000) : serve(10))(pageNumber, category),
+        });
+        expect(await jd.fetchListing()).toMatchObject({ products: { length: 5010 }, complete: false });
     });
 
     it('throws when Algolia errors, and relearns the config next time', async () => {

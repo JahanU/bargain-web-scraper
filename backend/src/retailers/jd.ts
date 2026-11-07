@@ -11,10 +11,11 @@ const JD_BASE_URL = 'https://www.jdsports.co.uk';
 const CONFIG_PAGE_URL = `${JD_BASE_URL}/men/sale/`;
 const NEXT_DATA_PATTERN = /<script id="__NEXT_DATA__" type="application\/json">([\s\S]*?)<\/script>/;
 
-// Every men's and women's sale product, each listed once (a unisex product carries both categories).
-const FACET_FILTERS = [['onSale:true'], ['hierarchicalCategories.lvl0:Men', 'hierarchicalCategories.lvl0:Women']];
+// JD's top-level categories we read. Each is its own query: Algolia serves at most 5,000 hits per
+// query, and the men's and women's sales together can pass that.
+const CATEGORIES = ['Men', 'Women'];
 
-// Algolia's per-request maximum. The index serves at most 5,000 hits per query.
+// Algolia's per-request maximum.
 const HITS_PER_PAGE = 1000;
 
 // Only what parseHit reads, instead of every merchandising field JD holds.
@@ -78,13 +79,17 @@ export function createJDRetailer(): Retailer {
         return { applicationId, searchApiKey, indexName };
     }
 
-    async function searchPage({ applicationId, searchApiKey, indexName }: SearchConfig, page: number) {
+    async function searchPage(
+        { applicationId, searchApiKey, indexName }: SearchConfig,
+        category: string,
+        page: number,
+    ) {
         const started = performance.now();
         const response = await fetch(`https://${applicationId}-dsn.algolia.net/1/indexes/${indexName}/query`, {
             method: 'POST',
             headers: { 'x-algolia-application-id': applicationId, 'x-algolia-api-key': searchApiKey },
             body: JSON.stringify({
-                facetFilters: FACET_FILTERS,
+                facetFilters: [['onSale:true'], [`hierarchicalCategories.lvl0:${category}`]],
                 hitsPerPage: HITS_PER_PAGE,
                 page,
                 attributesToRetrieve: ATTRIBUTES,
@@ -97,17 +102,19 @@ export function createJDRetailer(): Retailer {
             throw new Error(`Algolia search failed with status ${response.status}`);
         }
         const body = (await response.json()) as SearchPage;
-        log.debug(`algolia page ${page + 1}/${body.nbPages}`, {
+        log.debug(`algolia ${category} page ${page + 1}/${body.nbPages}`, {
             hits: body.hits.length,
             took: duration(performance.now() - started),
         });
         return body;
     }
 
-    /** Page 0 says how many pages there are; the rest are fetched in parallel. */
-    async function readSale(current: SearchConfig): Promise<Listing> {
-        const first = await searchPage(current, 0);
-        const rest = await Promise.all(Array.from({ length: first.nbPages - 1 }, (_, i) => searchPage(current, i + 1)));
+    /** One category's sale. Page 0 says how many pages there are; the rest are fetched in parallel. */
+    async function readCategory(current: SearchConfig, category: string) {
+        const first = await searchPage(current, category, 0);
+        const rest = await Promise.all(
+            Array.from({ length: first.nbPages - 1 }, (_, i) => searchPage(current, category, i + 1)),
+        );
         const hits = [first, ...rest].flatMap((page) => page.hits);
 
         // Algolia caps how deep pagination goes. Keep what we got, but say it is not everything,
@@ -115,11 +122,22 @@ export function createJDRetailer(): Retailer {
         const complete = hits.length >= first.nbHits;
         if (!complete) {
             log.warn('⚠ listing truncated by Algolia: missing products will not be removed this run', {
+                category,
                 nbHits: first.nbHits,
                 returned: hits.length,
             });
         }
-        return { products: hits.map(parseHit).filter((product) => product !== undefined), complete };
+        return { hits, complete };
+    }
+
+    async function readSale(current: SearchConfig): Promise<Listing> {
+        const categories = await Promise.all(CATEGORIES.map((category) => readCategory(current, category)));
+        // A unisex product is in both categories: keep one copy.
+        const hits = new Map(categories.flatMap((category) => category.hits).map((hit) => [hit.objectID, hit]));
+        return {
+            products: [...hits.values()].map(parseHit).filter((product) => product !== undefined),
+            complete: categories.every((category) => category.complete),
+        };
     }
 
     return {
