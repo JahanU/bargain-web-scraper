@@ -22,6 +22,15 @@ if (!("showModal" in HTMLDialogElement.prototype)) {
   });
 }
 
+// jsdom lacks these; the deal grid's virtualiser scrolls on mount and observes the document.
+// Real scrolling and resizing are tested in e2e.
+window.scrollTo = () => {};
+globalThis.ResizeObserver ??= class {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+};
+
 // jsdom has no layout, so the virtualised deal grid would measure every row at 0 px and render an
 // arbitrary window. Its rows (marked data-index) get a nominal height, so tests see the first rows
 // as a browser would. Real sizes and scrolling are tested in e2e.
