@@ -6,7 +6,7 @@ The deals API and scraper. It runs on Bun with **zero runtime dependencies**: th
 flowchart TB
     subgraph loop["🔁 Scrape loop · one per retailer"]
         direction LR
-        fetch["Fetch the sale listing<br/><small>JD listing page + every Algolia page</small>"]
+        fetch["Fetch the sale listing<br/><small>one Algolia query, every page</small>"]
         parse["Parse products<br/><small>pence · sizes · gender · blocklist</small>"]
         accept["DealStore.accept()<br/><small>rules R1 + R2</small>"]
         wait["Sleep 5 min<br/><small>after a failure: 15s → 30s → …</small>"]
@@ -64,7 +64,7 @@ flowchart TD
 | `src/deals.ts` | `DealStore`: applies R1 and R2, and builds the deals list (≥ `MIN_DISCOUNT`, best first) |
 | `src/http.ts` | The deals response (JSON with caching headers, or 503 until ready), the routes, and request logging |
 | `src/scraper.ts` | `scrapeRetailer` (one timed, failure-safe scrape) and the loop (R4) |
-| `src/retailers/jd.ts` | JD adapter: learns JD's Algolia settings from a listing page, reads every page, and flags incomplete results |
+| `src/retailers/jd.ts` | JD adapter: learns JD's Algolia credentials once, queries the men's and women's sale directly, reads every page in parallel, and flags incomplete results |
 | `src/retailers/blocklist.ts` | Names to skip (team kits, caps…), matched as whole words and plurals |
 | `src/retailers/types.ts` | `Product`, `Listing` and `Retailer`. A new retailer is one new file |
 | `src/config.ts`, `src/log.ts` | Environment settings (validated at startup) and readable, levelled logging |
@@ -113,7 +113,7 @@ One aligned, readable line per step, coloured in a terminal and plain text on Re
 | ⚠ | something the safety rules handled, e.g. a drop held back or an incomplete listing |
 | ⏱ / ↻ | next scheduled scrape / retry after a failure |
 
-Set `LOG_LEVEL=debug` to also see JD's internal steps (listing page, each Algolia page, how many hits were skipped) and the `/health` pings, which are hidden by default. Use `warn` or `error` for quieter logs, or `silent` (as the tests do). Colours: `FORCE_COLOR=1` or `NO_COLOR=1`.
+Set `LOG_LEVEL=debug` to also see each Algolia page JD's scrape reads and the `/health` pings, which are hidden by default. Use `warn` or `error` for quieter logs, or `silent` (as the tests do). Colours: `FORCE_COLOR=1` or `NO_COLOR=1`.
 
 If the scrape loop ever crashes (only possible through a bug), the process exits and Render restarts it, rather than serving stale deals.
 
