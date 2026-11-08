@@ -10,6 +10,6 @@ export { ResultsSummary } from "./components/ResultsSummary";
 export { StaleBanner } from "./components/StaleBanner";
 export { useDealFacets } from "./hooks/useDealFacets";
 export { dealsQueryOptions, useDealsQuery } from "./hooks/useDealsQuery";
-export type { Deal } from "./model/Deal";
-export { serverStartOf } from "./model/describe";
+export { type Deal, GENDERS, type Gender } from "./model/Deal";
+export { GENDER_LABEL, serverStartOf } from "./model/describe";
 export { compareSizes, type SizeFacet, type SizeGroup, sizeGroup } from "./model/sizes";

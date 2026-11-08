@@ -43,11 +43,12 @@ test("one plain GET: no custom headers (they'd force a CORS preflight), no cache
   const deal = makeDeal();
   const requests = respondWith(() => HttpResponse.json([deal]));
 
-  expect(await fetchDeals()).toEqual([deal]);
+  expect(await fetchDeals("Female")).toEqual([deal]);
 
   expect(requests).toHaveLength(1);
   const [request] = requests;
   expect(request?.method).toBe("GET");
+  expect(request?.url).toBe(`${URL}?gender=Female`);
   // Only what the runtime adds by itself; anything else would trigger a preflight.
   const automatic = [
     "accept",
@@ -69,7 +70,7 @@ test("on 503 it waits Retry-After and tries again", async () => {
   const requests = respondWith(loading("7"), () => HttpResponse.json([deal]));
   const clock = fakeClock();
 
-  expect(await fetchDeals(undefined, clock)).toEqual([deal]);
+  expect(await fetchDeals("Male", undefined, clock)).toEqual([deal]);
 
   expect(requests).toHaveLength(2);
   expect(clock.waits).toEqual([7000]);
@@ -88,7 +89,9 @@ test("after two minutes of 503s it gives up with still-loading", async () => {
   const requests = respondWith(loading("10"));
   const clock = fakeClock();
 
-  await expect(fetchDeals(undefined, clock)).rejects.toMatchObject({ kind: "still-loading" });
+  await expect(fetchDeals("Male", undefined, clock)).rejects.toMatchObject({
+    kind: "still-loading",
+  });
 
   expect(requests).toHaveLength(13); // t = 0, 10, … 120 s
   expect(clock.now()).toBe(120_000);
@@ -97,13 +100,13 @@ test("after two minutes of 503s it gives up with still-loading", async () => {
 test("other statuses are http errors and are not retried here", async () => {
   const requests = respondWith(() => HttpResponse.json({ error: "Not Found" }, { status: 404 }));
 
-  await expect(fetchDeals()).rejects.toMatchObject({ kind: "http", status: 404 });
+  await expect(fetchDeals("Male")).rejects.toMatchObject({ kind: "http", status: 404 });
   expect(requests).toHaveLength(1);
 });
 
 test("a non-JSON 502 platform page is an http error, not a parse crash", async () => {
   server.use(scenarios["bad-gateway"]);
-  await expect(fetchDeals()).rejects.toMatchObject({ kind: "http", status: 502 });
+  await expect(fetchDeals("Male")).rejects.toMatchObject({ kind: "http", status: 502 });
 });
 
 test("a 200 that isn't JSON, or isn't a list, is invalid-body", async () => {
@@ -111,13 +114,13 @@ test("a 200 that isn't JSON, or isn't a list, is invalid-body", async () => {
     () => new HttpResponse("<html>oops</html>", { headers: { "Content-Type": "text/html" } }),
     () => HttpResponse.json({ deals: [] }),
   );
-  await expect(fetchDeals()).rejects.toMatchObject({ kind: "invalid-body" });
-  await expect(fetchDeals()).rejects.toMatchObject({ kind: "invalid-body" });
+  await expect(fetchDeals("Male")).rejects.toMatchObject({ kind: "invalid-body" });
+  await expect(fetchDeals("Male")).rejects.toMatchObject({ kind: "invalid-body" });
 });
 
 test("no response at all is a network error", async () => {
   server.use(scenarios.offline);
-  await expect(fetchDeals()).rejects.toMatchObject({ kind: "network" });
+  await expect(fetchDeals("Male")).rejects.toMatchObject({ kind: "network" });
 });
 
 test("an attempt that hangs past the timeout is a timeout error", async () => {
@@ -127,7 +130,7 @@ test("an attempt that hangs past the timeout is a timeout error", async () => {
       return HttpResponse.json([]);
     }),
   );
-  await expect(fetchDeals(undefined, { attemptTimeoutMs: 20 })).rejects.toMatchObject({
+  await expect(fetchDeals("Male", undefined, { attemptTimeoutMs: 20 })).rejects.toMatchObject({
     kind: "timeout",
   });
 });
@@ -135,7 +138,7 @@ test("an attempt that hangs past the timeout is a timeout error", async () => {
 test("cancelling (the page going away) stops the 503 loop without an API error", async () => {
   const requests = respondWith(loading("10"));
   const controller = new AbortController();
-  const pending = fetchDeals(controller.signal);
+  const pending = fetchDeals("Male", controller.signal);
   await expect.poll(() => requests.length).toBe(1);
 
   controller.abort();

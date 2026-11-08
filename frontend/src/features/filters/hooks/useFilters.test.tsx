@@ -19,6 +19,7 @@ test("reads a legacy link on mount", () => {
     discount: 30,
     sizes: ["S", "M", "L"],
     sort: "price-low-to-high",
+    gender: "Male",
   });
 });
 
@@ -78,16 +79,19 @@ test("clearing search to empty removes it from the URL", async () => {
   expect(lastUrl()?.queryString).toBe("");
 });
 
-test("clearAll resets every filter but keeps the sort", async () => {
-  const { result, lastUrl } = setup("?search=nike&discount=50&sizes=M&sort=price-high-to-low");
+test("clearAll resets every filter but keeps the sort and gender", async () => {
+  const { result, lastUrl } = setup(
+    "?search=nike&discount=50&sizes=M&sort=price-high-to-low&gender=Female",
+  );
 
   await act(() => result.current[1].clearAll());
 
-  expect(lastUrl()?.queryString).toBe("?sort=price-high-to-low");
+  expect(lastUrl()?.queryString).toBe("?sort=price-high-to-low&gender=Female");
   expect(result.current[0]).toEqual({
     search: "",
     discount: 30,
     sizes: [],
     sort: "price-high-to-low",
+    gender: "Female",
   });
 });

@@ -1,4 +1,5 @@
 import { apiUrl } from "@/shared/config/env";
+import type { Gender } from "../model/Deal";
 import { ApiError } from "./ApiError";
 import { parseDeals, type WireDeal } from "./dealSchema";
 
@@ -12,11 +13,12 @@ export type FetchDealsOptions = {
 };
 
 /**
- * GET /v1/deals. While the backend answers 503 (first scrape not finished) it waits Retry-After
+ * GET /v1/deals?gender=. While the backend answers 503 (first scrape not finished) it waits Retry-After
  * and tries again, for up to two minutes. Plain fetch: no headers (they'd trigger a CORS
  * preflight) and no cache option (the browser's HTTP cache does the caching).
  */
 export async function fetchDeals(
+  gender: Gender,
   signal?: AbortSignal,
   options: FetchDealsOptions = {},
 ): Promise<WireDeal[]> {
@@ -24,7 +26,7 @@ export async function fetchDeals(
   const deadline = now() + LOADING_DEADLINE_MS;
 
   for (;;) {
-    const response = await request(signal, attemptTimeoutMs);
+    const response = await request(gender, signal, attemptTimeoutMs);
     if (response.status === 503) {
       if (now() >= deadline) throw new ApiError("still-loading", 503);
       await sleep(retryAfterMs(response.headers.get("Retry-After")), signal);
@@ -43,10 +45,14 @@ export async function fetchDeals(
   }
 }
 
-async function request(signal: AbortSignal | undefined, timeoutMs: number): Promise<Response> {
+async function request(
+  gender: Gender,
+  signal: AbortSignal | undefined,
+  timeoutMs: number,
+): Promise<Response> {
   const timeout = AbortSignal.timeout(timeoutMs);
   try {
-    return await fetch(`${apiUrl}/v1/deals`, {
+    return await fetch(`${apiUrl}/v1/deals?gender=${gender}`, {
       signal: signal ? AbortSignal.any([signal, timeout]) : timeout,
     });
   } catch (error) {

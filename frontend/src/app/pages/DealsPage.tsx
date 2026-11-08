@@ -25,9 +25,9 @@ const WAKING_AFTER_MS = 3000;
 
 /** The single orchestrator: the only place server state and URL state meet. */
 export function DealsPage() {
-  const query = useDealsQuery();
-  const deals = query.data;
   const [values, actions] = useFilters();
+  const query = useDealsQuery(values.gender);
+  const deals = query.data;
   const { visible, withoutSizeFilter, withoutDiscountFilter } = useFilteredDeals(deals, values);
   const sizeFacets = useDealFacets(withoutSizeFilter);
   const change = (next: Partial<FilterState>) => void actions.set(next);
