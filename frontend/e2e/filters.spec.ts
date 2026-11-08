@@ -5,6 +5,7 @@ import { expect, test } from "./test";
 test("desktop: search, discount and sizes filter the grid, and a reload restores them", async ({
   page,
 }) => {
+  await page.setViewportSize(devices["Desktop Chrome"].viewport); // the Mobile Safari project defaults to phone width
   await page.goto("/");
   await expect(page.getByText("81 deals")).toBeVisible();
 
