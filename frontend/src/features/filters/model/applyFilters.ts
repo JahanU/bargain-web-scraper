@@ -1,4 +1,4 @@
-import type { Deal } from "@/features/deals";
+import type { Deal, Gender } from "@/features/deals";
 import {
   FILTER_KEYS,
   type FilterKey,
@@ -8,7 +8,8 @@ import {
 } from "./registry";
 import { compareDeals, type SortId } from "./sort";
 
-export type FilterState = FilterValues & { sort: SortId };
+type ClientFilters = FilterValues & { sort: SortId };
+export type FilterState = ClientFilters & { gender: Gender };
 
 /**
  * One pass: build the active predicates once, filter once, sort once (stable). `except` leaves
@@ -16,7 +17,7 @@ export type FilterState = FilterValues & { sort: SortId };
  */
 export function applyFilters(
   deals: readonly Deal[],
-  values: FilterState,
+  values: ClientFilters,
   except?: FilterKey,
 ): Deal[] {
   const predicates = FILTER_KEYS.filter(

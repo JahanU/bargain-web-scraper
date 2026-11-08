@@ -14,4 +14,5 @@ export {
   type FilterValues,
   SEARCH_MAX_LENGTH,
 } from "./model/registry";
+export { genderParser } from "./model/gender";
 export { DEFAULT_SORT, SORTS, type SortId } from "./model/sort";

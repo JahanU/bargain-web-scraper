@@ -146,7 +146,7 @@ test("slow first load: skeletons, then the waking line after 3 seconds, while 50
 
 test("cached snapshot: renders at once, and a failed refresh keeps it with a stale banner", async () => {
   const client = createTestQueryClient();
-  client.setQueryData(dealsKeys.all, [makeDeal({ name: "Cached Tee" })], {
+  client.setQueryData(dealsKeys.gender("Male"), [makeDeal({ name: "Cached Tee" })], {
     updatedAt: Date.now() - 10 * 60_000,
   });
   server.use(scenarios["bad-gateway"]);

@@ -9,7 +9,13 @@ const puma = deal({ name: "Puma Tee", nowPrice: 20, discount: 50, sizes: ["XL"] 
 const vans = deal({ name: "Vans Tee", nowPrice: 20, discount: 50, sizes: undefined });
 const deals = [nike, adidas, puma, vans];
 
-const DEFAULTS: FilterState = { search: "", discount: 30, sizes: [], sort: "discount-high-to-low" };
+const DEFAULTS: FilterState = {
+  search: "",
+  discount: 30,
+  sizes: [],
+  sort: "discount-high-to-low",
+  gender: "Male",
+};
 const names = (values: Partial<FilterState>, input = deals) =>
   applyFilters(input, { ...DEFAULTS, ...values }).map((item) => item.name);
 
