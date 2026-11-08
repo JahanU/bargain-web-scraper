@@ -1,4 +1,4 @@
-import { expect, test } from "./test";
+import { dealsApi, expect, test } from "./test";
 
 test("the page loads the deals", async ({ page }) => {
   await page.goto("/");
@@ -17,7 +17,7 @@ test("a returning visitor sees the saved snapshot even when the API is down", as
     localStorage.getItem("bargain-deals")?.includes("Las Vegas Raiders"),
   );
 
-  await page.route("**/v1/deals", (route) => route.abort());
+  await page.route(dealsApi, (route) => route.abort());
   await page.reload();
 
   await expect(page.getByText("81 deals")).toBeVisible();
