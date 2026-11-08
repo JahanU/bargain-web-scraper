@@ -173,3 +173,85 @@ test("a link shared before the rewrite shows the same deals: nike, sizes M or L,
     "Nike Sportswear Club T-Shirt",
   ]);
 });
+
+/** Answers each gender with its own deals and records the gender of every request. */
+function dealsByGender(deals: Record<string, ReturnType<typeof makeDeal>[]>) {
+  const requested: Array<string | null> = [];
+  server.use(
+    http.get(URL, ({ request }) => {
+      const gender = new globalThis.URL(request.url).searchParams.get("gender");
+      requested.push(gender);
+      return HttpResponse.json(deals[gender ?? ""] ?? []);
+    }),
+  );
+  return requested;
+}
+
+test("Men by default: one request for gender=Male, with Men checked", async () => {
+  const requested = dealsByGender({ Male: [makeDeal({ name: "Men Tee" })] });
+  renderWithClient(<DealsPage />);
+
+  expect(await screen.findByRole("link", { name: /^Men Tee / })).toBeInTheDocument();
+  expect(requested).toEqual(["Male"]);
+  expect(screen.getByRole("radio", { name: "Men" })).toBeChecked();
+});
+
+test("choosing Women fetches and shows the women's deals, and writes it to the URL", async () => {
+  const requested = dealsByGender({
+    Male: [makeDeal({ name: "Men Tee" })],
+    Female: [makeDeal({ name: "Women Tee", gender: "Female" })],
+  });
+  const onUrlUpdate = vi.fn();
+  renderWithClient(<DealsPage />, { onUrlUpdate });
+  await screen.findByRole("link", { name: /^Men Tee / });
+
+  await userEvent.click(screen.getByRole("radio", { name: "Women" }));
+
+  expect(await screen.findByRole("link", { name: /^Women Tee / })).toBeInTheDocument();
+  expect(screen.queryByRole("link", { name: /^Men Tee / })).not.toBeInTheDocument();
+  expect(requested).toEqual(["Male", "Female"]);
+  expect(onUrlUpdate).toHaveBeenLastCalledWith(
+    expect.objectContaining({ queryString: "?gender=Female" }),
+  );
+});
+
+test("a late Men response never replaces the Women deals chosen meanwhile", async () => {
+  let releaseMen = () => {};
+  const menReleased = new Promise<void>((resolve) => (releaseMen = resolve));
+  let menAnswered = () => {};
+  const menDone = new Promise<void>((resolve) => (menAnswered = resolve));
+  server.use(
+    http.get(URL, async ({ request }) => {
+      if (new globalThis.URL(request.url).searchParams.get("gender") === "Male") {
+        await menReleased;
+        menAnswered();
+        return HttpResponse.json([makeDeal({ name: "Late Men Tee" })]);
+      }
+      return HttpResponse.json([makeDeal({ name: "Women Tee", gender: "Female" })]);
+    }),
+  );
+  renderWithClient(<DealsPage />);
+
+  await userEvent.click(screen.getByRole("radio", { name: "Women" }));
+  expect(await screen.findByRole("link", { name: /^Women Tee / })).toBeInTheDocument();
+
+  releaseMen();
+  await act(async () => {
+    await menDone;
+    await new Promise((resolve) => setTimeout(resolve, 20));
+  });
+
+  expect(screen.getByRole("link", { name: /^Women Tee / })).toBeInTheDocument();
+  expect(screen.queryByText("Late Men Tee")).not.toBeInTheDocument();
+});
+
+test("a ?gender=Unisex link loads the unisex deals", async () => {
+  const requested = dealsByGender({
+    Unisex: [makeDeal({ name: "Unisex Tee", gender: "Unisex" })],
+  });
+  renderWithClient(<DealsPage />, { searchParams: "?gender=Unisex" });
+
+  expect(await screen.findByRole("link", { name: /^Unisex Tee / })).toBeInTheDocument();
+  expect(requested).toEqual(["Unisex"]);
+  expect(screen.getByRole("radio", { name: "Unisex" })).toBeChecked();
+});
