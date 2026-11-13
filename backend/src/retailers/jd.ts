@@ -1,4 +1,4 @@
-import { UNISEX } from '@/deals';
+import { type Category, UNISEX } from '@/deals';
 import { createLogger, duration } from '@/log';
 import { isBlockedName } from '@/retailers/blocklist';
 import type { Listing, Product, Retailer } from '@/retailers/types';
@@ -30,6 +30,17 @@ const ATTRIBUTES = [
     'size',
     'inStock',
     'hierarchicalCategories.lvl0',
+    'hierarchicalCategories.lvl1',
+    'brand',
+    'category',
+];
+
+// JD's product kinds, as its `category` field names them and as they appear in its lvl1 paths
+// ("Men > Mens Footwear").
+const KINDS: [jd: string, ours: Category][] = [
+    ['Footwear', 'Shoes'],
+    ['Clothing', 'Clothes'],
+    ['Accessories', 'Accessories'],
 ];
 
 const REQUEST_TIMEOUT_MS = 15_000;
@@ -50,7 +61,9 @@ interface Hit {
     image: string;
     size: string[];
     inStock: boolean;
-    hierarchicalCategories: { lvl0: string[] };
+    hierarchicalCategories: { lvl0: string[]; lvl1?: string[] };
+    brand?: string[];
+    category?: string[];
 }
 
 interface SearchPage {
@@ -134,8 +147,13 @@ export function createJDRetailer(): Retailer {
         const categories = await Promise.all(CATEGORIES.map((category) => readCategory(current, category)));
         // A unisex product is in both categories: keep one copy.
         const hits = new Map(categories.flatMap((category) => category.hits).map((hit) => [hit.objectID, hit]));
+        const listed = [...hits.values()].filter((hit) => !isBlockedName(hit.name));
+        const products = listed.map(parseHit).filter((product) => product !== undefined);
+        if (products.length < listed.length) {
+            log.warn('⚠ skipped hits with no usable brand or category', { skipped: listed.length - products.length });
+        }
         return {
-            products: [...hits.values()].map(parseHit).filter((product) => product !== undefined),
+            products,
             complete: categories.every((category) => category.complete),
         };
     }
@@ -154,9 +172,19 @@ export function createJDRetailer(): Retailer {
     };
 }
 
-/** Maps one hit to a product, or nothing if its name is blocked. */
+/** JD's own `category` when it names a kind we know, else the kind in its lvl1 paths. */
+function categoryOf(hit: Hit): Category | undefined {
+    const paths = hit.hierarchicalCategories.lvl1 ?? [];
+    const kind =
+        KINDS.find(([jd]) => jd === hit.category?.[0]) ?? KINDS.find(([jd]) => paths.some((path) => path.includes(jd)));
+    return kind?.[1];
+}
+
+/** Maps one hit to a product, or nothing if it has no brand or no category we can tell. */
 function parseHit(hit: Hit): Product | undefined {
-    if (isBlockedName(hit.name)) {
+    const brand = hit.brand?.[0]?.trim();
+    const category = categoryOf(hit);
+    if (!brand || !category) {
         return undefined;
     }
     const categories = hit.hierarchicalCategories.lvl0;
@@ -167,6 +195,8 @@ function parseHit(hit: Hit): Product | undefined {
         url: `${JD_BASE_URL}/product/${hit.slug}/${hit.objectID}/`,
         imageUrl: hit.image,
         gender: women && categories.includes('Men') ? UNISEX : women ? 'Female' : 'Male',
+        brand,
+        category,
         // JD cuts some labels short, e.g. "6 (EU 39" next to "6 (EU 40": close the bracket.
         sizes: hit.size.map((size) => (size.includes('(') && !size.includes(')') ? `${size})` : size)),
         wasPricePence: Math.round(hit.wasPrice * 100),

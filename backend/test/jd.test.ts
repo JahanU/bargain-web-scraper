@@ -11,7 +11,9 @@ const hit = (overrides: object = {}) => ({
     image: 'https://i8.amplience.net/i/jpl/jd_752441_plc',
     size: ['7', '6 (EU 39', '6 (24.5cm)'],
     inStock: true,
-    hierarchicalCategories: { lvl0: ['Men'] },
+    hierarchicalCategories: { lvl0: ['Men'], lvl1: ['Men > Mens Footwear'] },
+    brand: ['Nike'],
+    category: ['Footwear'],
     ...overrides,
 });
 
@@ -38,8 +40,8 @@ const serve =
     };
 
 /** Algolia holding exactly these hits, answering each category query with the hits in that category. */
-const serveHits = (hits: ReturnType<typeof hit>[]) => (_: number, category: string) => {
-    const matching = hits.filter((item) => item.hierarchicalCategories.lvl0.includes(category));
+const serveHits = (hits: ReturnType<typeof hit>[]) => (_: number, top: string) => {
+    const matching = hits.filter((item) => item.hierarchicalCategories.lvl0.includes(top));
     return Response.json({ hits: matching, nbHits: matching.length, nbPages: 1 });
 };
 
@@ -48,7 +50,7 @@ const serveHits = (hits: ReturnType<typeof hit>[]) => (_: number, category: stri
  * Searches only succeed against the main index with the page's credentials and a sale filter. Counts both.
  */
 function fakeJD({ listing = () => new Response(page({ algoliaConfig })), algolia = serve(1) } = {}) {
-    const calls = { pages: 0, searches: 0 };
+    const calls = { pages: 0, searches: 0, attributes: [] as string[] };
     spyOn(globalThis, 'fetch').mockImplementation((async (url: string, init?: RequestInit) => {
         if (!url.includes('algolia.net')) {
             calls.pages++;
@@ -56,7 +58,8 @@ function fakeJD({ listing = () => new Response(page({ algoliaConfig })), algolia
         }
         calls.searches++;
         const headers = init?.headers as Record<string, string>;
-        const { page: pageNumber, facetFilters } = JSON.parse(String(init?.body));
+        const { page: pageNumber, facetFilters, attributesToRetrieve } = JSON.parse(String(init?.body));
+        calls.attributes = attributesToRetrieve;
         const [[sale], [category]] = facetFilters;
         const authorised =
             url === 'https://APP-dsn.algolia.net/1/indexes/jd_main/query' &&
@@ -70,7 +73,10 @@ function fakeJD({ listing = () => new Response(page({ algoliaConfig })), algolia
     return { jd: createJDRetailer(), calls };
 }
 
-afterEach(() => mock.restore());
+afterEach(() => {
+    mock.restore();
+    Bun.env.LOG_LEVEL = 'silent';
+});
 
 describe('JD products', () => {
     const productsFor = async (hits: ReturnType<typeof hit>[]) =>
@@ -84,6 +90,8 @@ describe('JD products', () => {
                 url: 'https://www.jdsports.co.uk/product/black-nike-air-max-90/19686180/',
                 imageUrl: 'https://i8.amplience.net/i/jpl/jd_752441_plc',
                 gender: 'Male',
+                brand: 'Nike',
+                category: 'Shoes',
                 sizes: ['7', '6 (EU 39)', '6 (24.5cm)'],
                 wasPricePence: 13500,
                 nowPricePence: 5499,
@@ -107,6 +115,40 @@ describe('JD products', () => {
         });
     });
 
+    it.each([
+        ['Footwear', 'Shoes'],
+        ['Clothing', 'Clothes'],
+        ['Accessories', 'Accessories'],
+    ])("reads the brand, and maps JD's %s category to %s", async (category, expected) => {
+        const [product] = await productsFor([hit({ brand: ['The North Face'], category: [category] })]);
+        expect(product).toMatchObject({ brand: 'The North Face', category: expected });
+    });
+
+    it.each([
+        ['is missing', undefined],
+        ['is one we do not know', ['Gift Cards']],
+    ])("falls back to JD's category paths when the category %s", async (_, category) => {
+        const lvl1 = ['Women > Womens Sale', 'Women > Womens Clothing'];
+        const [product] = await productsFor([hit({ category, hierarchicalCategories: { lvl0: ['Women'], lvl1 } })]);
+        expect(product).toMatchObject({ category: 'Clothes' });
+    });
+
+    it('skips hits with no brand or no category, warning once with how many', async () => {
+        const warn = spyOn(console, 'error').mockImplementation(() => {});
+        Bun.env.LOG_LEVEL = 'warn';
+        const unknown = { lvl0: ['Men'], lvl1: ['Men > Mens Sale'] };
+        const products = await productsFor([
+            hit({ objectID: 'kept' }),
+            hit({ objectID: 'no-brand', brand: undefined }),
+            hit({ objectID: 'blank-brand', brand: [' '] }),
+            hit({ objectID: 'no-category', category: undefined, hierarchicalCategories: unknown }),
+            hit({ objectID: 'no-paths', category: undefined, hierarchicalCategories: { lvl0: ['Men'] } }),
+        ]);
+        expect(products.map((product) => product.externalId)).toEqual(['kept']);
+        expect(warn).toHaveBeenCalledTimes(1);
+        expect(String(warn.mock.calls[0])).toContain('skipped=4');
+    });
+
     it('drops blocked names', async () => {
         expect(await productsFor([hit({ name: 'Nike England Football Shirt' })])).toEqual([]);
     });
@@ -121,7 +163,10 @@ describe('JD fetching', () => {
         expect(listing.complete).toBe(true);
 
         await jd.fetchListing();
-        expect(calls).toEqual({ pages: 1, searches: 12 });
+        expect(calls).toMatchObject({ pages: 1, searches: 12 });
+        expect(calls.attributes).toEqual(
+            expect.arrayContaining(['brand', 'category', 'hierarchicalCategories.lvl1', 'hierarchicalCategories.lvl0']),
+        );
     });
 
     it('marks the listing incomplete when one category hits the pagination cap', async () => {

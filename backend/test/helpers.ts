@@ -7,6 +7,8 @@ export const product = (id: string, overrides: Partial<Product> = {}): Product =
     url: `https://example.com/${id}`,
     imageUrl: null,
     gender: 'Male',
+    brand: 'Nike',
+    category: 'Shoes',
     sizes: ['8', '9'],
     wasPricePence: 10000,
     nowPricePence: 5000,
