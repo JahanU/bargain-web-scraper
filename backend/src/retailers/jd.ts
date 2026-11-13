@@ -1,5 +1,6 @@
 import { UNISEX } from '@/deals';
-import { createLogger, duration } from '@/log';
+import { createLogger } from '@/log';
+import { type SearchConfig, searchAll, withLearnedConfig } from '@/retailers/algolia';
 import { isBlockedName } from '@/retailers/blocklist';
 import { categoryIn } from '@/retailers/category';
 import { request } from '@/retailers/request';
@@ -16,9 +17,6 @@ const NEXT_DATA_PATTERN = /<script id="__NEXT_DATA__" type="application\/json">(
 // JD's top-level categories we read. Each is its own query: Algolia serves at most 5,000 hits per
 // query, and the men's and women's sales together can pass that.
 const CATEGORIES = ['Men', 'Women'];
-
-// Algolia's per-request maximum.
-const HITS_PER_PAGE = 1000;
 
 // Only what parseHit reads, instead of every merchandising field JD holds.
 const ATTRIBUTES = [
@@ -37,12 +35,6 @@ const ATTRIBUTES = [
     'category',
 ];
 
-interface SearchConfig {
-    applicationId: string;
-    searchApiKey: string;
-    indexName: string;
-}
-
 interface Hit {
     objectID: string;
     name: string;
@@ -58,17 +50,8 @@ interface Hit {
     category?: string[];
 }
 
-interface SearchPage {
-    hits: Hit[];
-    nbHits: number;
-    nbPages: number;
-}
-
 /** JD Sports UK's men's and women's sale, read straight from the Algolia index behind its site. */
 export function createJDRetailer(): Retailer {
-    // Learned once, and forgotten after any error (rotated key, renamed index) so the next run relearns it.
-    let config: SearchConfig | undefined;
-
     /** Reads the Algolia credentials and main product index out of a listing page. */
     async function learnConfig(): Promise<SearchConfig> {
         const response = await request('Listing page', CONFIG_PAGE_URL);
@@ -81,55 +64,13 @@ export function createJDRetailer(): Retailer {
         return { applicationId, searchApiKey, indexName };
     }
 
-    async function searchPage(
-        { applicationId, searchApiKey, indexName }: SearchConfig,
-        category: string,
-        page: number,
-    ) {
-        const started = performance.now();
-        const response = await request(
-            'Algolia search',
-            `https://${applicationId}-dsn.algolia.net/1/indexes/${indexName}/query`,
-            {
-                method: 'POST',
-                headers: { 'x-algolia-application-id': applicationId, 'x-algolia-api-key': searchApiKey },
-                body: JSON.stringify({
-                    facetFilters: [['onSale:true'], [`hierarchicalCategories.lvl0:${category}`]],
-                    hitsPerPage: HITS_PER_PAGE,
-                    page,
-                    attributesToRetrieve: ATTRIBUTES,
-                    // Without this, Algolia adds match highlighting to every hit: 2.5MB a page instead of 320KB.
-                    attributesToHighlight: [],
-                }),
-            },
-        );
-        const body = (await response.json()) as SearchPage;
-        log.debug(`algolia ${category} page ${page + 1}/${body.nbPages}`, {
-            hits: body.hits.length,
-            took: duration(performance.now() - started),
-        });
-        return body;
-    }
-
-    /** One category's sale. Page 0 says how many pages there are; the rest are fetched in parallel. */
-    async function readCategory(current: SearchConfig, category: string) {
-        const first = await searchPage(current, category, 0);
-        const rest = await Promise.all(
-            Array.from({ length: first.nbPages - 1 }, (_, i) => searchPage(current, category, i + 1)),
-        );
-        const hits = [first, ...rest].flatMap((page) => page.hits);
-
-        // Algolia caps how deep pagination goes. Keep what we got, but say it is not everything,
-        // so the products it held back aren't treated as gone.
-        const complete = hits.length >= first.nbHits;
-        if (!complete) {
-            log.warn('⚠ listing truncated by Algolia: missing products will not be removed this run', {
-                category,
-                nbHits: first.nbHits,
-                returned: hits.length,
-            });
-        }
-        return { hits, complete };
+    /** One category's sale. */
+    function readCategory(current: SearchConfig, category: string) {
+        const query = {
+            facetFilters: [['onSale:true'], [`hierarchicalCategories.lvl0:${category}`]],
+            attributesToRetrieve: ATTRIBUTES,
+        };
+        return searchAll<Hit>(current, query, log, category);
     }
 
     async function readSale(current: SearchConfig): Promise<Listing> {
@@ -147,18 +88,7 @@ export function createJDRetailer(): Retailer {
         };
     }
 
-    return {
-        id: 'jd',
-        async fetchListing() {
-            try {
-                config ??= await learnConfig();
-                return await readSale(config);
-            } catch (error) {
-                config = undefined;
-                throw error;
-            }
-        },
-    };
+    return { id: 'jd', fetchListing: withLearnedConfig(learnConfig, readSale) };
 }
 
 /** JD's own `category` when it names a kind we know, else the kind in its lvl1 paths. */
