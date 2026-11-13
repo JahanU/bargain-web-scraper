@@ -179,7 +179,7 @@ describe('filtering by category and brand', () => {
                     for (const table of [both, loading]) {
                         const response = get(path, query, table);
                         expect(response.status).toBe(400);
-                        expect(await response.json()).toEqual({ error: 'store must be one of jd, size' });
+                        expect(await response.json()).toEqual({ error: 'store must be one of jd, size, end' });
                     }
                 }
             },

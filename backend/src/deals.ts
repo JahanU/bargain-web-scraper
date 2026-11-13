@@ -7,7 +7,7 @@ export const CATEGORIES = ['Shoes', 'Clothes', 'Accessories'] as const;
 export type Category = (typeof CATEGORIES)[number];
 
 /** The shops we read. Called stores, as on the site, though each is a `Retailer` in the code. */
-export const STORES = ['jd', 'size'] as const;
+export const STORES = ['jd', 'size', 'end'] as const;
 export type Store = (typeof STORES)[number];
 
 /** A deal exactly as the frontend's `Item` expects it. */
@@ -126,13 +126,14 @@ export class DealStore {
 
     /** Deals at or above the discount floor, best discount first, then cheapest. */
     deals(minDiscount: number): Deal[] {
-        return [...this.byRetailer]
+        const deals = [...this.byRetailer]
             .flatMap(([store, products]) => [...products.values()].map((product) => ({ store, product })))
             .filter(({ product }) => product.discount >= minDiscount)
             .sort(
                 (a, b) => b.product.discount - a.product.discount || a.product.nowPricePence - b.product.nowPricePence,
             )
             .map(({ store, product }) => toDeal(product, store));
+        return withOneSpellingPerBrand(deals);
     }
 
     private statusFor(retailer: Store, complete: boolean, inStock: number, held: number): AcceptStatus {
@@ -169,6 +170,21 @@ function dedupe(products: Product[]): Map<string, Product> {
         byId.set(product.externalId, { ...preferred, gender });
     }
     return byId;
+}
+
+/**
+ * Shops spell some brands differently ("adidas", "Adidas"), and the brand filter matches exactly.
+ * Every deal takes the spelling most deals use, so a brand is one entry across all stores.
+ */
+function withOneSpellingPerBrand(deals: Deal[]): Deal[] {
+    const spellings = new Map<string, Map<string, number>>();
+    for (const { brand } of deals) {
+        const counts = spellings.get(brand.toLowerCase()) ?? new Map<string, number>();
+        spellings.set(brand.toLowerCase(), counts.set(brand, (counts.get(brand) ?? 0) + 1));
+    }
+    const preferred = (brand: string) =>
+        [...(spellings.get(brand.toLowerCase()) ?? [])].sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : 1))[0]?.[0];
+    return deals.map((deal) => ({ ...deal, brand: preferred(deal.brand) ?? deal.brand }));
 }
 
 function toDeal(product: StoredProduct, store: Store): Deal {
