@@ -113,7 +113,7 @@ export function createSizeRetailer({ delayMs = REQUEST_DELAY_MS } = {}): Retaile
                         await Bun.sleep(delayMs);
                     }
                     const { nodes, pageInfo } = await salePage(handle, cursor);
-                    const wanted = nodes.filter((node) => !isBlockedName(nameWithoutBrand(node)));
+                    const wanted = nodes.filter((node) => !isBlockedName(node.title, node.vendor));
                     const parsed = wanted
                         .map((node) => parseNode(node, gender))
                         .filter((product) => product !== undefined);
@@ -136,11 +136,6 @@ export function createSizeRetailer({ delayMs = REQUEST_DELAY_MS } = {}): Retaile
             return { products, complete };
         },
     };
-}
-
-/** Size starts every title with the brand, and a brand such as "Home Grown" is not a blocked word. */
-function nameWithoutBrand({ title, vendor }: Node): string {
-    return title.startsWith(vendor) ? title.slice(vendor.length) : title;
 }
 
 /** The audience a product type names. One with no path ("Footwear") takes the gender of its sale. */
