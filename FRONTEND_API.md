@@ -11,7 +11,7 @@ Everything the frontend needs to know to work with the rewritten backend: the en
 - [ ] Use a **plain `fetch(url)`**: no custom headers and no `cache: 'no-store'`. The browser then handles caching and decompression for you.
 - [ ] Use **`deal.url` as the React key**; it's unique per product.
 - [ ] `sizes` and `imageUrl` can be **missing**. Prices are **numbers in GBP**.
-- [ ] Filter by **gender, category and brand on the server** (`?gender=`, `?category=`, `?brand=`), and read the brand list with its counts from **`GET /v1/brands`**. Search, sizes, the discount slider and sorting stay **in the browser**.
+- [ ] Filter by **gender, category, store and brand on the server** (`?gender=`, `?category=`, `?store=`, `?brand=`), and read the brand list with its counts from **`GET /v1/brands`**. Search, sizes, the discount slider and sorting stay **in the browser**.
 - [ ] Don't poll more often than **every 60s**; the data only changes every 5 minutes.
 
 ---
@@ -44,6 +44,7 @@ All query parameters are optional. Without any you get every deal. Together they
 |---|---|---|
 | `gender` | `Male`, `Female` or `Unisex` | Only deals with exactly that `gender` (unisex items appear only under `Unisex`). Any other value, including an empty one, is a `400`. |
 | `category` | `Shoes`, `Clothes` or `Accessories` | Only deals with exactly that `category`. Any other value, including an empty one, is a `400`. |
+| `store` | `jd` or `size` | Only deals from that store. Leave it out for both stores. Any other value, including an empty one, is a `400`. |
 | `brand` | A brand name exactly as `deal.brand` and `/v1/brands` give it (case-sensitive) | Only deals of that brand. Repeat it to allow several brands: `?brand=Nike&brand=adidas` returns deals from either. An empty or whitespace-only value is a `400`. |
 
 A brand that no current deal has is not an error. It matches nothing, so `?brand=Reebok` alone returns `[]`. Brands appear and disappear with stock every five minutes, so a saved or shared link keeps working.
@@ -54,6 +55,7 @@ Build the query with `URLSearchParams` so brand names with spaces or `&` are enc
 const params = new URLSearchParams();
 if (gender) params.set('gender', gender);
 if (category) params.set('category', category);
+if (store) params.set('store', store);
 for (const brand of brands) params.append('brand', brand);
 const response = await fetch(`${BASE_URL}/v1/deals?${params}`);
 ```
@@ -68,15 +70,15 @@ A JSON **array** of deals, already **sorted by discount (highest first), then by
 /** One deal. Mirrors `Deal` in backend/src/deals.ts. */
 export interface Deal {
     name: string;
-    /** Original price in GBP, e.g. 135. Can be 0 if JD didn't provide it. */
+    /** Original price in GBP, e.g. 135. Can be 0 if the store didn't provide it. */
     wasPrice: number;
     /** Sale price in GBP, e.g. 54.99. */
     nowPrice: number;
     /** Whole-number percent off, e.g. 60. Always ≥ the backend's MIN_DISCOUNT (30 by default). */
     discount: number;
-    /** The JD product page. Unique per product, so use it as the React key. */
+    /** The product page at the store. Unique per product, so use it as the React key. */
     url: string;
-    /** Product image. The key is absent if JD had none. */
+    /** Product image. The key is absent if the store had none. */
     imageUrl?: string;
     /** Sizes in stock, e.g. ["7", "8", "9"]. The key is absent if unknown. */
     sizes?: string[];
@@ -88,6 +90,8 @@ export interface Deal {
     brand: string;
     /** Always present. */
     category: 'Shoes' | 'Clothes' | 'Accessories';
+    /** The store selling it. The same product can be a deal at both, each with its own price. */
+    store: 'jd' | 'size';
 }
 ```
 
@@ -106,7 +110,8 @@ Example:
     "timestamp": 1793703053984,
     "gender": "Male",
     "brand": "Nike",
-    "category": "Shoes"
+    "category": "Shoes",
+    "store": "jd"
   }
 ]
 ```
@@ -141,6 +146,7 @@ The frontend should show a loading state, wait `Retry-After` seconds, and try ag
 |---|---|---|
 | `400` | `{ "error": "gender must be one of Male, Female, Unisex" }` (JSON) | Unknown or empty `gender` value |
 | `400` | `{ "error": "category must be one of Shoes, Clothes, Accessories" }` (JSON) | Unknown or empty `category` value |
+| `400` | `{ "error": "store must be one of jd, size" }` (JSON) | Unknown or empty `store` value |
 | `400` | `{ "error": "brand must not be empty" }` (JSON) | An empty or whitespace-only `brand` value |
 | `404` | `{ "error": "Not Found" }` (JSON) | Wrong path |
 | `500` / `502` | Possibly **not JSON** (Bun's or Render's error page) | Backend crashed or is restarting. Treat it as a network error and retry later. |
@@ -153,11 +159,11 @@ Always check `response.ok` / `response.status` before calling `.json()`.
 
 The brands to offer in a brand filter, with how many deals each has.
 
-Optional query: `gender` and `category`, with the same values and the same `400` responses as `/v1/deals`. Any `brand` parameter is ignored, so you can send the same query string to both endpoints and the list does not shrink to the brands already selected.
+Optional query: `gender`, `category` and `store`, with the same values and the same `400` responses as `/v1/deals`. Any `brand` parameter is ignored, so you can send the same query string to both endpoints and the list does not shrink to the brands already selected.
 
 ### Response: `200 OK`
 
-A JSON array holding only the brands that have at least one deal matching `gender` and `category`, sorted by `count` (highest first), then by brand name. It is `[]` when nothing matches.
+A JSON array holding only the brands that have at least one deal matching `gender`, `category` and `store`, sorted by `count` (highest first), then by brand name. It is `[]` when nothing matches.
 
 ```ts
 export interface BrandCount {
@@ -173,7 +179,7 @@ export interface BrandCount {
 ]
 ```
 
-`count` is exactly the number of deals `/v1/deals` returns for the same `gender` and `category` plus that single `brand`. For example, if `/v1/brands?gender=Male&category=Shoes` lists `{ "brand": "Nike", "count": 41 }`, then `/v1/deals?gender=Male&category=Shoes&brand=Nike` returns 41 deals. Both are computed from the same snapshot, but the two requests can straddle a scrape (or one can come from the browser cache), so allow for a brief mismatch around a refresh.
+`count` is exactly the number of deals `/v1/deals` returns for the same `gender`, `category` and `store` plus that single `brand`. Without `store`, a brand both stores sell is counted across both. For example, if `/v1/brands?gender=Male&category=Shoes` lists `{ "brand": "Nike", "count": 41 }`, then `/v1/deals?gender=Male&category=Shoes&brand=Nike` returns 41 deals. Both are computed from the same snapshot, but the two requests can straddle a scrape (or one can come from the browser cache), so allow for a brief mismatch around a refresh.
 
 It has the same `Cache-Control` and CORS headers as `/v1/deals`, and the same `503` with `Retry-After` while the first scrape is running.
 
