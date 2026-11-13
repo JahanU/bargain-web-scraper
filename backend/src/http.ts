@@ -1,4 +1,13 @@
-import { type BrandCount, brandCounts, CATEGORIES, type Deal, type DealFilter, filterDeals, GENDERS } from '@/deals';
+import {
+    type BrandCount,
+    brandCounts,
+    CATEGORIES,
+    type Deal,
+    type DealFilter,
+    filterDeals,
+    GENDERS,
+    STORES,
+} from '@/deals';
 import { createLogger, duration, type Level } from '@/log';
 
 const log = createLogger('http');
@@ -46,13 +55,17 @@ function parseFilter(params: URLSearchParams): DealFilter | Response {
     if (category !== undefined && !isOneOf(CATEGORIES, category)) {
         return badRequest(`category must be one of ${CATEGORIES.join(', ')}`);
     }
+    const store = params.get('store') ?? undefined;
+    if (store !== undefined && !isOneOf(STORES, store)) {
+        return badRequest(`store must be one of ${STORES.join(', ')}`);
+    }
     // Only an empty brand is rejected. One that no deal has matches nothing: brands come and go
     // with stock every scrape, so a saved link must keep working.
     const brands = params.getAll('brand');
     if (brands.some((brand) => brand.trim() === '')) {
         return badRequest('brand must not be empty');
     }
-    return { gender, category, brands };
+    return { gender, category, store, brands };
 }
 
 /** The deals matching the query. A bad query is a 400 even before the first scrape: retrying won't fix it. */
@@ -64,7 +77,7 @@ function dealsFor(request: Request, deals: Deal[] | undefined): Response {
     return dealsResponse(deals && filterDeals(deals, filter));
 }
 
-/** The brands among the deals matching `gender` and `category`, each with how many it has. */
+/** The brands among the deals matching `gender`, `category` and `store`, each with how many it has. */
 function brandsFor(request: Request, deals: Deal[] | undefined): Response {
     const params = new URL(request.url).searchParams;
     // The list is what the brand filter chooses from, so a selected brand must not narrow it.

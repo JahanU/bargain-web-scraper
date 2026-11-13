@@ -143,6 +143,63 @@ describe('filtering by category and brand', () => {
         }
     });
 
+    describe('by store', () => {
+        const from = (store: Deal['store'], id: string, gender: Deal['gender'], brand: string): Deal => ({
+            ...make(id, gender, 'Shoes', brand),
+            store,
+        });
+        const both = routes(
+            () => [
+                from('jd', 'j1', 'Male', 'Nike'),
+                from('jd', 'j2', 'Female', 'Nike'),
+                from('jd', 'j3', 'Male', 'adidas'),
+                from('size', 's1', 'Male', 'Nike'),
+                from('size', 's2', 'Female', 'adidas'),
+                from('size', 's3', 'Male', 'Carhartt WIP'),
+            ],
+            () => ({}),
+        );
+        const storeIds = async (query: string) => idsOf((await get('/v1/deals', query, both).json()) as Deal[]);
+
+        it.each([
+            ['JD only', '?store=jd', ['j1', 'j2', 'j3']],
+            ['Size only', '?store=size', ['s1', 's2', 's3']],
+            ['both stores without the param', '', ['j1', 'j2', 'j3', 's1', 's2', 's3']],
+            ['a store and a gender', '?store=size&gender=Male', ['s1', 's3']],
+            ['a store and a brand', '?store=jd&brand=Nike', ['j1', 'j2']],
+            ['a store, a gender and brands', '?store=size&gender=Male&brand=Nike&brand=adidas', ['s1']],
+        ])('serves %s', async (_, query, expected) => {
+            expect(await storeIds(query)).toEqual(expected);
+        });
+
+        it.each(['?store=asos', '?store=', '?store=JD', '?store=jd,size'])(
+            'rejects %s with a 400, even before the first scrape',
+            async (query) => {
+                for (const path of ['/v1/deals', '/v1/brands'] as const) {
+                    for (const table of [both, loading]) {
+                        const response = get(path, query, table);
+                        expect(response.status).toBe(400);
+                        expect(await response.json()).toEqual({ error: 'store must be one of jd, size' });
+                    }
+                }
+            },
+        );
+
+        it('counts brands across both stores, or within the chosen one', async () => {
+            const counts = async (query: string) => (await get('/v1/brands', query, both).json()) as BrandCount[];
+            expect(await counts('')).toEqual([
+                { brand: 'Nike', count: 3 },
+                { brand: 'adidas', count: 2 },
+                { brand: 'Carhartt WIP', count: 1 },
+            ]);
+            expect(await counts('?store=size')).toEqual([
+                { brand: 'Carhartt WIP', count: 1 },
+                { brand: 'Nike', count: 1 },
+                { brand: 'adidas', count: 1 },
+            ]);
+        });
+    });
+
     describe('GET /v1/brands', () => {
         it('counts every brand, most deals first, then by name', async () => {
             expect(await brands()).toEqual([

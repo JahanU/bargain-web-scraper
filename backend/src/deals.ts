@@ -31,6 +31,7 @@ export interface Deal {
 export interface DealFilter {
     gender?: Gender;
     category?: Category;
+    store?: Store;
     /** A deal matches if its brand is any of these, compared exactly. */
     brands: string[];
 }
@@ -40,11 +41,12 @@ export interface BrandCount {
     count: number;
 }
 
-export function filterDeals(deals: Deal[], { gender, category, brands }: DealFilter): Deal[] {
+export function filterDeals(deals: Deal[], { gender, category, store, brands }: DealFilter): Deal[] {
     return deals.filter(
         (deal) =>
             (gender === undefined || deal.gender === gender) &&
             (category === undefined || deal.category === category) &&
+            (store === undefined || deal.store === store) &&
             (brands.length === 0 || brands.includes(deal.brand)),
     );
 }
