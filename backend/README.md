@@ -6,7 +6,7 @@ The deals API and scraper. It runs on Bun with **zero runtime dependencies**: th
 flowchart TB
     subgraph loop["🔁 Scrape loop · one per retailer"]
         direction LR
-        fetch["Fetch the sale listing<br/><small>JD: Algolia · Size: Shopify</small>"]
+        fetch["Fetch the sale listing<br/><small>JD, END.: Algolia · Size: Shopify</small>"]
         parse["Parse products<br/><small>pence · sizes · gender · brand · category · blocklist</small>"]
         accept["DealStore.accept()<br/><small>rules R1 + R2</small>"]
         wait["Sleep 5 min<br/><small>after a failure: 15s → 30s → …</small>"]
@@ -66,6 +66,8 @@ flowchart TD
 | `src/scraper.ts` | `scrapeRetailer` (one timed, failure-safe scrape) and the loop (R4) |
 | `src/retailers/jd.ts` | JD adapter: learns JD's Algolia credentials once, queries the men's and women's sale directly, reads every page in parallel, and flags incomplete results |
 | `src/retailers/size.ts` | Size adapter: reads the men's and women's sale from Size's Shopify Storefront API, one page at a time with a one-second pause, and fails the whole run if any page fails |
+| `src/retailers/end.ts` | END. adapter: learns END.'s Algolia credentials once, asks for every in-stock size at or below the discount floor, and groups the sizes into products |
+| `src/retailers/algolia.ts` | Shared by the JD and END. adapters: the paged search, the truncation check and the learn-once config |
 | `src/retailers/category.ts`, `src/retailers/request.ts` | Shared by the adapters: the mapping from JD Group's product kinds to our categories, and a fetch with a timeout that waits once on a 429 |
 | `src/retailers/blocklist.ts` | Names to skip (team kits, caps…), matched as whole words and plurals |
 | `src/retailers/types.ts` | `Product`, `Listing` and `Retailer`. A new retailer is one new file |
@@ -91,8 +93,8 @@ The full contract for the frontend (the `Deal` type, the loading state, caching,
 | Method | Path | Notes |
 |---|---|---|
 | GET | `/health` (also `/`) | `{ ok, ready, deals, runs }`, where `runs` is the last result per retailer. Use it for the keep-awake ping |
-| GET | `/v1/deals` | Deals, best first, as JSON (cached by browsers for 60s). `?gender=Male`, `Female` or `Unisex` returns only that gender (exact match), `?category=Shoes`, `Clothes` or `Accessories` only that category, `?store=jd` or `size` only that store (both without it), and `?brand=Nike` only that brand (repeat it for several). They combine with AND. A bad gender, category or store, or an empty brand, is a 400. Each deal says which `store` it came from |
-| GET | `/v1/brands` | `[{ brand, count }]` for the deals matching `?gender=`, `?category=` and `?store=`, most deals first, counted across both stores unless one is chosen. Each count equals the number of deals `/v1/deals` returns with that one brand added |
+| GET | `/v1/deals` | Deals, best first, as JSON (cached by browsers for 60s). `?gender=Male`, `Female` or `Unisex` returns only that gender (exact match), `?category=Shoes`, `Clothes` or `Accessories` only that category, `?store=jd`, `size` or `end` only that store (all of them without it), and `?brand=Nike` only that brand (repeat it for several). They combine with AND. A bad gender, category or store, or an empty brand, is a 400. Each deal says which `store` it came from |
+| GET | `/v1/brands` | `[{ brand, count }]` for the deals matching `?gender=`, `?category=` and `?store=`, most deals first, counted across every store unless one is chosen. Each count equals the number of deals `/v1/deals` returns with that one brand added |
 | GET | `/webscrape/getBestDeals` | Same payload; the path the current frontend calls (new code should use `/v1/deals`) |
 
 ## Logs
@@ -100,7 +102,7 @@ The full contract for the frontend (the `Deal` type, the loading state, caching,
 One aligned, readable line per step, coloured in a terminal and plain text on Render:
 
 ```
-09:41:02.121 INFO  app      ✓ listening on http://localhost:8000/  retailers=jd,size
+09:41:02.121 INFO  app      ✓ listening on http://localhost:8000/  retailers=jd,size,end
 09:41:02.122 INFO  scraper  ▶ scraping jd
 09:41:03.010 INFO  scraper  ✓ jd scraped  status=ok products=312 added=4 removed=2 took=888ms
 09:41:03.012 INFO  app      ✓ serving 280 deals

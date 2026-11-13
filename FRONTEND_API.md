@@ -44,7 +44,7 @@ All query parameters are optional. Without any you get every deal. Together they
 |---|---|---|
 | `gender` | `Male`, `Female` or `Unisex` | Only deals with exactly that `gender` (unisex items appear only under `Unisex`). Any other value, including an empty one, is a `400`. |
 | `category` | `Shoes`, `Clothes` or `Accessories` | Only deals with exactly that `category`. Any other value, including an empty one, is a `400`. |
-| `store` | `jd` or `size` | Only deals from that store. Leave it out for both stores. Any other value, including an empty one, is a `400`. |
+| `store` | `jd`, `size` or `end` | Only deals from that store. Leave it out for every store. Any other value, including an empty one, is a `400`. |
 | `brand` | A brand name exactly as `deal.brand` and `/v1/brands` give it (case-sensitive) | Only deals of that brand. Repeat it to allow several brands: `?brand=Nike&brand=adidas` returns deals from either. An empty or whitespace-only value is a `400`. |
 
 A brand that no current deal has is not an error. It matches nothing, so `?brand=Reebok` alone returns `[]`. Brands appear and disappear with stock every five minutes, so a saved or shared link keeps working.
@@ -90,8 +90,8 @@ export interface Deal {
     brand: string;
     /** Always present. */
     category: 'Shoes' | 'Clothes' | 'Accessories';
-    /** The store selling it. The same product can be a deal at both, each with its own price. */
-    store: 'jd' | 'size';
+    /** The store selling it. The same product can be a deal at several, each with its own price. */
+    store: 'jd' | 'size' | 'end';
 }
 ```
 
@@ -146,7 +146,7 @@ The frontend should show a loading state, wait `Retry-After` seconds, and try ag
 |---|---|---|
 | `400` | `{ "error": "gender must be one of Male, Female, Unisex" }` (JSON) | Unknown or empty `gender` value |
 | `400` | `{ "error": "category must be one of Shoes, Clothes, Accessories" }` (JSON) | Unknown or empty `category` value |
-| `400` | `{ "error": "store must be one of jd, size" }` (JSON) | Unknown or empty `store` value |
+| `400` | `{ "error": "store must be one of jd, size, end" }` (JSON) | Unknown or empty `store` value |
 | `400` | `{ "error": "brand must not be empty" }` (JSON) | An empty or whitespace-only `brand` value |
 | `404` | `{ "error": "Not Found" }` (JSON) | Wrong path |
 | `500` / `502` | Possibly **not JSON** (Bun's or Render's error page) | Backend crashed or is restarting. Treat it as a network error and retry later. |
@@ -179,7 +179,7 @@ export interface BrandCount {
 ]
 ```
 
-`count` is exactly the number of deals `/v1/deals` returns for the same `gender`, `category` and `store` plus that single `brand`. Without `store`, a brand both stores sell is counted across both. For example, if `/v1/brands?gender=Male&category=Shoes` lists `{ "brand": "Nike", "count": 41 }`, then `/v1/deals?gender=Male&category=Shoes&brand=Nike` returns 41 deals. Both are computed from the same snapshot, but the two requests can straddle a scrape (or one can come from the browser cache), so allow for a brief mismatch around a refresh.
+`count` is exactly the number of deals `/v1/deals` returns for the same `gender`, `category` and `store` plus that single `brand`. Without `store`, a brand several stores sell is counted across them all, under one spelling. For example, if `/v1/brands?gender=Male&category=Shoes` lists `{ "brand": "Nike", "count": 41 }`, then `/v1/deals?gender=Male&category=Shoes&brand=Nike` returns 41 deals. Both are computed from the same snapshot, but the two requests can straddle a scrape (or one can come from the browser cache), so allow for a brief mismatch around a refresh.
 
 It has the same `Cache-Control` and CORS headers as `/v1/deals`, and the same `503` with `Retry-After` while the first scrape is running.
 
