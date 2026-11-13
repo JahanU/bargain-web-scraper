@@ -23,6 +23,7 @@ const DEFAULTS: FilterState = {
   sort: "discount-high-to-low",
   gender: "Male",
   category: "All",
+  store: "all",
 };
 const names = (values: Partial<FilterState>, input = deals) =>
   applyFilters(input, { ...DEFAULTS, ...values }).map((item) => item.name);

@@ -18,6 +18,7 @@ const DEALS = [
     name: "Adidas Trainer",
     brand: "adidas",
     category: "Shoes",
+    store: "size",
     discount: 50,
     nowPrice: 40,
     sizes: ["8", "9"],
@@ -192,6 +193,34 @@ test("category is a radio group: choosing Shoes asks the API for them and writes
   await userEvent.keyboard("{ArrowRight}");
   expect(url()).toBe("?category=Clothes");
   expect(within(group).getByRole("radio", { name: "Clothes" })).toHaveFocus();
+});
+
+test("store is a radio group: choosing Size asks deals and brands for it, and each card says its store", async () => {
+  const brandRequests: string[] = [];
+  server.use(
+    http.get(BRANDS_URL, ({ request }) => {
+      const { search, searchParams } = new URL(request.url);
+      brandRequests.push(search);
+      return HttpResponse.json(brandCounts(DEALS, searchParams));
+    }),
+  );
+  const { url } = await setup();
+  const group = within(toolbar()).getByRole("group", { name: "Store" });
+  expect(within(group).getAllByRole("radio")).toHaveLength(3);
+  expect(within(group).getByRole("radio", { name: "All" })).toBeChecked();
+  expect(screen.getByRole("link", { name: /^Nike Tee .* JD, Men/ })).toBeInTheDocument();
+  expect(screen.getByRole("link", { name: /^Adidas Trainer .* Size, Men/ })).toBeInTheDocument();
+
+  await userEvent.click(within(group).getByRole("radio", { name: "Size" }));
+
+  expect(await screen.findByText("1 deal")).toBeInTheDocument();
+  expect(requests).toEqual(["?gender=Male", "?gender=Male&store=size"]);
+  expect(brandRequests).toEqual(["?gender=Male", "?gender=Male&store=size"]);
+  expect(url()).toBe("?store=size");
+
+  await userEvent.click(within(group).getByRole("radio", { name: "All" }));
+  expect(await screen.findByText("4 deals")).toBeInTheDocument();
+  expect(url()).toBe("");
 });
 
 async function openBrands() {

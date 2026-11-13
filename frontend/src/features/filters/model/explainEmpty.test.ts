@@ -16,6 +16,7 @@ const values = (overrides: Partial<FilterState>): FilterState => ({
   sort: "discount-high-to-low",
   gender: "Male",
   category: "All",
+  store: "all",
   ...overrides,
 });
 

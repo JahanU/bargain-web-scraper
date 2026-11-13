@@ -22,7 +22,7 @@ export const apiQueryDefaults = {
 
 /**
  * The cache holds validated wire deals (plain JSON, so it persists); components get Deals.
- * One entry per gender, category and brand selection, so a late response for one selection can
+ * One entry per gender, category, store and brand selection, so a late response for one selection can
  * never land in another.
  */
 export const dealsQueryOptions = (request: DealsRequest) =>
@@ -36,11 +36,12 @@ export function useDealsQuery(request: DealsRequest) {
   return useQuery({
     ...dealsQueryOptions(request),
     select: normaliseDeals,
-    // A brand toggle keeps the last list on screen until the new one lands. A new gender or
-    // category starts empty: the old deals would be the wrong ones.
+    // A brand toggle keeps the last list on screen until the new one lands. A new gender,
+    // category or store starts empty: the old deals would be the wrong ones.
     placeholderData: (previous, previousQuery) =>
       previousQuery?.queryKey[1] === request.gender &&
-      previousQuery.queryKey[2] === request.category
+      previousQuery.queryKey[2] === request.category &&
+      previousQuery.queryKey[3] === request.store
         ? previous
         : undefined,
   });

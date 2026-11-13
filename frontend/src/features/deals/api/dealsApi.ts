@@ -1,5 +1,5 @@
 import { apiUrl } from "@/shared/config/env";
-import type { CategoryScope, DealsRequest, Gender } from "../model/Deal";
+import type { CategoryScope, DealsRequest, Gender, StoreScope } from "../model/Deal";
 import { ApiError } from "./ApiError";
 import { type BrandCount, parseBrands } from "./brandSchema";
 import { parseDeals, type WireDeal } from "./dealSchema";
@@ -13,30 +13,34 @@ export type FetchOptions = {
   sleep?: (ms: number, signal?: AbortSignal) => Promise<void>;
 };
 
-/** GET /v1/deals?gender=&category=&brand=…, brands in sorted order so equal selections share a URL. */
+/** GET /v1/deals?gender=&category=&store=&brand=…, brands in sorted order so equal selections share a URL. */
 export async function fetchDeals(
-  { gender, category, brands }: DealsRequest,
+  { gender, category, store, brands }: DealsRequest,
   signal?: AbortSignal,
   options?: FetchOptions,
 ): Promise<WireDeal[]> {
-  const params = scopeParams(gender, category);
+  const params = scopeParams(gender, category, store);
   for (const brand of [...brands].sort()) params.append("brand", brand);
   return parseDeals(await getJson(`/v1/deals?${params}`, signal, options));
 }
 
-/** GET /v1/brands?gender=&category=: how many deals each brand has, whatever brands are selected. */
+/** GET /v1/brands?gender=&category=&store=: how many deals each brand has, whatever brands are selected. */
 export async function fetchBrands(
   gender: Gender,
   category: CategoryScope,
+  store: StoreScope,
   signal?: AbortSignal,
   options?: FetchOptions,
 ): Promise<BrandCount[]> {
-  return parseBrands(await getJson(`/v1/brands?${scopeParams(gender, category)}`, signal, options));
+  return parseBrands(
+    await getJson(`/v1/brands?${scopeParams(gender, category, store)}`, signal, options),
+  );
 }
 
-function scopeParams(gender: Gender, category: CategoryScope): URLSearchParams {
+function scopeParams(gender: Gender, category: CategoryScope, store: StoreScope): URLSearchParams {
   const params = new URLSearchParams({ gender });
   if (category !== "All") params.set("category", category);
+  if (store !== "all") params.set("store", store);
   return params;
 }
 

@@ -1,19 +1,27 @@
-type Row = { gender: string; category: string; brand: string };
+type Row = { gender: string; category: string; brand: string; store?: string };
 
-/** The backend's deal filtering: gender and category narrow, brands are OR. */
+/** The backend answers 400 for a store it doesn't know. */
+export function hasValidStore(params: URLSearchParams): boolean {
+  const store = params.get("store");
+  return store === null || store === "jd" || store === "size";
+}
+
+/** The backend's deal filtering: gender, category and store narrow, brands are OR. */
 export function filterDeals<T extends Row>(deals: readonly T[], params: URLSearchParams): T[] {
   const gender = params.get("gender");
   const category = params.get("category");
+  const store = params.get("store");
   const brands = params.getAll("brand");
   return deals.filter(
     (deal) =>
       (gender === null || deal.gender === gender) &&
       (category === null || deal.category === category) &&
+      (store === null || (deal.store ?? "jd") === store) &&
       (brands.length === 0 || brands.includes(deal.brand)),
   );
 }
 
-/** The backend's /v1/brands: counts for the gender and category, biggest first. */
+/** The backend's /v1/brands: counts for the gender, category and store, biggest first. */
 export function brandCounts(deals: readonly Row[], params: URLSearchParams) {
   const scope = new URLSearchParams(params);
   scope.delete("brand");

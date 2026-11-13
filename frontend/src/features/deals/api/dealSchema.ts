@@ -1,5 +1,5 @@
 import * as z from "zod/mini";
-import { CATEGORIES, GENDERS } from "../model/Deal";
+import { CATEGORIES, GENDERS, STORES } from "../model/Deal";
 import { ApiError } from "./ApiError";
 
 // Prices are numbers now; the old backend sent strings like "£54.99", so those still parse.
@@ -26,6 +26,8 @@ const wireDeal = z.object({
   gender: z.catch(z.enum(GENDERS), "Unisex"),
   brand: z.string().check(z.minLength(1)),
   category: z.enum(CATEGORIES),
+  // Optional: snapshots saved before Size was added, and an older backend, have none.
+  store: z.optional(z.enum(STORES)),
 });
 
 export type WireDeal = z.infer<typeof wireDeal>;

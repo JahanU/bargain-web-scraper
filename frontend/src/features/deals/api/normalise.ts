@@ -10,7 +10,7 @@ export function normaliseDeal(wire: WireDeal): Deal {
     url: wire.url,
     name: wire.name,
     brand: wire.brand,
-    store: new URL(wire.url).hostname.replace(/^www\./, ""),
+    store: wire.store ?? "jd",
     nowPrice: wire.nowPrice,
     wasPrice: wire.wasPrice,
     discount: wire.discount,

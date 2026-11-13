@@ -10,7 +10,8 @@
     "timestamp": 1710196791722,
     "gender": "Male",
     "brand": "Nike",
-    "category": "Clothes"
+    "category": "Clothes",
+    "store": "jd"
   },
   {
     "name": "Nike NFL Green Bay Packers Local T-Shirt",
@@ -23,7 +24,8 @@
     "timestamp": 1710196791723,
     "gender": "Male",
     "brand": "Nike",
-    "category": "Clothes"
+    "category": "Clothes",
+    "store": "jd"
   },
   {
     "name": "Nike Atletico Madrid 2023/24 Third Shorts",
@@ -36,7 +38,8 @@
     "timestamp": 1710196791735,
     "gender": "Male",
     "brand": "Nike",
-    "category": "Clothes"
+    "category": "Clothes",
+    "store": "jd"
   },
   {
     "name": "New Balance LOSC Lille Travel Polo Shirt",
@@ -49,7 +52,8 @@
     "timestamp": 1710196791736,
     "gender": "Male",
     "brand": "New Balance",
-    "category": "Clothes"
+    "category": "Clothes",
+    "store": "jd"
   },
   {
     "name": "Columbia Lindby T-Shirt",
@@ -62,7 +66,8 @@
     "timestamp": 1710196791722,
     "gender": "Male",
     "brand": "Columbia",
-    "category": "Clothes"
+    "category": "Clothes",
+    "store": "jd"
   },
   {
     "name": "Columbia Lindby T-Shirt",
@@ -75,7 +80,8 @@
     "timestamp": 1710196791724,
     "gender": "Male",
     "brand": "Columbia",
-    "category": "Clothes"
+    "category": "Clothes",
+    "store": "jd"
   },
   {
     "name": "Under Armour Poly Track Top",
@@ -88,7 +94,8 @@
     "timestamp": 1710196791745,
     "gender": "Male",
     "brand": "Under Armour",
-    "category": "Clothes"
+    "category": "Clothes",
+    "store": "jd"
   },
   {
     "name": "Under Armour Poly Track Top",
@@ -101,7 +108,8 @@
     "timestamp": 1710196791752,
     "gender": "Male",
     "brand": "Under Armour",
-    "category": "Clothes"
+    "category": "Clothes",
+    "store": "jd"
   },
   {
     "name": "Nike MLB London Series Matchup T-Shirt",
@@ -114,7 +122,8 @@
     "timestamp": 1710196791735,
     "gender": "Male",
     "brand": "Nike",
-    "category": "Clothes"
+    "category": "Clothes",
+    "store": "jd"
   },
   {
     "name": "Nike MLB Pittsburgh Pirates City Connect Legend T-Shirt",
@@ -127,20 +136,22 @@
     "timestamp": 1710196791736,
     "gender": "Male",
     "brand": "Nike",
-    "category": "Clothes"
+    "category": "Clothes",
+    "store": "jd"
   },
   {
     "name": "The North Face Easy Infill T-Shirt",
     "wasPrice": 35,
     "nowPrice": 15,
     "discount": 57,
-    "url": "https://www.jdsports.co.uk/product/white-the-north-face-easy-infill-t-shirt/19589575/",
+    "url": "https://www.size.co.uk/product/white-the-north-face-easy-infill-t-shirt/19589575/",
     "imageUrl": "https://i8.amplience.net/i/jpl/jd_656733_plc",
     "sizes": ["XS", "L"],
     "timestamp": 1710196791739,
     "gender": "Male",
     "brand": "The North Face",
-    "category": "Clothes"
+    "category": "Clothes",
+    "store": "size"
   },
   {
     "name": "adidas Energize Fleece Joggers",
@@ -153,33 +164,36 @@
     "timestamp": 1710196791741,
     "gender": "Male",
     "brand": "adidas",
-    "category": "Clothes"
+    "category": "Clothes",
+    "store": "jd"
   },
   {
     "name": "adidas Originals Forum Low",
     "wasPrice": 90,
     "nowPrice": 40,
     "discount": 56,
-    "url": "https://www.jdsports.co.uk/product/white-adidas-originals-forum-low/16478581/",
-    "imageUrl": "https://i8.amplience.net/i/jpl/jd_534508_plc",
+    "url": "https://www.size.co.uk/product/white-adidas-originals-forum-low/16478581/",
+    "imageUrl": "https://cdn.shopify.com/s/files/1/0921/0911/1619/files/sz_778334_a_441b0d25-2f80-496f-86ff-e6419ac43475.jpg?v=1792586592",
     "sizes": ["8", "9"],
     "timestamp": 1710196791912,
     "gender": "Male",
     "brand": "adidas",
-    "category": "Shoes"
+    "category": "Shoes",
+    "store": "size"
   },
   {
     "name": "Converse Chuck Taylor All Star High Utility",
     "wasPrice": 65,
     "nowPrice": 30,
     "discount": 54,
-    "url": "https://www.jdsports.co.uk/product/white-converse-chuck-taylor-all-star-high-utility/16481437/",
+    "url": "https://www.size.co.uk/product/white-converse-chuck-taylor-all-star-high-utility/16481437/",
     "imageUrl": "https://i8.amplience.net/i/jpl/jd_533304_plc",
     "sizes": ["9"],
     "timestamp": 1710196791908,
     "gender": "Male",
     "brand": "Converse",
-    "category": "Shoes"
+    "category": "Shoes",
+    "store": "size"
   },
   {
     "name": "Asics Core T-Shirt",
@@ -192,7 +206,8 @@
     "timestamp": 1710196791731,
     "gender": "Male",
     "brand": "Asics",
-    "category": "Clothes"
+    "category": "Clothes",
+    "store": "jd"
   },
   {
     "name": "Under Armour Tech Reflective T-Shirt",
@@ -205,7 +220,8 @@
     "timestamp": 1710196791734,
     "gender": "Male",
     "brand": "Under Armour",
-    "category": "Clothes"
+    "category": "Clothes",
+    "store": "jd"
   },
   {
     "name": "Under Armour Tech Reflective T-Shirt",
@@ -218,7 +234,8 @@
     "timestamp": 1710196791734,
     "gender": "Male",
     "brand": "Under Armour",
-    "category": "Clothes"
+    "category": "Clothes",
+    "store": "jd"
   },
   {
     "name": "Asics Icon T-Shirt",
@@ -231,7 +248,8 @@
     "timestamp": 1710196791736,
     "gender": "Male",
     "brand": "Asics",
-    "category": "Clothes"
+    "category": "Clothes",
+    "store": "jd"
   },
   {
     "name": "Under Armour Tech Emboss T-Shirt",
@@ -244,20 +262,22 @@
     "timestamp": 1710196791738,
     "gender": "Male",
     "brand": "Under Armour",
-    "category": "Clothes"
+    "category": "Clothes",
+    "store": "jd"
   },
   {
     "name": "Reebok Classic Leather",
     "wasPrice": 75,
     "nowPrice": 35,
     "discount": 53,
-    "url": "https://www.jdsports.co.uk/product/white-reebok-classic-leather/19583940/",
+    "url": "https://www.size.co.uk/product/white-reebok-classic-leather/19583940/",
     "imageUrl": "https://i8.amplience.net/i/jpl/jd_666098_plc",
     "sizes": ["6"],
     "timestamp": 1710196791909,
     "gender": "Male",
     "brand": "Reebok",
-    "category": "Shoes"
+    "category": "Shoes",
+    "store": "size"
   },
   {
     "name": "BOSS Kai Running",
@@ -270,7 +290,8 @@
     "timestamp": 1710196791937,
     "gender": "Male",
     "brand": "BOSS",
-    "category": "Shoes"
+    "category": "Shoes",
+    "store": "jd"
   },
   {
     "name": "The North Face CYPRESS SUNSHIELD",
@@ -283,7 +304,8 @@
     "timestamp": 1710196791730,
     "gender": "Male",
     "brand": "The North Face",
-    "category": "Clothes"
+    "category": "Clothes",
+    "store": "jd"
   },
   {
     "name": "Nike MLB LA Dodgers T-Shirt",
@@ -296,7 +318,8 @@
     "timestamp": 1710196791731,
     "gender": "Male",
     "brand": "Nike",
-    "category": "Clothes"
+    "category": "Clothes",
+    "store": "jd"
   },
   {
     "name": "The North Face CYPRESS SUNSHIELD",
@@ -309,20 +332,22 @@
     "timestamp": 1710196791731,
     "gender": "Male",
     "brand": "The North Face",
-    "category": "Clothes"
+    "category": "Clothes",
+    "store": "jd"
   },
   {
     "name": "The North Face Fine Box T-Shirt",
     "wasPrice": 30,
     "nowPrice": 15,
     "discount": 50,
-    "url": "https://www.jdsports.co.uk/product/white-the-north-face-fine-box-t-shirt/19582896/",
+    "url": "https://www.size.co.uk/product/white-the-north-face-fine-box-t-shirt/19582896/",
     "imageUrl": "https://i8.amplience.net/i/jpl/jd_656681_plc",
     "sizes": ["XS", "S", "XXL"],
     "timestamp": 1710196791734,
     "gender": "Male",
     "brand": "The North Face",
-    "category": "Clothes"
+    "category": "Clothes",
+    "store": "size"
   },
   {
     "name": "New Balance LOSC Lille Lightweight Short Sleeve T-Shirt",
@@ -335,7 +360,8 @@
     "timestamp": 1710196791736,
     "gender": "Male",
     "brand": "New Balance",
-    "category": "Clothes"
+    "category": "Clothes",
+    "store": "jd"
   },
   {
     "name": "Nike NFL Miami Dolphins Helmet T-Shirt",
@@ -348,7 +374,8 @@
     "timestamp": 1710196791737,
     "gender": "Male",
     "brand": "Nike",
-    "category": "Clothes"
+    "category": "Clothes",
+    "store": "jd"
   },
   {
     "name": "Nike NFL San Francisco 49ers Helmet T-Shirt",
@@ -361,7 +388,8 @@
     "timestamp": 1710196791737,
     "gender": "Male",
     "brand": "Nike",
-    "category": "Clothes"
+    "category": "Clothes",
+    "store": "jd"
   },
   {
     "name": "Nike NFL New York Giants Helmet T-Shirt",
@@ -374,7 +402,8 @@
     "timestamp": 1710196791737,
     "gender": "Male",
     "brand": "Nike",
-    "category": "Clothes"
+    "category": "Clothes",
+    "store": "jd"
   },
   {
     "name": "Nike NFL Tampa Bay Buccaneers Helmet T-Shirt",
@@ -387,7 +416,8 @@
     "timestamp": 1710196791737,
     "gender": "Male",
     "brand": "Nike",
-    "category": "Clothes"
+    "category": "Clothes",
+    "store": "jd"
   },
   {
     "name": "Nike NFL Buffalo Bills Helmet T-Shirt",
@@ -400,7 +430,8 @@
     "timestamp": 1710196791738,
     "gender": "Male",
     "brand": "Nike",
-    "category": "Clothes"
+    "category": "Clothes",
+    "store": "jd"
   },
   {
     "name": "Under Armour Launch Wordmark Shorts",
@@ -413,7 +444,8 @@
     "timestamp": 1710196791745,
     "gender": "Male",
     "brand": "Under Armour",
-    "category": "Clothes"
+    "category": "Clothes",
+    "store": "jd"
   },
   {
     "name": "Under Armour Launch Wordmark Shorts",
@@ -426,7 +458,8 @@
     "timestamp": 1710196791746,
     "gender": "Male",
     "brand": "Under Armour",
-    "category": "Clothes"
+    "category": "Clothes",
+    "store": "jd"
   },
   {
     "name": "The North Face Fine Box Long Sleeve T-Shirt",
@@ -439,7 +472,8 @@
     "timestamp": 1710196791746,
     "gender": "Male",
     "brand": "The North Face",
-    "category": "Clothes"
+    "category": "Clothes",
+    "store": "jd"
   },
   {
     "name": "Jordan Paris Saint Germain 2023/24 Third Shorts",
@@ -452,7 +486,8 @@
     "timestamp": 1710196791751,
     "gender": "Male",
     "brand": "Jordan",
-    "category": "Clothes"
+    "category": "Clothes",
+    "store": "jd"
   },
   {
     "name": "Under Armour UA Poly Track Pants",
@@ -465,7 +500,8 @@
     "timestamp": 1710196791751,
     "gender": "Male",
     "brand": "Under Armour",
-    "category": "Clothes"
+    "category": "Clothes",
+    "store": "jd"
   },
   {
     "name": "Nike Academy 23 1/4 Zip Top",
@@ -478,7 +514,8 @@
     "timestamp": 1710196791752,
     "gender": "Male",
     "brand": "Nike",
-    "category": "Clothes"
+    "category": "Clothes",
+    "store": "jd"
   },
   {
     "name": "Nike Academy Track Pants",
@@ -491,7 +528,8 @@
     "timestamp": 1710196791753,
     "gender": "Male",
     "brand": "Nike",
-    "category": "Clothes"
+    "category": "Clothes",
+    "store": "jd"
   },
   {
     "name": "The North Face Thermoball Traction Booties",
@@ -504,7 +542,8 @@
     "timestamp": 1710196791909,
     "gender": "Male",
     "brand": "The North Face",
-    "category": "Shoes"
+    "category": "Shoes",
+    "store": "jd"
   },
   {
     "name": "The North Face Thermoball Traction Booties",
@@ -517,20 +556,22 @@
     "timestamp": 1710196791910,
     "gender": "Male",
     "brand": "The North Face",
-    "category": "Shoes"
+    "category": "Shoes",
+    "store": "jd"
   },
   {
     "name": "adidas Originals Ozmorph",
     "wasPrice": 120,
     "nowPrice": 60,
     "discount": 50,
-    "url": "https://www.jdsports.co.uk/product/black-adidas-originals-ozmorph/19586610/",
+    "url": "https://www.size.co.uk/product/black-adidas-originals-ozmorph/19586610/",
     "imageUrl": "https://i8.amplience.net/i/jpl/jd_666520_plc",
     "sizes": ["9"],
     "timestamp": 1710196791930,
     "gender": "Male",
     "brand": "adidas",
-    "category": "Shoes"
+    "category": "Shoes",
+    "store": "size"
   },
   {
     "name": "adidas Originals Ozmorph",
@@ -543,7 +584,8 @@
     "timestamp": 1710196791930,
     "gender": "Male",
     "brand": "adidas",
-    "category": "Shoes"
+    "category": "Shoes",
+    "store": "jd"
   },
   {
     "name": "Nike Sportswear Club T-Shirt",
@@ -556,7 +598,8 @@
     "timestamp": 1710196791725,
     "gender": "Male",
     "brand": "Nike",
-    "category": "Clothes"
+    "category": "Clothes",
+    "store": "jd"
   },
   {
     "name": "Nike Core T-Shirt",
@@ -569,7 +612,8 @@
     "timestamp": 1710196791725,
     "gender": "Male",
     "brand": "Nike",
-    "category": "Clothes"
+    "category": "Clothes",
+    "store": "jd"
   },
   {
     "name": "Under Armour HeatGear Tape Shorts",
@@ -582,7 +626,8 @@
     "timestamp": 1710196791740,
     "gender": "Male",
     "brand": "Under Armour",
-    "category": "Clothes"
+    "category": "Clothes",
+    "store": "jd"
   },
   {
     "name": "adidas Tiro Club Track Pants",
@@ -595,20 +640,22 @@
     "timestamp": 1710196791745,
     "gender": "Male",
     "brand": "adidas",
-    "category": "Clothes"
+    "category": "Clothes",
+    "store": "jd"
   },
   {
     "name": "Jordan Branded Graphic T-Shirt",
     "wasPrice": 38,
     "nowPrice": 20,
     "discount": 47,
-    "url": "https://www.jdsports.co.uk/product/white-jordan-branded-graphic-t-shirt/19595183/",
+    "url": "https://www.size.co.uk/product/white-jordan-branded-graphic-t-shirt/19595183/",
     "imageUrl": "https://i8.amplience.net/i/jpl/jd_680653_plc",
     "sizes": ["XS", "S", "M"],
     "timestamp": 1710196791749,
     "gender": "Male",
     "brand": "Jordan",
-    "category": "Clothes"
+    "category": "Clothes",
+    "store": "size"
   },
   {
     "name": "Jordan Paris Saint Germain Strike Shorts",
@@ -621,7 +668,8 @@
     "timestamp": 1710196791749,
     "gender": "Male",
     "brand": "Jordan",
-    "category": "Clothes"
+    "category": "Clothes",
+    "store": "jd"
   },
   {
     "name": "The North Face Recycled 66 Classic Hat",
@@ -634,7 +682,8 @@
     "timestamp": 1710196791731,
     "gender": "Male",
     "brand": "The North Face",
-    "category": "Accessories"
+    "category": "Accessories",
+    "store": "jd"
   },
   {
     "name": "Under Armour Tech Twist T-Shirt",
@@ -647,7 +696,8 @@
     "timestamp": 1710196791734,
     "gender": "Male",
     "brand": "Under Armour",
-    "category": "Clothes"
+    "category": "Clothes",
+    "store": "jd"
   },
   {
     "name": "Nike NFL Miami Dolphins Local T-Shirt",
@@ -660,7 +710,8 @@
     "timestamp": 1710196791736,
     "gender": "Male",
     "brand": "Nike",
-    "category": "Clothes"
+    "category": "Clothes",
+    "store": "jd"
   },
   {
     "name": "Nike NFL Pittsburgh Steelers Local T-Shirt",
@@ -673,7 +724,8 @@
     "timestamp": 1710196791737,
     "gender": "Male",
     "brand": "Nike",
-    "category": "Clothes"
+    "category": "Clothes",
+    "store": "jd"
   },
   {
     "name": "Nike NFL Minnesota Vikings Local T-Shirt",
@@ -686,7 +738,8 @@
     "timestamp": 1710196791737,
     "gender": "Male",
     "brand": "Nike",
-    "category": "Clothes"
+    "category": "Clothes",
+    "store": "jd"
   },
   {
     "name": "Nike NFL San Fransisco 49ers Local Legends T-Shirt",
@@ -699,7 +752,8 @@
     "timestamp": 1710196791737,
     "gender": "Male",
     "brand": "Nike",
-    "category": "Clothes"
+    "category": "Clothes",
+    "store": "jd"
   },
   {
     "name": "The North Face Simple Dome T-Shirt",
@@ -712,7 +766,8 @@
     "timestamp": 1710196791726,
     "gender": "Male",
     "brand": "The North Face",
-    "category": "Clothes"
+    "category": "Clothes",
+    "store": "jd"
   },
   {
     "name": "Under Armour HeatGear Camo T-Shirt",
@@ -725,7 +780,8 @@
     "timestamp": 1710196791749,
     "gender": "Male",
     "brand": "Under Armour",
-    "category": "Clothes"
+    "category": "Clothes",
+    "store": "jd"
   },
   {
     "name": "adidas Energize Fleece Joggers",
@@ -738,7 +794,8 @@
     "timestamp": 1710196791754,
     "gender": "Male",
     "brand": "adidas",
-    "category": "Clothes"
+    "category": "Clothes",
+    "store": "jd"
   },
   {
     "name": "adidas Energize Crew Sweatshirt",
@@ -751,20 +808,22 @@
     "timestamp": 1710196791754,
     "gender": "Male",
     "brand": "adidas",
-    "category": "Clothes"
+    "category": "Clothes",
+    "store": "jd"
   },
   {
     "name": "adidas Originals Multix",
     "wasPrice": 80,
     "nowPrice": 45,
     "discount": 44,
-    "url": "https://www.jdsports.co.uk/product/black-adidas-originals-multix/16051851/",
+    "url": "https://www.size.co.uk/product/black-adidas-originals-multix/16051851/",
     "imageUrl": "https://i8.amplience.net/i/jpl/jd_678700_plc",
     "sizes": ["7", "10", "11"],
     "timestamp": 1710196791918,
     "gender": "Male",
     "brand": "adidas",
-    "category": "Shoes"
+    "category": "Shoes",
+    "store": "size"
   },
   {
     "name": "Nike Terra Kiger 9",
@@ -777,7 +836,8 @@
     "timestamp": 1710196791932,
     "gender": "Male",
     "brand": "Nike",
-    "category": "Shoes"
+    "category": "Shoes",
+    "store": "jd"
   },
   {
     "name": "Under Armour Phantom 3 Storm",
@@ -790,7 +850,8 @@
     "timestamp": 1710196791935,
     "gender": "Male",
     "brand": "Under Armour",
-    "category": "Shoes"
+    "category": "Shoes",
+    "store": "jd"
   },
   {
     "name": "adidas Own the Run Shorts",
@@ -803,20 +864,22 @@
     "timestamp": 1710196791742,
     "gender": "Male",
     "brand": "adidas",
-    "category": "Clothes"
+    "category": "Clothes",
+    "store": "jd"
   },
   {
     "name": "adidas Originals Rekive Graphic T-Shirt",
     "wasPrice": 35,
     "nowPrice": 20,
     "discount": 43,
-    "url": "https://www.jdsports.co.uk/product/white-adidas-originals-rekive-graphic-t-shirt/19591260/",
+    "url": "https://www.size.co.uk/product/white-adidas-originals-rekive-graphic-t-shirt/19591260/",
     "imageUrl": "https://i8.amplience.net/i/jpl/jd_672328_plc",
     "sizes": ["L", "XL", "XXL"],
     "timestamp": 1710196791748,
     "gender": "Male",
     "brand": "adidas",
-    "category": "Clothes"
+    "category": "Clothes",
+    "store": "size"
   },
   {
     "name": "adidas Originals Gradient T-Shirt",
@@ -829,20 +892,22 @@
     "timestamp": 1710196791752,
     "gender": "Male",
     "brand": "adidas",
-    "category": "Clothes"
+    "category": "Clothes",
+    "store": "jd"
   },
   {
     "name": "Nike Air Max Tonal T-Shirt",
     "wasPrice": 35,
     "nowPrice": 20,
     "discount": 43,
-    "url": "https://www.jdsports.co.uk/product/black-nike-air-max-tonal-t-shirt/19573532/",
+    "url": "https://www.size.co.uk/product/black-nike-air-max-tonal-t-shirt/19573532/",
     "imageUrl": "https://i8.amplience.net/i/jpl/jd_668526_plc",
     "sizes": ["XXL"],
     "timestamp": 1710196791753,
     "gender": "Male",
     "brand": "Nike",
-    "category": "Clothes"
+    "category": "Clothes",
+    "store": "size"
   },
   {
     "name": "adidas adidas RIFTA Metro AAC Tee",
@@ -855,7 +920,8 @@
     "timestamp": 1710196791753,
     "gender": "Male",
     "brand": "adidas",
-    "category": "Clothes"
+    "category": "Clothes",
+    "store": "jd"
   },
   {
     "name": "adidas Originals RIFTA Metro AAC T-Shirt",
@@ -868,7 +934,8 @@
     "timestamp": 1710196791753,
     "gender": "Male",
     "brand": "adidas",
-    "category": "Clothes"
+    "category": "Clothes",
+    "store": "jd"
   },
   {
     "name": "Nike Max Aura 5",
@@ -881,7 +948,8 @@
     "timestamp": 1710196791932,
     "gender": "Male",
     "brand": "Nike",
-    "category": "Shoes"
+    "category": "Shoes",
+    "store": "jd"
   },
   {
     "name": "Under Armour Tech Tape T-Shirt",
@@ -894,20 +962,22 @@
     "timestamp": 1710196791745,
     "gender": "Male",
     "brand": "Under Armour",
-    "category": "Clothes"
+    "category": "Clothes",
+    "store": "jd"
   },
   {
     "name": "Converse Chuck 70 Hi",
     "wasPrice": 85,
     "nowPrice": 50,
     "discount": 41,
-    "url": "https://www.jdsports.co.uk/product/grey-converse-chuck-70-hi/19595865/",
+    "url": "https://www.size.co.uk/product/grey-converse-chuck-70-hi/19595865/",
     "imageUrl": "https://i8.amplience.net/i/jpl/jd_681793_plc",
     "sizes": ["8", "9"],
     "timestamp": 1710196791923,
     "gender": "Male",
     "brand": "Converse",
-    "category": "Shoes"
+    "category": "Shoes",
+    "store": "size"
   },
   {
     "name": "Columbia Bewley T-Shirt",
@@ -920,7 +990,8 @@
     "timestamp": 1710196791735,
     "gender": "Male",
     "brand": "Columbia",
-    "category": "Clothes"
+    "category": "Clothes",
+    "store": "jd"
   },
   {
     "name": "Under Armour Tech T-Shirt",
@@ -933,7 +1004,8 @@
     "timestamp": 1710196791736,
     "gender": "Male",
     "brand": "Under Armour",
-    "category": "Clothes"
+    "category": "Clothes",
+    "store": "jd"
   },
   {
     "name": "Columbia Leyburn T-Shirt",
@@ -946,7 +1018,8 @@
     "timestamp": 1710196791738,
     "gender": "Male",
     "brand": "Columbia",
-    "category": "Clothes"
+    "category": "Clothes",
+    "store": "jd"
   },
   {
     "name": "Vans Authentic",
@@ -959,7 +1032,8 @@
     "timestamp": 1710196791908,
     "gender": "Male",
     "brand": "Vans",
-    "category": "Shoes"
+    "category": "Shoes",
+    "store": "jd"
   },
   {
     "name": "Vans Authentic",
@@ -972,20 +1046,22 @@
     "timestamp": 1710196791909,
     "gender": "Male",
     "brand": "Vans",
-    "category": "Shoes"
+    "category": "Shoes",
+    "store": "jd"
   },
   {
     "name": "Vans Classic Slip-On",
     "wasPrice": 60,
     "nowPrice": 36,
     "discount": 40,
-    "url": "https://www.jdsports.co.uk/product/brown-vans-classic-slip-on/19576370/",
+    "url": "https://www.size.co.uk/product/brown-vans-classic-slip-on/19576370/",
     "imageUrl": "https://i8.amplience.net/i/jpl/jd_VN000BVZ1M71_plc",
     "sizes": ["5", "6"],
     "timestamp": 1710196791910,
     "gender": "Male",
     "brand": "Vans",
-    "category": "Shoes"
+    "category": "Shoes",
+    "store": "size"
   },
   {
     "name": "Vans Era",
@@ -998,7 +1074,8 @@
     "timestamp": 1710196791910,
     "gender": "Male",
     "brand": "Vans",
-    "category": "Shoes"
+    "category": "Shoes",
+    "store": "jd"
   },
   {
     "name": "Vans Classic Slip-On",
@@ -1011,7 +1088,8 @@
     "timestamp": 1710196791910,
     "gender": "Male",
     "brand": "Vans",
-    "category": "Shoes"
+    "category": "Shoes",
+    "store": "jd"
   },
   {
     "name": "Vans Authentic",
@@ -1024,7 +1102,8 @@
     "timestamp": 1710196791910,
     "gender": "Male",
     "brand": "Vans",
-    "category": "Shoes"
+    "category": "Shoes",
+    "store": "jd"
   },
   {
     "name": "Vans Authentic",
@@ -1037,19 +1116,21 @@
     "timestamp": 1710196791910,
     "gender": "Male",
     "brand": "Vans",
-    "category": "Shoes"
+    "category": "Shoes",
+    "store": "jd"
   },
   {
     "name": "Vans Old Skool",
     "wasPrice": 65,
     "nowPrice": 39,
     "discount": 40,
-    "url": "https://www.jdsports.co.uk/product/purple-vans-old-skool/19572742/",
+    "url": "https://www.size.co.uk/product/purple-vans-old-skool/19572742/",
     "imageUrl": "https://i8.amplience.net/i/jpl/jd_VN0005UFBUG1_plc",
     "sizes": ["3", "4", "5", "6", "7", "8", "9", "12"],
     "timestamp": 1710196791911,
     "gender": "Male",
     "brand": "Vans",
-    "category": "Shoes"
+    "category": "Shoes",
+    "store": "size"
   }
 ]

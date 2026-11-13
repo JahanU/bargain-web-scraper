@@ -19,6 +19,9 @@ export {
   type DealsRequest,
   GENDERS,
   type Gender,
+  STORE_LABEL,
+  STORE_SCOPES,
+  type StoreScope,
 } from "./model/Deal";
 export { GENDER_LABEL, serverStartOf } from "./model/describe";
 export { compareSizes, type SizeFacet, type SizeGroup, sizeGroup } from "./model/sizes";

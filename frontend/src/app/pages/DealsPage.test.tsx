@@ -148,7 +148,7 @@ test("slow first load: skeletons, then the waking line after 3 seconds, while 50
 test("cached snapshot: renders at once, and a failed refresh keeps it with a stale banner", async () => {
   const client = createTestQueryClient();
   client.setQueryData(
-    dealsKeys.list({ gender: "Male", category: "All", brands: [] }),
+    dealsKeys.list({ gender: "Male", category: "All", store: "all", brands: [] }),
     [makeDeal({ name: "Cached Tee" })],
     {
       updatedAt: Date.now() - 10 * 60_000,

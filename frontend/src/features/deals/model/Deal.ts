@@ -8,10 +8,17 @@ export type Category = (typeof CATEGORIES)[number];
 export const CATEGORY_SCOPES = ["All", ...CATEGORIES] as const;
 export type CategoryScope = (typeof CATEGORY_SCOPES)[number];
 
-/** What one deals request asks for: "All" sends no category, no brands means every brand. */
+export const STORES = ["jd", "size"] as const;
+export type Store = (typeof STORES)[number];
+export const STORE_LABEL: Record<Store, string> = { jd: "JD", size: "Size" };
+export const STORE_SCOPES = ["all", ...STORES] as const;
+export type StoreScope = (typeof STORE_SCOPES)[number];
+
+/** What one deals request asks for: "All"/"all" send no category/store, no brands means every brand. */
 export type DealsRequest = {
   gender: Gender;
   category: CategoryScope;
+  store: StoreScope;
   brands: readonly string[];
 };
 
@@ -22,8 +29,7 @@ export type Deal = {
   url: string;
   name: string;
   brand: string;
-  /** Retailer host, e.g. "jdsports.co.uk". */
-  store: string;
+  store: Store;
   nowPrice: number;
   /** 0 when the retailer gave none. */
   wasPrice: number;

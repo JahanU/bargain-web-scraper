@@ -27,9 +27,9 @@ const WAKING_AFTER_MS = 3000;
 /** The single orchestrator: the only place server state and URL state meet. */
 export function DealsPage() {
   const [values, actions] = useFilters();
-  const { gender, category, brands } = values;
-  const query = useDealsQuery({ gender, category, brands });
-  const brandCounts = useBrandsQuery(gender, category).data;
+  const { gender, category, store, brands } = values;
+  const query = useDealsQuery({ gender, category, store, brands });
+  const brandCounts = useBrandsQuery(gender, category, store).data;
   const deals = query.data;
   const { visible, withoutSizeFilter, withoutDiscountFilter } = useFilteredDeals(deals, values);
   const sizeFacets = useDealFacets(withoutSizeFilter);
@@ -40,7 +40,7 @@ export function DealsPage() {
 
   return (
     <>
-      <h1 className="sr-only">Deals from JD Sports UK</h1>
+      <h1 className="sr-only">Deals from JD Sports and Size</h1>
       <FilterBar
         values={values}
         onChange={change}

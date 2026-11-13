@@ -49,3 +49,13 @@ test("a deal without a brand or with an unknown category is dropped", () => {
   expect(parseDeals([noBrand, { ...makeDeal(), category: "Kids" }])).toEqual([]);
   expect(warn).toHaveBeenCalledWith("Dropped 2 of 2 deals that failed validation.");
 });
+
+test("a deal without a store is kept; one from an unknown store is dropped", () => {
+  const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+  const { store: _store, ...noStore } = makeDeal();
+
+  expect(
+    parseDeals([noStore, makeDeal({ store: "size" }), { ...makeDeal(), store: "asos" }]),
+  ).toEqual([noStore, expect.objectContaining({ store: "size" })]);
+  expect(warn).toHaveBeenCalledWith("Dropped 1 of 3 deals that failed validation.");
+});

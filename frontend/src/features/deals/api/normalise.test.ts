@@ -18,7 +18,7 @@ test("turns a wire deal into the UI's Deal", () => {
     id: "https://www.jdsports.co.uk/product/black-tnf/19599668/",
     brand: "The North Face",
     category: "Clothes",
-    store: "jdsports.co.uk",
+    store: "jd",
     sizes: ["S", "XL", "9"],
     searchText: "the north face mountain jacket",
     foundAt: 123,
@@ -32,4 +32,9 @@ test("missing sizes and image become an empty list and no image", () => {
   expect(deal.sizes).toEqual([]);
   expect(deal.sizeSet.size).toBe(0);
   expect(deal.image).toBeUndefined();
+});
+
+test("the store comes from the wire, and a deal saved before stores existed is JD's", () => {
+  expect(normaliseDeal(makeDeal({ store: "size" })).store).toBe("size");
+  expect(normaliseDeal(makeDeal({ store: undefined })).store).toBe("jd");
 });

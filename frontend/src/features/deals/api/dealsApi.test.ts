@@ -7,7 +7,7 @@ import { fetchBrands, fetchDeals, retryAfterMs } from "./dealsApi";
 
 const URL = "http://localhost:8000/v1/deals";
 const BRANDS_URL = "http://localhost:8000/v1/brands";
-const MEN = { gender: "Male", category: "All", brands: [] } as const;
+const MEN = { gender: "Male", category: "All", store: "all", brands: [] } as const;
 
 /** Answers with each response in turn (the last one repeats) and records every request. */
 function respondWith(...responses: Array<() => Response>) {
@@ -159,11 +159,13 @@ test("category and brands go in the query; brands are sorted so equal selections
   await fetchDeals({
     gender: "Male",
     category: "Shoes",
+    store: "all",
     brands: ["adidas", "New Balance", "Nike"],
   });
   await fetchDeals({
     gender: "Male",
     category: "Shoes",
+    store: "all",
     brands: ["Nike", "New Balance", "adidas"],
   });
 
@@ -181,7 +183,7 @@ test("brands: asks for the gender and category, and waits out a 503 like deals",
   const requests = respondAt(BRANDS_URL, loading("7"), () => HttpResponse.json(counts));
   const clock = fakeClock();
 
-  expect(await fetchBrands("Female", "Shoes", undefined, clock)).toEqual(counts);
+  expect(await fetchBrands("Female", "Shoes", "all", undefined, clock)).toEqual(counts);
 
   expect(requests.map((request) => request.url)).toEqual([
     `${BRANDS_URL}?gender=Female&category=Shoes`,
@@ -193,6 +195,38 @@ test("brands: asks for the gender and category, and waits out a 503 like deals",
 test("brands: All sends no category, and a malformed list is invalid-body", async () => {
   const requests = respondAt(BRANDS_URL, () => HttpResponse.json([{ brand: "Nike" }]));
 
-  await expect(fetchBrands("Male", "All")).rejects.toMatchObject({ kind: "invalid-body" });
+  await expect(fetchBrands("Male", "All", "all")).rejects.toMatchObject({ kind: "invalid-body" });
   expect(requests[0]?.url).toBe(`${BRANDS_URL}?gender=Male`);
+});
+
+test("a chosen store goes in the deals and brands queries; all stores sends none", async () => {
+  const deals = respondWith(() => HttpResponse.json([]));
+  const brands = respondAt(BRANDS_URL, () => HttpResponse.json([]));
+
+  await fetchDeals({ ...MEN, store: "size", brands: ["Nike"] });
+  await fetchDeals({ ...MEN, store: "jd" });
+  await fetchDeals(MEN);
+  await fetchBrands("Male", "Shoes", "size");
+  await fetchBrands("Male", "All", "all");
+
+  expect(deals.map((request) => request.url)).toEqual([
+    `${URL}?gender=Male&store=size&brand=Nike`,
+    `${URL}?gender=Male&store=jd`,
+    `${URL}?gender=Male`,
+  ]);
+  expect(brands.map((request) => request.url)).toEqual([
+    `${BRANDS_URL}?gender=Male&category=Shoes&store=size`,
+    `${BRANDS_URL}?gender=Male`,
+  ]);
+});
+
+test("the mock backend filters by store and answers 400 for one it doesn't know", async () => {
+  const size = await fetchDeals({ ...MEN, store: "size" });
+  expect(size).toHaveLength(13);
+  expect(size.every((deal) => deal.store === "size")).toBe(true);
+  expect(await fetchDeals({ ...MEN, store: "jd" })).toHaveLength(68);
+
+  const bad = await fetch(`${URL}?gender=Male&store=asos`);
+  expect(bad.status).toBe(400);
+  expect((await fetch(`${BRANDS_URL}?gender=Male&store=asos`)).status).toBe(400);
 });
