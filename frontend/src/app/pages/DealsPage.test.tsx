@@ -27,11 +27,12 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-test("success: every deal is listed with its count", async () => {
+test("success: the deals are listed with their count", async () => {
   renderWithClient(<DealsPage />);
 
   expect(await screen.findByText("81 deals")).toBeInTheDocument();
-  expect(screen.getAllByRole("link")).toHaveLength(81);
+  // The grid is virtualised: only the first rows are rendered, each card saying it's one of 81.
+  expect(screen.getAllByRole("listitem")[0]).toHaveAttribute("aria-setsize", "81");
   // Naming one card directly: computing names for all 81 links is slow in jsdom.
   const card = screen.getByText("Nike NFL Las Vegas Raiders Helmet T-Shirt").closest("a");
   expect(card).toHaveAccessibleName(/^Nike NFL Las Vegas Raiders Helmet T-Shirt £10 was £30/);

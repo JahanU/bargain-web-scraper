@@ -55,3 +55,56 @@ test("the layout doesn't shift when deals replace the skeleton", async ({ page }
   );
   expect(shift).toBeLessThan(0.05);
 });
+
+test("only the rows near the viewport are rendered, and scrolling reaches the last deal", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.goto("/");
+  await expect(page.getByText("81 deals")).toBeVisible();
+  const cards = page
+    .getByRole("main")
+    .getByRole("listitem")
+    .filter({ has: page.getByRole("link") });
+
+  expect(await cards.count()).toBeLessThan(81);
+
+  await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+  await expect(cards.last()).toHaveAttribute("aria-posinset", "81");
+  await expect(cards.last()).toBeInViewport();
+});
+
+/** The position (1-based) of the first card in the top visible row. */
+async function topDeal(page: import("@playwright/test").Page) {
+  return page.evaluate(() => {
+    const cards = [...document.querySelectorAll("main [aria-posinset]")];
+    const top = cards.find((card) => card.getBoundingClientRect().bottom > 0);
+    return Number(top?.getAttribute("aria-posinset"));
+  });
+}
+
+/** Loads the page at 5 columns, scrolls a few rows down and returns the deal now at the top. */
+async function scrollIntoTheGrid(page: import("@playwright/test").Page) {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.goto("/");
+  await expect(page.getByText("81 deals")).toBeVisible();
+  await page.mouse.wheel(0, 3000);
+  await expect.poll(() => topDeal(page)).toBeGreaterThan(10);
+  return topDeal(page);
+}
+
+test("a reload returns to the deal that was at the top", async ({ page }) => {
+  const before = await scrollIntoTheGrid(page);
+
+  await page.reload();
+
+  await expect.poll(() => topDeal(page)).toBe(before);
+});
+
+test("a column change keeps the deal that was at the top in view", async ({ page }) => {
+  const before = await scrollIntoTheGrid(page);
+
+  await page.setViewportSize({ width: 390, height: 900 }); // 5 columns → 2
+
+  await expect(page.locator(`main [aria-posinset="${before}"]`)).toBeInViewport();
+});

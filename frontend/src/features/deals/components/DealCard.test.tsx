@@ -1,9 +1,10 @@
-import { render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { expect, test } from "vite-plus/test";
 import { axe } from "vitest-axe";
 import { deal } from "@/test/deal";
 import { DealCard } from "./DealCard";
 import { DealGrid } from "./DealGrid";
+import { DealImage } from "./DealImage";
 
 const tee = deal({
   name: "Nike NFL Tee",
@@ -79,6 +80,19 @@ test("a deal from the server-start batch has no found time and no marker", () =>
   expect(screen.queryByText(/Found/)).not.toBeInTheDocument();
 });
 
+test("the grid renders only the rows near the viewport, each card knowing its place in the list", () => {
+  const deals = Array.from({ length: 200 }, () => deal());
+  const { container } = render(<DealGrid deals={deals} serverStart={0} />);
+  const items = [...container.querySelectorAll('[role="listitem"]')]; // not the size chips' <li>s
+
+  expect(items.length).toBeGreaterThan(0);
+  expect(items.length).toBeLessThan(deals.length);
+  expect(items.map((item) => item.getAttribute("aria-posinset"))).toEqual(
+    items.map((_, index) => String(index + 1)),
+  );
+  expect(items.every((item) => item.getAttribute("aria-setsize") === "200")).toBe(true);
+});
+
 test("the grid loads the first ten images eagerly at high priority and the rest lazily", () => {
   const deals = Array.from({ length: 12 }, () => deal());
   const { container } = render(<DealGrid deals={deals} serverStart={0} />);
@@ -91,4 +105,18 @@ test("the grid loads the first ten images eagerly at high priority and the rest 
     true,
   );
   expect(images.slice(10).every((image) => image.getAttribute("loading") === "lazy")).toBe(true);
+});
+
+test("an image fades in on its first load, but not when its card is rendered again", () => {
+  const image = deal().image;
+  const first = render(<DealImage image={image} priority={false} />);
+  const img = first.container.querySelector("img")!;
+  expect(img).toHaveClass("opacity-0");
+  fireEvent.load(img);
+  expect(img).not.toHaveClass("opacity-0");
+  first.unmount();
+
+  const again = render(<DealImage image={image} priority={false} />);
+
+  expect(again.container.querySelector("img")).not.toHaveClass("opacity-0");
 });

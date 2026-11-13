@@ -9,6 +9,7 @@
         "@tanstack/query-sync-storage-persister": "5.106.1",
         "@tanstack/react-query": "5.106.1",
         "@tanstack/react-query-persist-client": "5.106.1",
+        "@tanstack/react-virtual": "3.14.22",
         "class-variance-authority": "0.7.1",
         "clsx": "2.1.1",
         "lucide-react": "1.69.0",
@@ -307,6 +308,10 @@
     "@tanstack/react-query": ["@tanstack/react-query@5.106.1", "https://registry.npmmirror.com/@tanstack/react-query/-/react-query-5.106.1.tgz", { "dependencies": { "@tanstack/query-core": "5.106.1" }, "peerDependencies": { "@types/react": "^18 || ^19", "react": "^18 || ^19" }, "optionalPeers": ["@types/react"] }, "sha512-ORDvJG/DSfmlFL9lQ8GDkE0VjtQbLeRDY7BL8xjKkQFGLfjFGfNWNuteWgPqA2gPJgLLuWfQ7IX0FlsHCJriyg=="],
 
     "@tanstack/react-query-persist-client": ["@tanstack/react-query-persist-client@5.106.1", "https://registry.npmmirror.com/@tanstack/react-query-persist-client/-/react-query-persist-client-5.106.1.tgz", { "dependencies": { "@tanstack/query-persist-client-core": "5.106.1" }, "peerDependencies": { "@tanstack/react-query": "^5.106.1", "@types/react": "^18 || ^19", "react": "^18 || ^19" }, "optionalPeers": ["@types/react"] }, "sha512-sigG1TAR+AlfK/yKTzw9vtmmCdjLmaOCYHwpKRi/YOC2oDBmz7o3dwedTS2ibJjNtxhzffw3E97UiVvqMtN1Cg=="],
+
+    "@tanstack/react-virtual": ["@tanstack/react-virtual@3.14.22", "https://registry.npmmirror.com/@tanstack/react-virtual/-/react-virtual-3.14.22.tgz", { "dependencies": { "@tanstack/virtual-core": "3.19.7" }, "peerDependencies": { "react": "^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0", "react-dom": "^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0" } }, "sha512-zNiB9IF3prySTfAUrj9tPHjD/lonBYkfxrPP4v4ITUx+qwHajJR5cY/xirjvwc+KWkur10GX3TpsbKh7JkD8Lw=="],
+
+    "@tanstack/virtual-core": ["@tanstack/virtual-core@3.19.7", "https://registry.npmmirror.com/@tanstack/virtual-core/-/virtual-core-3.19.7.tgz", {}, "sha512-gxy5SvH0mFRJ0YujtrflB/1HAu9Wn1KGvL0bjZfQkYVVMsIpQiwcf1mR06/ViN4NjllUb4HNCjqE9FGwgTvMCQ=="],
 
     "@testing-library/dom": ["@testing-library/dom@10.4.2", "https://registry.npmmirror.com/@testing-library/dom/-/dom-10.4.2.tgz", { "dependencies": { "@babel/code-frame": "^7.10.4", "@babel/runtime": "^7.12.5", "@types/aria-query": "^5.0.1", "aria-query": "5.3.0", "dom-accessibility-api": "^0.5.9", "lz-string": "^1.5.0", "picocolors": "1.1.1", "pretty-format": "^27.0.2" } }, "sha512-yzr2S9HyAIdhz2/6qHgbs665Q7PKVcDF05vsOlHPxG1mo36gKVesdYVeDLnXgfjJ03CrKRk08knc6+E/9m8v2Q=="],
 

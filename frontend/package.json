@@ -23,6 +23,7 @@
     "@tanstack/query-sync-storage-persister": "5.106.1",
     "@tanstack/react-query": "5.106.1",
     "@tanstack/react-query-persist-client": "5.106.1",
+    "@tanstack/react-virtual": "3.14.22",
     "class-variance-authority": "0.7.1",
     "clsx": "2.1.1",
     "lucide-react": "1.69.0",

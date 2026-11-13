@@ -108,7 +108,7 @@ One toolchain, one config file, and libraries chosen for what this single page a
 | Lint and format | CRA preset | `vp check`: Oxlint (built-in react, jsx-a11y and import rule sets, type-aware through tsgolint) plus Oxfmt | Layer boundaries through `no-restricted-imports` patterns. |
 | Package manager | npm | Bun, detected by Vite+ from `packageManager` and `bun.lock` | Matches the backend. Netlify's build image ships Bun. |
 | Bundle guard | None | size-limit in CI | A pull request fails when over budget. |
-| Virtualisation | None | None; `content-visibility: auto` on cards, with the grid as the single seam for TanStack Virtual later | A hundred cards is about a millisecond of layout. |
+| Virtualisation | None | TanStack Virtual (`useWindowVirtualizer`) in `DealGrid`, by rows of the responsive column count | At 2,000 deals, rendering every card meant ~50k DOM nodes; only the rows near the viewport are rendered now. |
 
 **Why Vite+ rather than plain Vite.** Same Vite 8 underneath, but it collapses the Vite, Vitest, ESLint and Prettier configs and a dozen devDependencies into one package and one file. Installed as a normal devDependency, so CI and Netlify need nothing beyond `bun install`. The cost: ESLint plugins run only through its JavaScript plugin bridge, its jsx-a11y rules are a subset of the ESLint plugin (axe in tests covers the rest), and its docs require an `overrides` pin for `vite` and `vitest` that must move when the package is bumped.
 
@@ -371,7 +371,7 @@ The header is 52 px and the toolbar 56 px, both sticky, so the sticky stack stay
 │ │£10  £̶3̶0̶ │ │£10  £̶2̶8̶ │ │      │ SORT                    │
 │ │S M L +1 │ │S M L    │ │      │ (•) Best discount …     │
 │ └─────────┘ └─────────┘ │      ├─────────────────────────┤
-│  … content-visibility   │      │ [Reset]  [Show 23 deals]│ sticky, safe-area
+│  … virtualised rows     │      │ [Reset]  [Show 23 deals]│ sticky, safe-area
 └─────────────────────────┘      └─────────────────────────┘
 ```
 
@@ -433,7 +433,7 @@ Budgets are enforced in CI by size-limit, measured gzipped: initial JavaScript a
 | Tactic | Owner |
 | --- | --- |
 | Amplience URL builder sets width, height, quality 75 and `fmt=auto`, so the CDN negotiates AVIF or WebP. `srcset` at 240, 360, 480 and 720 wide with a `sizes` attribute matched to the grid. Explicit width and height. Per-card bytes drop from about 180 KB to about 20 KB. | `deals/model/image.ts`, `DealImage` |
-| First ten cards load eagerly with high fetch priority; the rest lazy with async decoding. Cards from index 20 get `content-visibility: auto` with an intrinsic size. | `DealGrid`, `DealCard` |
+| First ten cards load eagerly with high fetch priority; the rest lazy with async decoding. The grid renders only the rows near the viewport. | `DealGrid`, `DealCard` |
 | Preconnect to the image CDN and the API, preload the font, inline the theme script, inline the emblem as SVG, no analytics script. | `index.html`, `Brand` |
 | Self-hosted subset font with swap and a size-adjusted fallback face. | `styles/fonts.css` |
 | Persisted query cache plus a prefetch before render, so a returning visitor sees deals before the server wakes. | `providers/queryClient.ts`, `main.tsx` |
