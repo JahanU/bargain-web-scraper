@@ -111,6 +111,22 @@ describe('Size listing', () => {
         await expect(fakeSize(response).size.fetchListing()).rejects.toThrow(error);
     });
 
+    it('marks the listing incomplete when a page promises more but gives no cursor', async () => {
+        const { size, calls } = fakeSize((call, page) => {
+            if (call.handle !== 'mens-sale') {
+                return page();
+            }
+            const nodes = saved['mens-sale'][0]?.data.collection.products.nodes;
+            const pageInfo = { hasNextPage: true, endCursor: null };
+            return Response.json({ data: { collection: { products: { pageInfo, nodes } } } });
+        });
+        const listing = await size.fetchListing();
+
+        expect(listing.complete).toBe(false);
+        expect(listing.products).toHaveLength(5);
+        expect(calls.map((call) => call.handle)).toEqual(['mens-sale', 'womens-sale']);
+    });
+
     it('throws rather than return half a sale when a later page fails', async () => {
         const { size } = fakeSize((call, page) =>
             call.handle === 'womens-sale' ? new Response('', { status: 500 }) : page(),

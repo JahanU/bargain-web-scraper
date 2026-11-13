@@ -120,6 +120,11 @@ export function createSizeRetailer({ delayMs = REQUEST_DELAY_MS } = {}): Retaile
                     listed += wanted.length;
                     products.push(...parsed);
                     cursor = pageInfo.hasNextPage ? pageInfo.endCursor : null;
+                    // More pages promised but no cursor to reach them: keep what we have, remove nothing.
+                    if (pageInfo.hasNextPage && cursor === null) {
+                        log.warn('⚠ listing cut short: missing products will not be removed this run', { handle });
+                        complete = false;
+                    }
                 }
             }
 
