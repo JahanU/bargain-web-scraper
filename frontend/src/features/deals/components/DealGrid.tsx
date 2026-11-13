@@ -154,11 +154,10 @@ function DealRow({ index, offset, measureRef, deals, columns, serverStart }: Dea
  */
 function savedTopDeal(): string | undefined {
   const [navigation] = performance.getEntriesByType("navigation") as PerformanceNavigationTiming[];
-  if (navigation?.type !== "reload" && navigation?.type !== "back_forward") return undefined;
   try {
     const id = sessionStorage.getItem(TOP_DEAL_KEY) || undefined;
-    sessionStorage.removeItem(TOP_DEAL_KEY);
-    return id;
+    sessionStorage.removeItem(TOP_DEAL_KEY); // on a fresh visit too, so it can't go stale
+    return navigation?.type === "reload" || navigation?.type === "back_forward" ? id : undefined;
   } catch {
     return undefined; // storage blocked
   }
