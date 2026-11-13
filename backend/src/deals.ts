@@ -1,5 +1,8 @@
 import type { Listing, Product } from '@/retailers/types';
 
+export const GENDERS = ['Male', 'Female', 'Unisex'] as const;
+export type Gender = (typeof GENDERS)[number];
+
 /** A deal exactly as the frontend's `Item` expects it. */
 export interface Deal {
     name: string;
@@ -11,7 +14,7 @@ export interface Deal {
     sizes?: string[];
     /** When this process first saw the product (ms since epoch). */
     timestamp: number;
-    gender: string;
+    gender: Gender;
 }
 
 /**
@@ -35,7 +38,7 @@ export interface AcceptResult {
  */
 const MIN_KEPT_RATIO = 0.5;
 
-const UNISEX = 'Unisex';
+export const UNISEX: Gender = 'Unisex';
 
 interface StoredProduct extends Product {
     firstSeenAt: number;

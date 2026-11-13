@@ -4,6 +4,7 @@ import { App } from "@/app/App";
 import { AppProviders } from "@/app/providers/AppProviders";
 import { queryClient, restoreAndPersist } from "@/app/providers/queryClient";
 import { dealsQueryOptions } from "@/features/deals";
+import { genderParser } from "@/features/filters";
 import "@/styles/index.css";
 
 // `bun run dev:mock` serves the fixture through MSW; the import is dropped from other builds.
@@ -14,7 +15,10 @@ if (import.meta.env.MODE === "mock") {
 
 // Show the saved snapshot at once, then start the request before React renders anything.
 await restoreAndPersist();
-void queryClient.prefetchQuery(dealsQueryOptions);
+const gender = genderParser.parseServerSide(
+  new URLSearchParams(location.search).get("gender") ?? undefined,
+);
+void queryClient.prefetchQuery(dealsQueryOptions(gender));
 
 const root = document.getElementById("root");
 if (!root) throw new Error("#root is missing from index.html");

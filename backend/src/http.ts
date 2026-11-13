@@ -1,4 +1,4 @@
-import type { Deal } from '@/deals';
+import { type Deal, GENDERS, type Gender } from '@/deals';
 import { createLogger, duration, type Level } from '@/log';
 
 const log = createLogger('http');
@@ -25,11 +25,30 @@ export function dealsResponse(deals: Deal[] | undefined): Response {
     return Response.json(deals, { headers: { 'Cache-Control': CACHE_CONTROL, ...CORS } });
 }
 
+/**
+ * The deals for `?gender=`, or all of them when it is absent (the deployed frontend doesn't send
+ * it). An unknown gender is a 400 even before the first scrape: retrying won't fix it.
+ */
+function dealsFor(request: Request, deals: Deal[] | undefined): Response {
+    const gender = new URL(request.url).searchParams.get('gender');
+    if (gender === null) {
+        return dealsResponse(deals);
+    }
+    if (!isGender(gender)) {
+        return Response.json({ error: `gender must be one of ${GENDERS.join(', ')}` }, { status: 400, headers: CORS });
+    }
+    return dealsResponse(deals?.filter((deal) => deal.gender === gender));
+}
+
+function isGender(value: string): value is Gender {
+    return (GENDERS as readonly string[]).includes(value);
+}
+
 /** Route table for Bun.serve. `deals()` is undefined until the first good scrape. */
 export function routes(deals: () => Deal[] | undefined, health: () => object) {
     // Health checks are frequent keep-awake pings, so they only show at LOG_LEVEL=debug.
     const healthResponse = logged(() => Response.json(health(), { headers: CORS }), 'debug');
-    const dealsRoute = { GET: logged(() => dealsResponse(deals())) };
+    const dealsRoute = { GET: logged((request) => dealsFor(request, deals())) };
 
     return {
         // `/` as well, so a keep-awake ping or platform health check aimed at the root gets a 200.
@@ -44,7 +63,7 @@ export function routes(deals: () => Deal[] | undefined, health: () => object) {
 /** Anything that isn't a known route. */
 export const notFound = logged(() => Response.json({ error: 'Not Found' }, { status: 404, headers: CORS }));
 
-const STATUS_NOTES: Record<number, string> = { 404: ' not found', 503: ' still loading' };
+const STATUS_NOTES: Record<number, string> = { 400: ' bad request', 404: ' not found', 503: ' still loading' };
 
 /** Wraps a handler to log each request: method, path, status and time taken. */
 function logged(handler: (request: Request) => Response, level: Level = 'info') {

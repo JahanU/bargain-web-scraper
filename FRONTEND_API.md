@@ -37,6 +37,8 @@ Anything else returns `404` with `{ "error": "Not Found" }`. The old `/firebase/
 
 ## `GET /v1/deals`
 
+Optional query: `?gender=Male`, `Female` or `Unisex` returns only deals with exactly that `gender` (unisex items appear only under `Unisex`). Without it you get every deal. Any other value, including an empty one, is a `400` with `{ "error": "gender must be one of Male, Female, Unisex" }`.
+
 ### Response: `200 OK`
 
 A JSON **array** of deals, already **sorted by discount (highest first), then by price (cheapest first)**. It can be an empty array `[]` when the sale has nothing at or above the discount floor; that is a valid state, not an error.
@@ -110,6 +112,7 @@ The frontend should show a loading state, wait `Retry-After` seconds, and try ag
 
 | Status | Body | Meaning |
 |---|---|---|
+| `400` | `{ "error": "gender must be one of Male, Female, Unisex" }` (JSON) | Unknown `gender` value |
 | `404` | `{ "error": "Not Found" }` (JSON) | Wrong path |
 | `500` / `502` | Possibly **not JSON** (Bun's or Render's error page) | Backend crashed or is restarting. Treat it as a network error and retry later. |
 
