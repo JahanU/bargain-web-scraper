@@ -83,13 +83,18 @@ async function topDeal(page: import("@playwright/test").Page) {
   });
 }
 
-test("a reload returns to the deal that was at the top", async ({ page }) => {
+/** Loads the page at 5 columns, scrolls a few rows down and returns the deal now at the top. */
+async function scrollIntoTheGrid(page: import("@playwright/test").Page) {
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.goto("/");
   await expect(page.getByText("81 deals")).toBeVisible();
   await page.mouse.wheel(0, 3000);
   await expect.poll(() => topDeal(page)).toBeGreaterThan(10);
-  const before = await topDeal(page);
+  return topDeal(page);
+}
+
+test("a reload returns to the deal that was at the top", async ({ page }) => {
+  const before = await scrollIntoTheGrid(page);
 
   await page.reload();
 
@@ -97,12 +102,7 @@ test("a reload returns to the deal that was at the top", async ({ page }) => {
 });
 
 test("a column change keeps the deal that was at the top in view", async ({ page }) => {
-  await page.setViewportSize({ width: 1280, height: 900 });
-  await page.goto("/");
-  await expect(page.getByText("81 deals")).toBeVisible();
-  await page.mouse.wheel(0, 3000);
-  await expect.poll(() => topDeal(page)).toBeGreaterThan(10);
-  const before = await topDeal(page);
+  const before = await scrollIntoTheGrid(page);
 
   await page.setViewportSize({ width: 390, height: 900 }); // 5 columns → 2
 

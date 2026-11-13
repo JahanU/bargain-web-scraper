@@ -1,10 +1,14 @@
 import { useWindowVirtualizer } from "@tanstack/react-virtual";
-import { useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useCallback, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
 import type { Deal } from "../model/Deal";
 import { DealCard } from "./DealCard";
 
 const PRIORITY_COUNT = 10; // roughly the first two rows on any screen
 const TOP_DEAL_KEY = "top-deal";
+
+// The virtualizer scrolls on mount, which cancels the browser's own scroll restore (and restored
+// pixels would point at other deals anyway), so DealGrid restores by deal: see savedTopDeal.
+history.scrollRestoration = "manual";
 
 // Tailwind's sm, lg and xl breakpoints (see GRID_SIZES in DealImage), widest first.
 const COLUMNS_AT = [
@@ -35,6 +39,8 @@ export function DealGrid({ deals, serverStart }: DealGridProps) {
   // oxlint-disable-next-line react/incompatible-library -- intended, see above
   const virtualizer = useWindowVirtualizer({
     count: Math.ceil(deals.length / columns),
+    // Row heights are cached by key; a row of another column count is a different row.
+    getItemKey: useCallback((index: number) => `${columns}:${index}`, [columns]),
     estimateSize: () => (columns === 2 ? 350 : 410), // a card; real rows are measured
     gap: columns === 2 ? 24 : 32, // gap-y-6, and gap-y-8 from sm, where 3 columns start
     scrollMargin,
@@ -49,8 +55,6 @@ export function DealGrid({ deals, serverStart }: DealGridProps) {
     measure();
     const observer = new ResizeObserver(measure);
     observer.observe(document.documentElement);
-    // The virtualizer scrolls on mount, which cancels the browser's own restore; do it here.
-    history.scrollRestoration = "manual";
     const save = () => {
       try {
         sessionStorage.setItem(TOP_DEAL_KEY, top.id ?? "");
@@ -144,12 +148,17 @@ function DealRow({ index, offset, measureRef, deals, columns, serverStart }: Dea
   );
 }
 
-/** The deal a reload (or back/forward) should return to; a fresh visit starts at the top. */
+/**
+ * The deal a reload (or back/forward) should return to; a fresh visit starts at the top. Read
+ * once: a grid that mounts again later (after an empty result, say) must not jump back to it.
+ */
 function savedTopDeal(): string | undefined {
   const [navigation] = performance.getEntriesByType("navigation") as PerformanceNavigationTiming[];
   if (navigation?.type !== "reload" && navigation?.type !== "back_forward") return undefined;
   try {
-    return sessionStorage.getItem(TOP_DEAL_KEY) || undefined;
+    const id = sessionStorage.getItem(TOP_DEAL_KEY) || undefined;
+    sessionStorage.removeItem(TOP_DEAL_KEY);
+    return id;
   } catch {
     return undefined; // storage blocked
   }
