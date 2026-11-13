@@ -7,11 +7,13 @@ const DEALS_URL = `${apiUrl}/v1/deals`;
 const CORS = { "Access-Control-Allow-Origin": "*", "Access-Control-Expose-Headers": "Retry-After" };
 
 export const handlers = [
-  http.get(DEALS_URL, () =>
-    HttpResponse.json(fixture, {
-      headers: { "Cache-Control": "public, max-age=60, stale-while-revalidate=300", ...CORS },
-    }),
-  ),
+  http.get(DEALS_URL, ({ request }) => {
+    const gender = new URL(request.url).searchParams.get("gender");
+    return HttpResponse.json(
+      fixture.filter((deal) => gender === null || deal.gender === gender),
+      { headers: { "Cache-Control": "public, max-age=60, stale-while-revalidate=300", ...CORS } },
+    );
+  }),
 ];
 
 /** Failure modes. In dev:mock pick one with ?mock=<name>; tests use them with server.use(). */

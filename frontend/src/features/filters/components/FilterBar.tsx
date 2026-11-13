@@ -5,6 +5,7 @@ import { Button } from "@/shared/ui";
 import type { FilterState } from "../model/applyFilters";
 import { activeChips } from "../model/registry";
 import { DiscountControl } from "./DiscountControl";
+import { GenderControl } from "./GenderControl";
 import { SearchField } from "./SearchField";
 import { SizePopover } from "./SizeFacet";
 import { SortSelect } from "./SortSelect";
@@ -26,8 +27,9 @@ export type FilterBarProps = {
 };
 
 /**
- * Sticky toolbar. Wide screens: search, discount, sizes and sort in a row. Phones: search, then
- * a Filters button (opening a sheet with everything else) next to sort.
+ * Sticky toolbar. Wide screens: gender, search, discount, sizes and sort in a row; below lg gender
+ * sits on its own row above them. Phones: gender, then search, then a Filters button (opening a
+ * sheet with everything else) next to sort.
  */
 export function FilterBar(props: FilterBarProps) {
   const { values, onChange, sizeFacets, discountCounts, busy } = props;
@@ -45,45 +47,53 @@ export function FilterBar(props: FilterBarProps) {
         aria-busy={busy || undefined}
         onSubmit={(event) => event.preventDefault()}
       >
-        <div className="flex flex-wrap items-center gap-2 sm:flex-nowrap sm:gap-4">
-          <SearchField
-            value={values.search}
-            onChange={(search) => onChange({ search })}
-            className="w-full sm:w-64 lg:w-80"
+        {/* Below lg the filters row is already full, so gender gets its own row. */}
+        <div className="flex flex-wrap items-center gap-2 lg:flex-nowrap lg:gap-4">
+          <GenderControl
+            value={values.gender}
+            onChange={(gender) => onChange({ gender })}
+            className="w-full shrink-0 sm:w-auto"
           />
-          <div className="hidden items-center gap-2 sm:flex">
-            <span className={toolbarLabel} aria-hidden>
-              Discount ≥
-            </span>
-            <DiscountControl
-              value={values.discount}
-              onChange={(discount) => onChange({ discount })}
-              counts={discountCounts}
-              name="discount-toolbar"
-              className="grid-cols-10"
+          <div className="flex w-full flex-wrap items-center gap-2 sm:flex-nowrap sm:gap-4 lg:w-auto lg:flex-1">
+            <SearchField
+              value={values.search}
+              onChange={(search) => onChange({ search })}
+              className="w-full sm:w-64 lg:w-80"
+            />
+            <div className="hidden items-center gap-2 sm:flex">
+              <span className={toolbarLabel} aria-hidden>
+                Discount ≥
+              </span>
+              <DiscountControl
+                value={values.discount}
+                onChange={(discount) => onChange({ discount })}
+                counts={discountCounts}
+                name="discount-toolbar"
+                className="grid-cols-10"
+              />
+            </div>
+            <div className="hidden sm:block">
+              <SizePopover
+                selected={values.sizes}
+                onChange={(sizes) => onChange({ sizes })}
+                facets={sizeFacets}
+              />
+            </div>
+            <Button
+              ref={filtersButton}
+              className="flex-1 sm:hidden"
+              onPointerDown={() => void loadSheet()}
+              onClick={() => setSheetOpen(true)}
+            >
+              <SlidersHorizontal size={16} aria-hidden />
+              Filters{sheetFilters > 0 && ` (${sheetFilters})`}
+            </Button>
+            <SortSelect
+              value={values.sort}
+              onChange={(sort) => onChange({ sort })}
+              className="flex-1 sm:ml-auto sm:flex-none"
             />
           </div>
-          <div className="hidden sm:block">
-            <SizePopover
-              selected={values.sizes}
-              onChange={(sizes) => onChange({ sizes })}
-              facets={sizeFacets}
-            />
-          </div>
-          <Button
-            ref={filtersButton}
-            className="flex-1 sm:hidden"
-            onPointerDown={() => void loadSheet()}
-            onClick={() => setSheetOpen(true)}
-          >
-            <SlidersHorizontal size={16} aria-hidden />
-            Filters{sheetFilters > 0 && ` (${sheetFilters})`}
-          </Button>
-          <SortSelect
-            value={values.sort}
-            onChange={(sort) => onChange({ sort })}
-            className="flex-1 sm:ml-auto sm:flex-none"
-          />
         </div>
       </form>
       {sheetOpen && (

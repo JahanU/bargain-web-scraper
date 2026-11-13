@@ -89,7 +89,7 @@ The full contract for the frontend (the `Deal` type, the loading state, caching,
 | Method | Path | Notes |
 |---|---|---|
 | GET | `/health` (also `/`) | `{ ok, ready, deals, runs }`, where `runs` is the last result per retailer. Use it for the keep-awake ping |
-| GET | `/v1/deals` | Deals, best first, as JSON (cached by browsers for 60s) |
+| GET | `/v1/deals` | Deals, best first, as JSON (cached by browsers for 60s). `?gender=Male`, `Female` or `Unisex` returns only that gender (exact match); any other value is a 400 |
 | GET | `/webscrape/getBestDeals` | Same payload; the path the current frontend calls (new code should use `/v1/deals`) |
 
 ## Logs

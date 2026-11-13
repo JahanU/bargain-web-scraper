@@ -1,10 +1,12 @@
+import type { Gender } from '@/deals';
+
 /** One product as a retailer lists it right now, normalised to our shape. */
 export interface Product {
     externalId: string;
     name: string;
     url: string;
     imageUrl: string | null;
-    gender: string;
+    gender: Gender;
     sizes: string[];
     wasPricePence: number;
     nowPricePence: number;
