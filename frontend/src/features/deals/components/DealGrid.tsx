@@ -4,7 +4,7 @@ import type { Deal } from "../model/Deal";
 import { DealCard } from "./DealCard";
 
 const PRIORITY_COUNT = 10; // roughly the first two rows on any screen
-const CARD_HEIGHT_ESTIMATE = 410; // real rows are measured
+const TOP_DEAL_KEY = "top-deal";
 
 // Tailwind's sm, lg and xl breakpoints (see GRID_SIZES in DealImage), widest first.
 const COLUMNS_AT = [
@@ -27,12 +27,15 @@ export function DealGrid({ deals, serverStart }: DealGridProps) {
   const columns = useSyncExternalStore(subscribeToColumns, currentColumns);
   const listRef = useRef<HTMLDivElement>(null);
   const [scrollMargin, setScrollMargin] = useState(0);
+  // The deal in the top visible row. Pixels mean nothing once rows change, so this is what a
+  // reload or a column change puts back. It starts as the one saved before a reload.
+  const [top] = useState(() => ({ columns: 0, id: savedTopDeal() }));
   // The virtualizer is one mutable object, so the compiler leaves DealGrid unmemoised (as it
   // should); DealRow gets only plain values and the stable measureElement.
   // oxlint-disable-next-line react/incompatible-library -- intended, see above
   const virtualizer = useWindowVirtualizer({
     count: Math.ceil(deals.length / columns),
-    estimateSize: () => CARD_HEIGHT_ESTIMATE,
+    estimateSize: () => (columns === 2 ? 350 : 410), // a card; real rows are measured
     gap: columns === 2 ? 24 : 32, // gap-y-6, and gap-y-8 from sm, where 3 columns start
     scrollMargin,
   });
@@ -46,8 +49,35 @@ export function DealGrid({ deals, serverStart }: DealGridProps) {
     measure();
     const observer = new ResizeObserver(measure);
     observer.observe(document.documentElement);
-    return () => observer.disconnect();
-  }, []);
+    // The virtualizer scrolls on mount, which cancels the browser's own restore; do it here.
+    history.scrollRestoration = "manual";
+    const save = () => {
+      try {
+        sessionStorage.setItem(TOP_DEAL_KEY, top.id ?? "");
+      } catch {
+        // storage blocked: a reload starts at the top
+      }
+    };
+    window.addEventListener("pagehide", save);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("pagehide", save);
+    };
+  }, [top]);
+
+  // After every render: note the top deal, or, when the columns just changed (and on mount,
+  // from 0), scroll its new row to the top. Row 0 is left alone so the page top stays put.
+  // oxlint-disable-next-line react-hooks/exhaustive-deps -- no deps on purpose
+  useLayoutEffect(() => {
+    if (top.columns === columns) {
+      top.id = deals[(virtualizer.range?.startIndex ?? 0) * columns]?.id;
+      return;
+    }
+    top.columns = columns;
+    const index = deals.findIndex((deal) => deal.id === top.id);
+    if (index >= columns)
+      virtualizer.scrollToIndex(Math.floor(index / columns), { align: "start" });
+  });
 
   return (
     <div
@@ -112,6 +142,17 @@ function DealRow({ index, offset, measureRef, deals, columns, serverStart }: Dea
       ))}
     </div>
   );
+}
+
+/** The deal a reload (or back/forward) should return to; a fresh visit starts at the top. */
+function savedTopDeal(): string | undefined {
+  const [navigation] = performance.getEntriesByType("navigation") as PerformanceNavigationTiming[];
+  if (navigation?.type !== "reload" && navigation?.type !== "back_forward") return undefined;
+  try {
+    return sessionStorage.getItem(TOP_DEAL_KEY) || undefined;
+  } catch {
+    return undefined; // storage blocked
+  }
 }
 
 // Created once and shared by subscribe and the snapshot, which runs on every render.

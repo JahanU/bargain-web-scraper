@@ -1,9 +1,10 @@
-import { render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { expect, test } from "vite-plus/test";
 import { axe } from "vitest-axe";
 import { deal } from "@/test/deal";
 import { DealCard } from "./DealCard";
 import { DealGrid } from "./DealGrid";
+import { DealImage } from "./DealImage";
 
 const tee = deal({
   name: "Nike NFL Tee",
@@ -104,4 +105,18 @@ test("the grid loads the first ten images eagerly at high priority and the rest 
     true,
   );
   expect(images.slice(10).every((image) => image.getAttribute("loading") === "lazy")).toBe(true);
+});
+
+test("an image fades in on its first load, but not when its card is rendered again", () => {
+  const image = deal().image;
+  const first = render(<DealImage image={image} priority={false} />);
+  const img = first.container.querySelector("img")!;
+  expect(img).toHaveClass("opacity-0");
+  fireEvent.load(img);
+  expect(img).not.toHaveClass("opacity-0");
+  first.unmount();
+
+  const again = render(<DealImage image={image} priority={false} />);
+
+  expect(again.container.querySelector("img")).not.toHaveClass("opacity-0");
 });

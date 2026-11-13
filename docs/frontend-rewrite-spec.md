@@ -371,7 +371,7 @@ The header is 52 px and the toolbar 56 px, both sticky, so the sticky stack stay
 │ │£10  £̶3̶0̶ │ │£10  £̶2̶8̶ │ │      │ SORT                    │
 │ │S M L +1 │ │S M L    │ │      │ (•) Best discount …     │
 │ └─────────┘ └─────────┘ │      ├─────────────────────────┤
-│  … content-visibility   │      │ [Reset]  [Show 23 deals]│ sticky, safe-area
+│  … virtualised rows     │      │ [Reset]  [Show 23 deals]│ sticky, safe-area
 └─────────────────────────┘      └─────────────────────────┘
 ```
 

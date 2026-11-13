@@ -6,11 +6,14 @@ import type { DealImage as Image } from "../model/image";
 export const GRID_SIZES =
   "(min-width: 1280px) min(calc((100vw - 144px) / 5), 260px), (min-width: 1024px) calc((100vw - 120px) / 4), (min-width: 640px) calc((100vw - 96px) / 3), calc((100vw - 44px) / 2)";
 
+// Rows leave and re-enter the DOM as the grid scrolls; an image seen once must not fade in again.
+const loadedSrcs = new Set<string>();
+
 type DealImageProps = { image: Image | undefined; priority: boolean };
 
 /** Decorative (the card's name says it all). The first rows load eagerly; the rest lazily. */
 export function DealImage({ image, priority }: DealImageProps) {
-  const [loaded, setLoaded] = useState(false);
+  const [loaded, setLoaded] = useState(() => !!image && loadedSrcs.has(image.src));
   return (
     <div className="aspect-[726/926] bg-image-plate">
       {image && (
@@ -24,7 +27,10 @@ export function DealImage({ image, priority }: DealImageProps) {
           loading={priority ? "eager" : "lazy"}
           fetchPriority={priority ? "high" : "auto"}
           decoding="async"
-          onLoad={() => setLoaded(true)}
+          onLoad={() => {
+            loadedSrcs.add(image.src);
+            setLoaded(true);
+          }}
           className={cn(
             "size-full object-contain transition-[opacity,scale] duration-base group-hover:scale-[1.02]",
             !loaded && "opacity-0",
