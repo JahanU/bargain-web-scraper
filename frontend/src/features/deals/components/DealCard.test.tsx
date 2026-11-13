@@ -23,7 +23,7 @@ test("one link, named by its own text with the price read once, opening a new ta
   expect(link).not.toHaveAttribute("aria-label"); // visible text is the name (WCAG 2.5.3)
   // The whole name, so the price provably appears once.
   expect(link).toHaveAccessibleName(
-    /^Nike NFL Tee\s*£10 was £30\s*, 67% off\s*Sizes\s*S\s*M\s*L\s*XL\s*XXL\s*\+2\s*Men$/,
+    /^Nike NFL Tee\s*£10 was £30\s*, 67% off\s*Sizes\s*S\s*M\s*L\s*XL\s*XXL\s*\+2\s*JD, Men$/,
   );
   expect(link).toHaveAttribute("href", "https://www.jdsports.co.uk/product/nike-nfl-tee/1/");
   expect(link).toHaveAttribute("target", "_blank");
@@ -38,6 +38,7 @@ test("shows prices, the badge and the first five sizes with +N", () => {
   expect(screen.getByText("£10")).toBeVisible();
   expect(screen.getByText("£30").tagName).toBe("S");
   expect(screen.getByText("-67%")).toHaveAttribute("aria-hidden", "true");
+  expect(screen.getByText("JD", { selector: "[aria-hidden]" })).toBeVisible();
   expect(screen.getByText("+2")).toBeInTheDocument();
   expect(screen.queryByText("XXXL")).not.toBeInTheDocument();
 });

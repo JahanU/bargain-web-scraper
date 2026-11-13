@@ -11,6 +11,7 @@ import { GenderControl } from "./GenderControl";
 import { SearchField } from "./SearchField";
 import { SizePopover } from "./SizeFacet";
 import { SortSelect } from "./SortSelect";
+import { StoreControl } from "./StoreControl";
 import { toolbarLabel } from "./toolbarLabel";
 
 const loadSheet = () => import("./FilterSheet");
@@ -31,9 +32,9 @@ export type FilterBarProps = {
 };
 
 /**
- * Sticky toolbar. Wide screens: gender, category, search and sort in a row, then discount, brands
- * and sizes; below lg search drops to its own row. Phones: gender, category, search, then a
- * Filters button (opening a sheet with everything else) next to sort.
+ * Sticky toolbar. Wide screens: gender, category, store, search and sort in a row, then discount,
+ * brands and sizes; below lg search drops to its own row. Phones: gender, category, store, search,
+ * then a Filters button (opening a sheet with everything else) next to sort.
  */
 export function FilterBar(props: FilterBarProps) {
   const { values, onChange, sizeFacets, brandCounts, discountCounts, busy } = props;
@@ -60,6 +61,11 @@ export function FilterBar(props: FilterBarProps) {
           <CategoryControl
             value={values.category}
             onChange={(category) => onChange({ category })}
+            className="w-full sm:w-auto"
+          />
+          <StoreControl
+            value={values.store}
+            onChange={(store) => onChange({ store })}
             className="w-full sm:w-auto"
           />
           <SearchField

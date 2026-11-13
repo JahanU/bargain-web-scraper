@@ -83,6 +83,61 @@ test("desktop: category and brands narrow the list through the API, by keyboard,
   await expect(page.getByText("21 deals")).toBeVisible();
 });
 
+test("each card shows its store; Size asks the API for store=size only, and All sends no store", async ({
+  page,
+}) => {
+  await page.setViewportSize(devices["Desktop Chrome"].viewport);
+  const requests: string[] = [];
+  page.on("request", (request) => {
+    const url = new URL(request.url());
+    if (url.pathname.startsWith("/v1/")) requests.push(url.pathname + url.search);
+  });
+  await page.goto("/");
+  await expect(page.getByText("81 deals")).toBeVisible();
+  const store = page.getByRole("group", { name: "Store" });
+  await expect(store.getByRole("radio", { name: "All" })).toBeChecked();
+  expect(requests.some((request) => request.includes("store"))).toBe(false);
+
+  const cards = page.locator("a", { has: page.getByRole("heading", { level: 2 }) });
+  const badge = (label: string) => page.getByText(label, { exact: true }).and(page.locator("span"));
+  await expect(cards.first()).toHaveAccessibleName(/^Nike NFL Las Vegas Raiders .* JD, Men/);
+  await expect(cards.first().locator(badge("JD"))).toBeVisible();
+  await expect(cards.filter({ has: badge("Size") }).first()).toHaveAccessibleName(/ Size, Men/);
+
+  requests.length = 0;
+  await store.getByRole("radio", { name: "Size" }).check();
+
+  await expect(page.getByText("13 deals")).toBeVisible();
+  await expect(page).toHaveURL(/\?store=size$/);
+  expect(requests.sort()).toEqual([
+    "/v1/brands?gender=Male&store=size",
+    "/v1/deals?gender=Male&store=size",
+  ]);
+  await expect(cards.filter({ has: badge("Size") })).toHaveCount(await cards.count());
+  await expect(cards.filter({ has: badge("JD") })).toHaveCount(0);
+
+  await page.reload();
+  await expect(page.getByText("13 deals")).toBeVisible();
+  await expect(store.getByRole("radio", { name: "Size" })).toBeChecked();
+
+  requests.length = 0;
+  await store.getByRole("radio", { name: "JD" }).check();
+  await expect(page.getByText("68 deals")).toBeVisible();
+  expect(requests.sort()).toEqual([
+    "/v1/brands?gender=Male&store=jd",
+    "/v1/deals?gender=Male&store=jd",
+  ]);
+
+  requests.length = 0;
+  // The deals for All are still cached from the first load, so make the app ask again.
+  await page.reload();
+  await store.getByRole("radio", { name: "All" }).check();
+  await expect(page.getByText("81 deals")).toBeVisible();
+  await expect(page).toHaveURL(/\/$/);
+  const afterAll = requests.filter((request) => !request.includes("store=jd"));
+  expect(afterAll.sort()).toEqual(["/v1/brands?gender=Male", "/v1/deals?gender=Male"]);
+});
+
 test.describe("phone", () => {
   test.use({ viewport: devices["iPhone 13"].viewport, hasTouch: true });
 
