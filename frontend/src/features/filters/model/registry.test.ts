@@ -8,6 +8,7 @@ const parsers = {
   search: filterRegistry.search.parser,
   discount: filterRegistry.discount.parser,
   sizes: filterRegistry.sizes.parser,
+  brands: filterRegistry.brands.parser,
   sort: sortParser,
 };
 const load = createLoader(parsers);
@@ -16,6 +17,7 @@ const DEFAULTS = {
   search: "",
   discount: 30,
   sizes: [] as string[],
+  brands: [] as string[],
   sort: "discount-high-to-low" as const,
 };
 
@@ -24,6 +26,7 @@ test("a link shared before the rewrite parses as it did", () => {
     search: "nike",
     discount: 30,
     sizes: ["M", "L"],
+    brands: [],
     sort: "price-low-to-high",
   });
 });
@@ -40,6 +43,7 @@ test.each([
   ["?search=nike", { search: "nike" }],
   ["?discount=50", { discount: 50 }],
   ["?sizes=S,M,8", { sizes: ["S", "M", "8"] }],
+  ["?brands=New+Balance,Nike", { brands: ["New Balance", "Nike"] }],
   ["?sort=price-high-to-low", { sort: "price-high-to-low" }],
   [
     "?search=air+max&discount=70&sizes=XL,9&sort=discount-low-to-high",
@@ -62,11 +66,14 @@ test("search is trimmed and capped at 64 characters", () => {
   expect(serialize({ search: " nike " })).toBe("?search=nike");
 });
 
-test.each(["5", "35", "0", "110", "abc", "50.5", ""])("discount=%j falls back to 30", (value) => {
-  expect(load(`?discount=${value}`).discount).toBe(30);
-});
+test.each(["5", "10", "20", "35", "0", "110", "abc", "50.5", "5e1", ""])(
+  "discount=%j falls back to 30",
+  (value) => {
+    expect(load(`?discount=${value}`).discount).toBe(30);
+  },
+);
 
-test.each([10, 20, 100])("discount=%i is a valid stop", (value) => {
+test.each([30, 40, 100])("discount=%i is a valid stop", (value) => {
   expect(load(`?discount=${value}`).discount).toBe(value);
 });
 
@@ -81,6 +88,13 @@ test("sizes are written in canonical order, so a selection always makes the same
   expect(serialize({ sizes: ["9", "L", "S"] })).toBe("?sizes=S,L,9");
 });
 
+test("brands: deduplicated, and written in sorted order whatever order they were picked in", () => {
+  expect(load("?brands=Nike,,Nike,adidas").brands).toEqual(["Nike", "adidas"]);
+  expect(serialize({ brands: ["adidas", "Nike", "New Balance"] })).toBe(
+    "?brands=New+Balance,Nike,adidas",
+  );
+});
+
 test.each(["", "invalid-sort", "price"])("sort=%j falls back to best discount", (value) => {
   expect(load(`?sort=${value}`).sort).toBe("discount-high-to-low");
 });
@@ -90,13 +104,16 @@ test("unknown params are ignored", () => {
 });
 
 test("one chip per non-default value, each knowing the value without it", () => {
-  expect(activeChips({ search: "nike", discount: 50, sizes: ["M", "L"] })).toEqual([
+  expect(
+    activeChips({ search: "nike", discount: 50, sizes: ["M", "L"], brands: ["Nike"] }),
+  ).toEqual([
     { filter: "search", label: "“nike”", next: "" },
     { filter: "discount", label: "≥50%", next: 30 },
     { filter: "sizes", label: "M", next: ["L"] },
     { filter: "sizes", label: "L", next: ["M"] },
+    { filter: "brands", label: "Nike", next: [] },
   ]);
-  expect(activeChips({ search: "  ", discount: 30, sizes: [] })).toEqual([]);
+  expect(activeChips({ search: "  ", discount: 30, sizes: [], brands: [] })).toEqual([]);
 });
 
 test("predicates", () => {
@@ -106,4 +123,6 @@ test("predicates", () => {
   expect(filterRegistry.discount.predicate(50)(tee)).toBe(false);
   expect(filterRegistry.sizes.predicate(["S", "M"])(tee)).toBe(true);
   expect(filterRegistry.sizes.predicate(["S"])(tee)).toBe(false);
+  expect(filterRegistry.brands.predicate(["adidas", "Nike"])(tee)).toBe(true);
+  expect(filterRegistry.brands.predicate(["adidas"])(tee)).toBe(false);
 });

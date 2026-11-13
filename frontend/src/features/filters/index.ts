@@ -8,11 +8,10 @@ export {
   type ActiveChip,
   activeChips,
   DEFAULT_DISCOUNT,
-  DISCOUNT_STOPS,
   discountCounts,
   type FilterKey,
   type FilterValues,
   SEARCH_MAX_LENGTH,
 } from "./model/registry";
-export { genderParser } from "./model/gender";
+export { loadDealsRequest } from "./model/scope";
 export { DEFAULT_SORT, SORTS, type SortId } from "./model/sort";

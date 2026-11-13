@@ -8,6 +8,7 @@ import {
   ResultsSummary,
   StaleBanner,
   serverStartOf,
+  useBrandsQuery,
   useDealFacets,
   useDealsQuery,
 } from "@/features/deals";
@@ -26,7 +27,9 @@ const WAKING_AFTER_MS = 3000;
 /** The single orchestrator: the only place server state and URL state meet. */
 export function DealsPage() {
   const [values, actions] = useFilters();
-  const query = useDealsQuery(values.gender);
+  const { gender, category, brands } = values;
+  const query = useDealsQuery({ gender, category, brands });
+  const brandCounts = useBrandsQuery(gender, category).data;
   const deals = query.data;
   const { visible, withoutSizeFilter, withoutDiscountFilter } = useFilteredDeals(deals, values);
   const sizeFacets = useDealFacets(withoutSizeFilter);
@@ -43,6 +46,7 @@ export function DealsPage() {
         onChange={change}
         onClearAll={clearAll}
         sizeFacets={sizeFacets}
+        brandCounts={brandCounts}
         discountCounts={withoutDiscountFilter && discountCounts(withoutDiscountFilter)}
         resultCount={visible?.length}
         busy={!deals}
@@ -56,7 +60,7 @@ export function DealsPage() {
           <ResultsSummary
             shown={visible.length}
             total={deals.length}
-            updatedAt={query.dataUpdatedAt}
+            updatedAt={query.isPlaceholderData ? undefined : query.dataUpdatedAt}
           />
           {visible.length > 0 ? (
             <DealGrid deals={visible} serverStart={serverStartOf(deals)} />
@@ -86,7 +90,8 @@ type NoDealsProps = {
 };
 
 function NoDeals({ deals, values, onChange, onClearAll }: NoDealsProps) {
-  if (deals.length === 0) {
+  // With brands chosen an empty answer is the brands' doing, which explainEmpty says.
+  if (deals.length === 0 && values.brands.length === 0) {
     return (
       <EmptyState
         title="No deals right now"

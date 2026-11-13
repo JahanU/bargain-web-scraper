@@ -1,4 +1,4 @@
-import type { Deal, Gender } from "@/features/deals";
+import type { CategoryScope, Deal, Gender } from "@/features/deals";
 import {
   FILTER_KEYS,
   type FilterKey,
@@ -9,7 +9,7 @@ import {
 import { compareDeals, type SortId } from "./sort";
 
 type ClientFilters = FilterValues & { sort: SortId };
-export type FilterState = ClientFilters & { gender: Gender };
+export type FilterState = ClientFilters & { gender: Gender; category: CategoryScope };
 
 /**
  * One pass: build the active predicates once, filter once, sort once (stable). `except` leaves

@@ -4,7 +4,13 @@ import { type FilterState, applyFilters } from "./applyFilters";
 
 // The legacy sort.spec items, plus one deal for ties.
 const nike = deal({ name: "Nike Air", nowPrice: 70, discount: 32, sizes: ["M", "L"] });
-const adidas = deal({ name: "Adidas Runner", nowPrice: 55, discount: 31, sizes: ["S", "M"] });
+const adidas = deal({
+  name: "Adidas Runner",
+  brand: "adidas",
+  nowPrice: 55,
+  discount: 31,
+  sizes: ["S", "M"],
+});
 const puma = deal({ name: "Puma Tee", nowPrice: 20, discount: 50, sizes: ["XL"] });
 const vans = deal({ name: "Vans Tee", nowPrice: 20, discount: 50, sizes: undefined });
 const deals = [nike, adidas, puma, vans];
@@ -13,8 +19,10 @@ const DEFAULTS: FilterState = {
   search: "",
   discount: 30,
   sizes: [],
+  brands: [],
   sort: "discount-high-to-low",
   gender: "Male",
+  category: "All",
 };
 const names = (values: Partial<FilterState>, input = deals) =>
   applyFilters(input, { ...DEFAULTS, ...values }).map((item) => item.name);
@@ -72,4 +80,15 @@ test("`except` leaves one filter out", () => {
     "Nike Air",
     "Adidas Runner",
   ]);
+});
+
+test("brands match the deal's brand field, any of the selected", () => {
+  expect(names({ brands: ["adidas"] })).toEqual(["Adidas Runner"]);
+  expect(names({ brands: ["adidas", "Nike"] })).toEqual([
+    "Puma Tee",
+    "Vans Tee",
+    "Nike Air",
+    "Adidas Runner",
+  ]);
+  expect(names({ brands: ["Fila"] })).toEqual([]);
 });

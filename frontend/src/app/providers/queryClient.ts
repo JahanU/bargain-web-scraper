@@ -17,7 +17,7 @@ const persistOptions = {
   persister: createSyncStoragePersister({ storage: browserStorage(), key: "bargain-deals" }),
   maxAge: 24 * 60 * 60_000,
   // Bump when the cached deal shape changes, so old snapshots are discarded.
-  buster: "1",
+  buster: "2",
 };
 
 /**

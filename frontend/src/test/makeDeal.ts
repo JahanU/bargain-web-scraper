@@ -15,6 +15,8 @@ export function makeDeal(overrides: Partial<WireDeal> = {}): WireDeal {
     sizes: ["S", "M"],
     timestamp: 1_700_000_000_000,
     gender: "Male",
+    brand: "Nike",
+    category: "Clothes",
     ...overrides,
   };
 }

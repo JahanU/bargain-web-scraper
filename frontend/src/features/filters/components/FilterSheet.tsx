@@ -1,6 +1,7 @@
 import { X } from "lucide-react";
 import { useEffect, useRef } from "react";
 import { Button, IconButton } from "@/shared/ui";
+import { BrandOptions } from "./BrandFacet";
 import type { FilterBarProps } from "./FilterBar";
 import { DiscountControl } from "./DiscountControl";
 import { SizeOptions } from "./SizeFacet";
@@ -18,6 +19,7 @@ export default function FilterSheet({
   onChange,
   onClearAll,
   sizeFacets,
+  brandCounts,
   discountCounts,
   resultCount,
   onClose,
@@ -50,13 +52,20 @@ export default function FilterSheet({
 
       <div className="space-y-6 overflow-y-auto px-4 py-4">
         <section className="space-y-2">
+          <h3 className={toolbarLabel}>Brands</h3>
+          <BrandOptions
+            selected={values.brands}
+            onChange={(brands) => onChange({ brands })}
+            counts={brandCounts}
+          />
+        </section>
+        <section className="space-y-2">
           <h3 className={toolbarLabel}>Minimum discount</h3>
           <DiscountControl
             value={values.discount}
             onChange={(discount) => onChange({ discount })}
             counts={discountCounts}
             name="discount-sheet"
-            className="grid-cols-5"
           />
         </section>
         <section className="space-y-2">
