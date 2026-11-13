@@ -37,11 +37,12 @@ describe('DealStore', () => {
 
         it('keeps each retailer separate', () => {
             const store = new DealStore();
-            store.accept('other', complete([product('x')]));
+            store.accept('size', complete([product('x')]));
             store.accept('jd', complete(range(2)));
             store.accept('jd', complete([]));
             store.accept('jd', complete([]));
             expect(ids(store)).toEqual(['x']);
+            expect(store.deals(0)).toMatchObject([{ store: 'size' }]);
         });
     });
 
@@ -139,6 +140,7 @@ describe('DealStore', () => {
                 gender: 'Male',
                 brand: 'Nike',
                 category: 'Shoes',
+                store: 'jd',
             });
             expect(deals[2]).toMatchObject({ imageUrl: 'https://img/a', sizes: undefined });
         });

@@ -29,7 +29,7 @@ describe('scrapeRetailer', () => {
 
     it('times the fetch', async () => {
         const slow: Retailer = {
-            id: 'slow',
+            id: 'jd',
             fetchListing: async () => {
                 await Bun.sleep(60);
                 return complete([]);

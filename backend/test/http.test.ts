@@ -13,6 +13,7 @@ const deal: Deal = {
     gender: 'Male',
     brand: 'Nike',
     category: 'Shoes',
+    store: 'jd',
 };
 
 describe('dealsResponse', () => {

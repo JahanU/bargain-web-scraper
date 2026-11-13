@@ -6,6 +6,10 @@ export type Gender = (typeof GENDERS)[number];
 export const CATEGORIES = ['Shoes', 'Clothes', 'Accessories'] as const;
 export type Category = (typeof CATEGORIES)[number];
 
+/** The shops we read. Called stores, as on the site, though each is a `Retailer` in the code. */
+export const STORES = ['jd', 'size'] as const;
+export type Store = (typeof STORES)[number];
+
 /** A deal exactly as the frontend's `Item` expects it. */
 export interface Deal {
     name: string;
@@ -20,6 +24,7 @@ export interface Deal {
     gender: Gender;
     brand: string;
     category: Category;
+    store: Store;
 }
 
 /** What a request narrows the deals by. An absent field (or no brands) means "any". */
@@ -87,10 +92,10 @@ interface StoredProduct extends Product {
  * accepted listing, so a product that sells out is simply gone.
  */
 export class DealStore {
-    private readonly byRetailer = new Map<string, Map<string, StoredProduct>>();
-    private readonly heldBack = new Set<string>();
+    private readonly byRetailer = new Map<Store, Map<string, StoredProduct>>();
+    private readonly heldBack = new Set<Store>();
 
-    accept(retailer: string, listing: Listing, now = Date.now()): AcceptResult {
+    accept(retailer: Store, listing: Listing, now = Date.now()): AcceptResult {
         const previous = this.byRetailer.get(retailer) ?? new Map<string, StoredProduct>();
         const listed = dedupe(listing.products);
         const inStock = [...listed.values()].filter((product) => product.inStock);
@@ -119,14 +124,16 @@ export class DealStore {
 
     /** Deals at or above the discount floor, best discount first, then cheapest. */
     deals(minDiscount: number): Deal[] {
-        return [...this.byRetailer.values()]
-            .flatMap((products) => [...products.values()])
-            .filter((product) => product.discount >= minDiscount)
-            .sort((a, b) => b.discount - a.discount || a.nowPricePence - b.nowPricePence)
-            .map(toDeal);
+        return [...this.byRetailer]
+            .flatMap(([store, products]) => [...products.values()].map((product) => ({ store, product })))
+            .filter(({ product }) => product.discount >= minDiscount)
+            .sort(
+                (a, b) => b.product.discount - a.product.discount || a.product.nowPricePence - b.product.nowPricePence,
+            )
+            .map(({ store, product }) => toDeal(product, store));
     }
 
-    private statusFor(retailer: string, complete: boolean, inStock: number, held: number): AcceptStatus {
+    private statusFor(retailer: Store, complete: boolean, inStock: number, held: number): AcceptStatus {
         if (!complete) {
             return 'incomplete';
         }
@@ -162,7 +169,7 @@ function dedupe(products: Product[]): Map<string, Product> {
     return byId;
 }
 
-function toDeal(product: StoredProduct): Deal {
+function toDeal(product: StoredProduct, store: Store): Deal {
     return {
         name: product.name,
         wasPrice: product.wasPricePence / 100,
@@ -175,5 +182,6 @@ function toDeal(product: StoredProduct): Deal {
         gender: product.gender,
         brand: product.brand,
         category: product.category,
+        store,
     };
 }
