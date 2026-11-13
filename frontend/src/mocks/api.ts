@@ -3,7 +3,7 @@ type Row = { gender: string; category: string; brand: string; store?: string };
 /** The backend answers 400 for a store it doesn't know. */
 export function hasValidStore(params: URLSearchParams): boolean {
   const store = params.get("store");
-  return store === null || store === "jd" || store === "size";
+  return store === null || ["jd", "size", "end"].includes(store);
 }
 
 /** The backend's deal filtering: gender, category and store narrow, brands are OR. */

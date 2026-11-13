@@ -55,7 +55,16 @@ test("a deal without a store is kept; one from an unknown store is dropped", () 
   const { store: _store, ...noStore } = makeDeal();
 
   expect(
-    parseDeals([noStore, makeDeal({ store: "size" }), { ...makeDeal(), store: "asos" }]),
-  ).toEqual([noStore, expect.objectContaining({ store: "size" })]);
-  expect(warn).toHaveBeenCalledWith("Dropped 1 of 3 deals that failed validation.");
+    parseDeals([
+      noStore,
+      makeDeal({ store: "size" }),
+      makeDeal({ store: "end" }),
+      { ...makeDeal(), store: "asos" },
+    ]),
+  ).toEqual([
+    noStore,
+    expect.objectContaining({ store: "size" }),
+    expect.objectContaining({ store: "end" }),
+  ]);
+  expect(warn).toHaveBeenCalledWith("Dropped 1 of 4 deals that failed validation.");
 });

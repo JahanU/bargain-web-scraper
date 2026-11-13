@@ -8,9 +8,9 @@ export type Category = (typeof CATEGORIES)[number];
 export const CATEGORY_SCOPES = ["All", ...CATEGORIES] as const;
 export type CategoryScope = (typeof CATEGORY_SCOPES)[number];
 
-export const STORES = ["jd", "size"] as const;
+export const STORES = ["jd", "size", "end"] as const;
 export type Store = (typeof STORES)[number];
-export const STORE_LABEL: Record<Store, string> = { jd: "JD", size: "Size" };
+export const STORE_LABEL: Record<Store, string> = { jd: "JD", size: "Size", end: "END." };
 export const STORE_SCOPES = ["all", ...STORES] as const;
 export type StoreScope = (typeof STORE_SCOPES)[number];
 

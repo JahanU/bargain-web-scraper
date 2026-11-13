@@ -40,7 +40,7 @@ export function DealsPage() {
 
   return (
     <>
-      <h1 className="sr-only">Deals from JD Sports and Size</h1>
+      <h1 className="sr-only">Deals from JD Sports, Size and END.</h1>
       <FilterBar
         values={values}
         onChange={change}

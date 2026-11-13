@@ -206,7 +206,12 @@ test("store is a radio group: choosing Size asks deals and brands for it, and ea
   );
   const { url } = await setup();
   const group = within(toolbar()).getByRole("group", { name: "Store" });
-  expect(within(group).getAllByRole("radio")).toHaveLength(3);
+  expect(
+    within(group)
+      .getAllByRole("radio")
+      .map((radio) => radio.getAttribute("value")),
+  ).toEqual(["all", "jd", "size", "end"]);
+  expect(within(group).getByRole("radio", { name: "END." })).toBeInTheDocument();
   expect(within(group).getByRole("radio", { name: "All" })).toBeChecked();
   expect(screen.getByRole("link", { name: /^Nike Tee .* JD, Men/ })).toBeInTheDocument();
   expect(screen.getByRole("link", { name: /^Adidas Trainer .* Size, Men/ })).toBeInTheDocument();
