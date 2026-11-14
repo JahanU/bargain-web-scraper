@@ -115,7 +115,7 @@ One aligned, readable line per step, coloured in a terminal and plain text on Re
 09:41:03.012 INFO  app      ✓ serving 280 deals
 09:41:03.012 INFO  scraper  ⏱ jd: next scrape in 5m
 09:41:07.441 INFO  http     GET /v2/deals → 200  took=0.4ms
-09:46:03.990 ERROR scraper  ✗ jd scrape failed  error="Algolia search failed with status 503" took=410ms
+09:46:03.990 ERROR scraper  ✗ jd scrape failed  error="Algolia search returned status 503" took=410ms
 09:46:03.991 WARN  scraper  ↻ jd: retrying in 15s  failures=1
 ```
 
