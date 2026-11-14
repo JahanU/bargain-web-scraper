@@ -328,9 +328,9 @@ Useful for a status banner ("Deals updating…" or "Source unavailable") or for 
 ```ts
 interface Health {
     ok: true;
-    /** False until the first successful scrape; while false, /v1/deals answers 503. */
+    /** False until the first successful scrape; while false, /v2/deals answers 503. */
     ready: boolean;
-    /** How many deals /v1/deals currently returns. */
+    /** How many deals are being served in total. */
     deals: number;
     /** The latest scrape result per retailer, e.g. runs.jd. */
     runs: Record<string, {
