@@ -3,6 +3,7 @@
 import { afterEach, describe, expect, it, mock, spyOn } from 'bun:test';
 import { type AppOptions, startApp } from '@/app';
 import type { Deal } from '@/deals';
+import type { DealPage } from '@/query';
 import type { Retailer } from '@/retailers/types';
 import { FIRST_RETRY_MS } from '@/scraper';
 import { complete, type FakeRetailer, fakeRetailer, idsOf, manualSleep, product, range } from './helpers';
@@ -151,10 +152,64 @@ describe('while running', () => {
     });
 });
 
+describe('paging through /v2/deals', () => {
+    const discounts = (entries: Record<string, number>) =>
+        complete(Object.entries(entries).map(([id, discount]) => product(id, { discount })));
+
+    it('serves no deal twice and skips no survivor when a scrape lands between pages', async () => {
+        const { jd, clock, get } = start(() => discounts({ a: 90, b: 80, c: 70, d: 60, e: 50, f: 40 }));
+        await clock.scrapesDone(1);
+        const page = async (query: string) => (await (await get(`/v2/deals?limit=2${query}`)).json()) as DealPage;
+
+        const first = await page('');
+        expect(idsOf(first.items)).toEqual(['a', 'b']);
+        expect(first.total).toBe(6);
+
+        // Gone: one already served and one still to come. New: one before the cursor, one after.
+        jd.next = () => discounts({ b: 80, c: 70, e: 50, f: 40, early: 95, late: 55 });
+        await clock.tick();
+
+        const second = await page(`&cursor=${first.nextCursor}`);
+        const third = await page(`&cursor=${second.nextCursor}`);
+        expect(idsOf(second.items)).toEqual(['c', 'late']);
+        expect(idsOf(third.items)).toEqual(['e', 'f']);
+        expect(third.nextCursor).toBeNull();
+        expect(second.total).toBe(6);
+    });
+
+    it('rejects a bad query before the first scrape, and names the configured stores', async () => {
+        let release!: () => void;
+        const { clock, get } = start(() => new Promise((resolve) => (release = () => resolve(complete([])))));
+
+        const bad = await get('/v2/deals?store=nike');
+        expect(bad.status).toBe(400);
+        expect(await bad.json()).toEqual({ error: 'store must be one of jd' });
+        expect((await get('/v2/deals?store=jd')).status).toBe(503);
+
+        release();
+        await clock.scrapesDone(1);
+        expect((await get('/v2/deals?store=jd')).status).toBe(200);
+    });
+
+    it('stamps each deal with its store and counts every configured retailer', async () => {
+        const other = fakeRetailer('other', () => complete([product('x', { discount: 70 })]));
+        const jd = fakeRetailer('jd', () => complete(range(2)));
+        const { get } = start(undefined, { retailers: [jd.retailer, other.retailer], loop: { firstRetryMs: 10 } });
+        await Bun.sleep(50);
+
+        const { items, facets } = (await (await get('/v2/deals?q=shop%20other')).json()) as DealPage;
+        expect(items.map(({ url, store }) => [url, store])).toEqual([['https://example.com/x', 'other']]);
+        expect(facets?.stores).toEqual([
+            { store: 'jd', name: 'Shop jd', count: 0 },
+            { store: 'other', name: 'Shop other', count: 1 },
+        ]);
+    });
+});
+
 describe('several retailers', () => {
     it('retries a failing retailer quickly without re-scraping the healthy one', async () => {
         const healthy = fakeRetailer('jd', () => complete(range(2)));
-        const broken = fakeRetailer('size', () => Promise.reject(new Error('blocked')));
+        const broken = fakeRetailer('other', () => Promise.reject(new Error('blocked')));
         const { dealIds } = start(undefined, {
             retailers: [healthy.retailer, broken.retailer],
             loop: { firstRetryMs: 10 }, // real timers: retries at 10ms, 20ms, 40ms…

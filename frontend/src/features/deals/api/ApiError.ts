@@ -3,7 +3,7 @@
  * - timeout: one attempt took longer than 20 s
  * - http: any non-OK status other than 503
  * - still-loading: the backend answered 503 until the two-minute deadline passed
- * - invalid-body: the body wasn't JSON, or wasn't an array
+ * - invalid-body: the body wasn't JSON, or wasn't a /v2/deals page
  */
 export type ApiErrorKind = "network" | "timeout" | "http" | "still-loading" | "invalid-body";
 

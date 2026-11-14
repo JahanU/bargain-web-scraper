@@ -3,21 +3,36 @@ import { expect, test } from "vite-plus/test";
 import { scenarios } from "@/mocks/handlers";
 import { server } from "@/mocks/server";
 import { makeDeal } from "@/test/makeDeal";
-import { fetchBrands, fetchDeals, retryAfterMs } from "./dealsApi";
+import type { DealsRequest } from "../model/request";
+import { fetchDealsPage, retryAfterMs } from "./dealsApi";
 
-const URL = "http://localhost:8000/v1/deals";
-const BRANDS_URL = "http://localhost:8000/v1/brands";
-const MEN = { gender: "Male", category: "All", store: "all", brands: [] } as const;
+const URL = "http://localhost:8000/v2/deals";
+const MEN: DealsRequest = {
+  gender: "Male",
+  category: "All",
+  stores: [],
+  brands: [],
+  sizes: [],
+  search: "",
+  discount: 30,
+  sort: "discount-high-to-low",
+};
+const page = (...items: ReturnType<typeof makeDeal>[]) => ({
+  items,
+  total: items.length,
+  nextCursor: null,
+  trackingSince: 0,
+});
+const fetchDeals = (
+  request: DealsRequest,
+  ...rest: [AbortSignal?, Parameters<typeof fetchDealsPage>[3]?]
+) => fetchDealsPage(request, null, ...rest);
 
 /** Answers with each response in turn (the last one repeats) and records every request. */
 function respondWith(...responses: Array<() => Response>) {
-  return respondAt(URL, ...responses);
-}
-
-function respondAt(url: string, ...responses: Array<() => Response>) {
   const requests: Request[] = [];
   server.use(
-    http.get(url, ({ request }) => {
+    http.get(URL, ({ request }) => {
       requests.push(request);
       return (responses[Math.min(requests.length - 1, responses.length - 1)] as () => Response)();
     }),
@@ -47,14 +62,14 @@ function fakeClock() {
 
 test("one plain GET: no custom headers (they'd force a CORS preflight), no cache bypass", async () => {
   const deal = makeDeal();
-  const requests = respondWith(() => HttpResponse.json([deal]));
+  const requests = respondWith(() => HttpResponse.json(page(deal)));
 
-  expect(await fetchDeals({ ...MEN, gender: "Female" })).toEqual([deal]);
+  expect(await fetchDeals({ ...MEN, gender: "Female" })).toEqual(page(deal));
 
   expect(requests).toHaveLength(1);
   const [request] = requests;
   expect(request?.method).toBe("GET");
-  expect(request?.url).toBe(`${URL}?gender=Female`);
+  expect(request?.url).toBe(`${URL}?gender=Female&limit=60`);
   // Only what the runtime adds by itself; anything else would trigger a preflight.
   const automatic = [
     "accept",
@@ -73,10 +88,10 @@ test("one plain GET: no custom headers (they'd force a CORS preflight), no cache
 
 test("on 503 it waits Retry-After and tries again", async () => {
   const deal = makeDeal();
-  const requests = respondWith(loading("7"), () => HttpResponse.json([deal]));
+  const requests = respondWith(loading("7"), () => HttpResponse.json(page(deal)));
   const clock = fakeClock();
 
-  expect(await fetchDeals(MEN, undefined, clock)).toEqual([deal]);
+  expect(await fetchDeals(MEN, undefined, clock)).toEqual(page(deal));
 
   expect(requests).toHaveLength(2);
   expect(clock.waits).toEqual([7000]);
@@ -115,10 +130,10 @@ test("a non-JSON 502 platform page is an http error, not a parse crash", async (
   await expect(fetchDeals(MEN)).rejects.toMatchObject({ kind: "http", status: 502 });
 });
 
-test("a 200 that isn't JSON, or isn't a list, is invalid-body", async () => {
+test("a 200 that isn't JSON, or isn't a deals page, is invalid-body", async () => {
   respondWith(
     () => new HttpResponse("<html>oops</html>", { headers: { "Content-Type": "text/html" } }),
-    () => HttpResponse.json({ deals: [] }),
+    () => HttpResponse.json([makeDeal()]),
   );
   await expect(fetchDeals(MEN)).rejects.toMatchObject({ kind: "invalid-body" });
   await expect(fetchDeals(MEN)).rejects.toMatchObject({ kind: "invalid-body" });
@@ -133,7 +148,7 @@ test("an attempt that hangs past the timeout is a timeout error", async () => {
   server.use(
     http.get(URL, async () => {
       await delay("infinite");
-      return HttpResponse.json([]);
+      return HttpResponse.json(page());
     }),
   );
   await expect(fetchDeals(MEN, undefined, { attemptTimeoutMs: 20 })).rejects.toMatchObject({
@@ -153,80 +168,20 @@ test("cancelling (the page going away) stops the 503 loop without an API error",
   expect(requests).toHaveLength(1);
 });
 
-test("category and brands go in the query; brands are sorted so equal selections share a URL", async () => {
-  const requests = respondWith(() => HttpResponse.json([]));
+test("the request goes out as its canonical query, and a later page adds the cursor", async () => {
+  const requests = respondWith(() => HttpResponse.json(page()));
+  const shoes: DealsRequest = {
+    ...MEN,
+    category: "Shoes",
+    brands: ["adidas", "Nike"],
+    search: "air",
+  };
 
-  await fetchDeals({
-    gender: "Male",
-    category: "Shoes",
-    store: "all",
-    brands: ["adidas", "New Balance", "Nike"],
-  });
-  await fetchDeals({
-    gender: "Male",
-    category: "Shoes",
-    store: "all",
-    brands: ["Nike", "New Balance", "adidas"],
-  });
+  await fetchDealsPage(shoes, null);
+  await fetchDealsPage(shoes, "next page+/=");
 
   expect(requests.map((request) => request.url)).toEqual([
-    `${URL}?gender=Male&category=Shoes&brand=New+Balance&brand=Nike&brand=adidas`,
-    `${URL}?gender=Male&category=Shoes&brand=New+Balance&brand=Nike&brand=adidas`,
+    `${URL}?gender=Male&category=Shoes&brand=Nike&brand=adidas&q=air&limit=60`,
+    `${URL}?gender=Male&category=Shoes&brand=Nike&brand=adidas&q=air&limit=60&cursor=next+page%2B%2F%3D`,
   ]);
-});
-
-test("brands: asks for the gender and category, and waits out a 503 like deals", async () => {
-  const counts = [
-    { brand: "Nike", count: 41 },
-    { brand: "adidas", count: 38 },
-  ];
-  const requests = respondAt(BRANDS_URL, loading("7"), () => HttpResponse.json(counts));
-  const clock = fakeClock();
-
-  expect(await fetchBrands("Female", "Shoes", "all", undefined, clock)).toEqual(counts);
-
-  expect(requests.map((request) => request.url)).toEqual([
-    `${BRANDS_URL}?gender=Female&category=Shoes`,
-    `${BRANDS_URL}?gender=Female&category=Shoes`,
-  ]);
-  expect(clock.waits).toEqual([7000]);
-});
-
-test("brands: All sends no category, and a malformed list is invalid-body", async () => {
-  const requests = respondAt(BRANDS_URL, () => HttpResponse.json([{ brand: "Nike" }]));
-
-  await expect(fetchBrands("Male", "All", "all")).rejects.toMatchObject({ kind: "invalid-body" });
-  expect(requests[0]?.url).toBe(`${BRANDS_URL}?gender=Male`);
-});
-
-test("a chosen store goes in the deals and brands queries; all stores sends none", async () => {
-  const deals = respondWith(() => HttpResponse.json([]));
-  const brands = respondAt(BRANDS_URL, () => HttpResponse.json([]));
-
-  await fetchDeals({ ...MEN, store: "size", brands: ["Nike"] });
-  await fetchDeals({ ...MEN, store: "jd" });
-  await fetchDeals(MEN);
-  await fetchBrands("Male", "Shoes", "size");
-  await fetchBrands("Male", "All", "all");
-
-  expect(deals.map((request) => request.url)).toEqual([
-    `${URL}?gender=Male&store=size&brand=Nike`,
-    `${URL}?gender=Male&store=jd`,
-    `${URL}?gender=Male`,
-  ]);
-  expect(brands.map((request) => request.url)).toEqual([
-    `${BRANDS_URL}?gender=Male&category=Shoes&store=size`,
-    `${BRANDS_URL}?gender=Male`,
-  ]);
-});
-
-test("the mock backend filters by store and answers 400 for one it doesn't know", async () => {
-  const size = await fetchDeals({ ...MEN, store: "size" });
-  expect(size).toHaveLength(13);
-  expect(size.every((deal) => deal.store === "size")).toBe(true);
-  expect(await fetchDeals({ ...MEN, store: "jd" })).toHaveLength(68);
-
-  const bad = await fetch(`${URL}?gender=Male&store=asos`);
-  expect(bad.status).toBe(400);
-  expect((await fetch(`${BRANDS_URL}?gender=Male&store=asos`)).status).toBe(400);
 });

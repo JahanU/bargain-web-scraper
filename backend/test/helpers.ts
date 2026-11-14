@@ -1,4 +1,4 @@
-import type { Deal, Store } from '@/deals';
+import type { Deal } from '@/deals';
 import type { Listing, Product, Retailer } from '@/retailers/types';
 
 export const product = (id: string, overrides: Partial<Product> = {}): Product => ({
@@ -33,12 +33,13 @@ export interface FakeRetailer {
 }
 
 /** A retailer whose responses each test scripts by setting `next`. */
-export function fakeRetailer(id: Store = 'jd', first: FakeRetailer['next'] = () => complete([])): FakeRetailer {
+export function fakeRetailer(id = 'jd', first: FakeRetailer['next'] = () => complete([])): FakeRetailer {
     const fake: FakeRetailer = {
         calls: 0,
         next: first,
         retailer: {
             id,
+            name: `Shop ${id}`,
             fetchListing: async () => {
                 fake.calls++;
                 return fake.next();

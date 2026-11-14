@@ -1,18 +1,24 @@
 import { relativeTime } from "@/shared/lib/format";
 import { Badge, VisuallyHidden } from "@/shared/ui";
-import { type Deal, STORE_LABEL } from "../model/Deal";
+import type { Deal } from "../model/Deal";
 import { GENDER_LABEL, foundTime, isNew } from "../model/describe";
 import { DealImage } from "./DealImage";
 import { PriceBlock } from "./PriceBlock";
 import { SizeChips } from "./SizeChips";
 
-type DealCardProps = { deal: Deal; serverStart: number; priority: boolean };
+type DealCardProps = {
+  deal: Deal;
+  /** The shop's name, e.g. "JD Sports". */
+  store: string;
+  serverStart: number;
+  priority: boolean;
+};
 
 /**
  * One link per deal, named by its own text (so speech users can say what they see). The badges
  * are hidden from assistive tech; their meaning is in the text below, so nothing is read twice.
  */
-export function DealCard({ deal, serverStart, priority }: DealCardProps) {
+export function DealCard({ deal, store, serverStart, priority }: DealCardProps) {
   const found = foundTime(deal, serverStart);
   const fresh = isNew(deal, serverStart);
   return (
@@ -28,7 +34,7 @@ export function DealCard({ deal, serverStart, priority }: DealCardProps) {
           -{deal.discount}%
         </Badge>
         <Badge tone="outline" className="absolute bottom-2 left-2" aria-hidden>
-          {STORE_LABEL[deal.store]}
+          {store}
         </Badge>
         {fresh && (
           <Badge tone="outline" className="absolute top-2 right-2" aria-hidden>
@@ -44,7 +50,7 @@ export function DealCard({ deal, serverStart, priority }: DealCardProps) {
         <PriceBlock now={deal.nowPrice} was={deal.wasPrice} discount={deal.discount} />
         <SizeChips sizes={deal.sizes} />
         <p className="text-xs text-text-muted">
-          <VisuallyHidden>{STORE_LABEL[deal.store]},</VisuallyHidden> {GENDER_LABEL[deal.gender]}
+          <VisuallyHidden>{store},</VisuallyHidden> {GENDER_LABEL[deal.gender]}
           {found !== undefined && (
             <>
               {" · Found "}

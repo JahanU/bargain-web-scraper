@@ -19,10 +19,10 @@ test("reads a legacy link on mount", () => {
     discount: 30,
     sizes: ["S", "M", "L"],
     brands: [],
+    stores: [],
     sort: "price-low-to-high",
     gender: "Male",
     category: "All",
-    store: "all",
   });
 });
 
@@ -82,25 +82,23 @@ test("clearing search to empty removes it from the URL", async () => {
   expect(lastUrl()?.queryString).toBe("");
 });
 
-test("clearAll resets every filter but keeps the sort, gender, category and store", async () => {
+test("clearAll resets every filter but keeps the sort, gender and category", async () => {
   const { result, lastUrl } = setup(
-    "?search=nike&discount=50&sizes=M&brands=Nike&sort=price-high-to-low&gender=Female&category=Shoes&store=size",
+    "?search=nike&discount=50&sizes=M&brands=Nike&stores=jd&sort=price-high-to-low&gender=Female&category=Shoes",
   );
 
   await act(() => result.current[1].clearAll());
 
-  expect(lastUrl()?.queryString).toBe(
-    "?sort=price-high-to-low&gender=Female&category=Shoes&store=size",
-  );
+  expect(lastUrl()?.queryString).toBe("?sort=price-high-to-low&gender=Female&category=Shoes");
   expect(result.current[0]).toEqual({
     search: "",
     discount: 30,
     sizes: [],
     brands: [],
+    stores: [],
     sort: "price-high-to-low",
     gender: "Female",
     category: "Shoes",
-    store: "size",
   });
 });
 
@@ -115,19 +113,5 @@ test("category is written to the URL, and All is left out", async () => {
   expect(lastUrl()?.queryString).toBe("?category=Accessories");
 
   await act(() => result.current[1].set({ category: "All" }));
-  expect(lastUrl()?.queryString).toBe("");
-});
-
-test.each(["Size", "asos", ""])("store=%j reads as all", (value) => {
-  expect(setup(`?store=${value}`).result.current[0].store).toBe("all");
-});
-
-test("store is written to the URL, and all is left out", async () => {
-  const { result, lastUrl } = setup();
-
-  await act(() => result.current[1].set({ store: "size" }));
-  expect(lastUrl()?.queryString).toBe("?store=size");
-
-  await act(() => result.current[1].set({ store: "all" }));
   expect(lastUrl()?.queryString).toBe("");
 });

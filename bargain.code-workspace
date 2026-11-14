@@ -1,0 +1,17 @@
+{
+  // Open this file (not the repo root) so Oxc finds vite-plus in frontend/ and Biome finds itself in backend/.
+  "folders": [
+    { "path": "frontend" },
+    { "path": "backend" },
+    { "name": "repo", "path": "." }
+  ],
+  "settings": {
+    "editor.autoClosingQuotes": "always",
+    "cSpell.words": ["Firestore"],
+    "files.exclude": { "frontend": true, "backend": true }
+  },
+  "extensions": {
+    "recommendations": ["VoidZero.vite-plus-extension-pack", "biomejs.biome"],
+    "unwantedRecommendations": ["dbaeumer.vscode-eslint", "esbenp.prettier-vscode"]
+  }
+}

@@ -1,7 +1,8 @@
 import { ChevronDown } from "lucide-react";
-import { cn } from "@/shared/lib/cn";
 import { VisuallyHidden } from "@/shared/ui";
-import { SORT_LABELS, SORTS, type SortId } from "../model/sort";
+import { SORTS, type SortId } from "@/features/deals";
+import { cn } from "@/shared/lib/cn";
+import { SORT_LABELS } from "../model/sort";
 
 type SortSelectProps = { value: SortId; onChange: (value: SortId) => void; className?: string };
 

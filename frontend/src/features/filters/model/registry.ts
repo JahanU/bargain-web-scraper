@@ -1,13 +1,16 @@
 import { createParser, throttle } from "nuqs";
-import { compareSizes } from "@/features/deals";
+import {
+  type CategoryScope,
+  compareSizes,
+  DEFAULT_DISCOUNT,
+  type Gender,
+  type SortId,
+} from "@/features/deals";
 import { defineFilter, type FilterChip, type FilterDefinition } from "./types";
 
 // The extension point: a new filter is one entry here plus its control.
 
 export const SEARCH_MAX_LENGTH = 64;
-export const DEFAULT_DISCOUNT = 30;
-/** The backend sends nothing under 30% off, so the stops start there. */
-export const DISCOUNT_STOPS = [30, 40, 50, 60, 70, 80, 90, 100] as const;
 
 const sameList = (a: readonly string[], b: readonly string[]) =>
   a.length === b.length && a.every((item, index) => item === b[index]);
@@ -42,40 +45,39 @@ export const filterRegistry = {
       .withDefault("")
       .withOptions({ limitUrlUpdates: throttle(250) }),
     isActive: (value) => value.trim() !== "",
-    predicate: (value) => {
-      const term = value.trim().toLowerCase();
-      return (deal) => deal.searchText.includes(term);
-    },
     chips: (value) => [{ label: `“${value.trim()}”`, next: "" }],
   }),
 
   discount: defineFilter({
     parser: createParser<number>({
-      // Only the stops; anything else falls back to the default.
-      parse: (value) => DISCOUNT_STOPS.find((stop) => String(stop) === value) ?? null,
+      // A whole percentage from the default up; anything else falls back to the default. The
+      // stops on offer are the backend's, so no list of them lives here.
+      parse: (value) =>
+        /^\d+$/.test(value) && Number(value) >= DEFAULT_DISCOUNT && Number(value) <= 100
+          ? Number(value)
+          : null,
       serialize: String,
     }).withDefault(DEFAULT_DISCOUNT),
     isActive: (value) => value !== DEFAULT_DISCOUNT,
-    predicate: (value) => (deal) => deal.discount >= value,
     chips: (value) => [{ label: `≥${value}%`, next: DEFAULT_DISCOUNT }],
   }),
 
   sizes: defineFilter<string[]>({
     parser: listParser(compareSizes),
     isActive: (sizes) => sizes.length > 0,
-    // OR within sizes; AND with the other filters.
-    predicate: (sizes) => {
-      const wanted = new Set(sizes);
-      return (deal) => deal.sizes.some((size) => wanted.has(size));
-    },
     chips: listChips,
   }),
 
-  // The backend applies brands; the predicate keeps the list right while that request is in flight.
   brands: defineFilter<string[]>({
     parser: listParser(),
     isActive: (brands) => brands.length > 0,
-    predicate: (brands) => (deal) => brands.includes(deal.brand),
+    chips: listChips,
+  }),
+
+  /** Retailer ids. */
+  stores: defineFilter<string[]>({
+    parser: listParser(),
+    isActive: (stores) => stores.length > 0,
     chips: listChips,
   }),
 };
@@ -83,6 +85,8 @@ export const filterRegistry = {
 type Registry = typeof filterRegistry;
 export type FilterKey = keyof Registry;
 export type FilterValues = { [K in FilterKey]: Registry[K]["parser"]["defaultValue"] };
+/** The whole URL state, which is also the deals request: the URL says what the backend is asked. */
+export type FilterState = FilterValues & { sort: SortId; gender: Gender; category: CategoryScope };
 
 export const FILTER_KEYS = Object.keys(filterRegistry) as FilterKey[];
 
@@ -93,10 +97,6 @@ function definition<K extends FilterKey>(key: K): FilterDefinition<FilterValues[
 
 export function isFilterActive<K extends FilterKey>(key: K, value: FilterValues[K]): boolean {
   return definition(key).isActive(value);
-}
-
-export function filterPredicate<K extends FilterKey>(key: K, value: FilterValues[K]) {
-  return definition(key).predicate(value);
 }
 
 export type ActiveChip = {
@@ -111,12 +111,5 @@ export function activeChips(values: FilterValues): ActiveChip[] {
           .chips(values[key])
           .map((chip) => ({ ...chip, filter: key }) as ActiveChip)
       : [],
-  );
-}
-
-/** How many deals each discount stop would show (pass deals filtered by everything else). */
-export function discountCounts(deals: readonly { discount: number }[]): Record<number, number> {
-  return Object.fromEntries(
-    DISCOUNT_STOPS.map((stop) => [stop, deals.filter((deal) => deal.discount >= stop).length]),
   );
 }

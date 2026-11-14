@@ -1,5 +1,6 @@
 // Team kits, accessories and other items not worth listing.
 // biome-ignore format: a compact word list reads better than one word per line
+// todo maybe delete later
 const BLOCKED_WORDS = [
     'fc', 'nba', 'home', 'hip', 'gloves', 'cap', 'training', 'away', 'team', 'gb',
     'england', 'scotland', 'wales', 'ireland', 'basketball', 'football',
@@ -12,10 +13,7 @@ const BLOCKED_WORDS = [
 // and "real" does not block "Realtree".
 const BLOCKED_PATTERN = new RegExp(`\\b(?:${BLOCKED_WORDS.join('|')})s?\\b`, 'i');
 
-/**
- * True when a product name contains a blocked word. Pass the brand when the name starts with it:
- * a brand such as "Home Grown" is not a blocked word.
- */
-export function isBlockedName(name: string, brand = ''): boolean {
-    return BLOCKED_PATTERN.test(brand && name.startsWith(brand) ? name.slice(brand.length) : name);
+/** True when a product name contains a blocked word. */
+export function isBlockedName(name: string): boolean {
+    return BLOCKED_PATTERN.test(name);
 }

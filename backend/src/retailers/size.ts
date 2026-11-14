@@ -1,6 +1,7 @@
 import type { Gender } from '@/deals';
 import { createLogger, duration } from '@/log';
 import { isBlockedName } from '@/retailers/blocklist';
+import { canonicalBrand } from '@/retailers/brands';
 import { categoryIn } from '@/retailers/category';
 import { request } from '@/retailers/request';
 import type { Listing, Product, Retailer } from '@/retailers/types';
@@ -95,6 +96,7 @@ export function createSizeRetailer({ delayMs = REQUEST_DELAY_MS } = {}): Retaile
 
     return {
         id: 'size',
+        name: 'Size',
         async fetchListing(): Promise<Listing> {
             const products: Product[] = [];
             let listed = 0;
@@ -113,7 +115,8 @@ export function createSizeRetailer({ delayMs = REQUEST_DELAY_MS } = {}): Retaile
                         await Bun.sleep(delayMs);
                     }
                     const { nodes, pageInfo } = await salePage(handle, cursor);
-                    const wanted = nodes.filter((node) => !isBlockedName(node.title, node.vendor));
+                    // Most of Size's brands are ones we don't list, so they are passed over without a warning.
+                    const wanted = nodes.filter((node) => canonicalBrand(node.vendor) && !isBlockedName(node.title));
                     const parsed = wanted
                         .map((node) => parseNode(node, gender))
                         .filter((product) => product !== undefined);
@@ -129,7 +132,7 @@ export function createSizeRetailer({ delayMs = REQUEST_DELAY_MS } = {}): Retaile
             }
 
             if (products.length < listed) {
-                log.warn('⚠ skipped products with no usable brand, category or audience', {
+                log.warn('⚠ skipped products with no usable category or audience', {
                     skipped: listed - products.length,
                 });
             }
@@ -149,9 +152,9 @@ function genderOf(productType: string, sale: Gender): Gender | undefined {
 
 const pence = (pounds: string) => Math.round(Number(pounds) * 100);
 
-/** Maps one product, or nothing if it has no brand, category or audience we can tell. */
+/** Maps one product, or nothing if it has no brand we list, or no category or audience we can tell. */
 function parseNode(node: Node, sale: Gender): Product | undefined {
-    const brand = node.vendor.trim();
+    const brand = canonicalBrand(node.vendor);
     const category = categoryIn([node.productType]);
     const gender = genderOf(node.productType, sale);
     if (!brand || !category || !gender) {

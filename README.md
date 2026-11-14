@@ -15,38 +15,39 @@ flowchart LR
     jd["🛒 JD Sports<br/><small>Algolia search</small>"]
     loop["⏱️ Scrape loop<br/><small>every 5 min</small>"]
     store["🧠 Deal store<br/><small>in memory</small>"]
-    response["📦 Deals list<br/><small>JSON · compressed by Render</small>"]
+    response["📦 Snapshot + query<br/><small>one page per request · compressed by Render</small>"]
     app["🖥️ React app<br/><small>Netlify</small>"]
 
     loop -- fetch sale listing --> jd
     loop -- accepted listing --> store
     store -- "deals ≥ 30% off" --> response
-    app -- "GET /v1/deals" --> response
+    app -- "GET /v2/deals?filters" --> response
 ```
 
 ## Features 🚀
 ### Frontend
 
-The [web app](https://bargain-scraper.netlify.app/) lets you search, set a minimum discount, pick clothing and footwear sizes, and sort. Every filter lives in the URL, so any view can be bookmarked or shared, and links shared before the rewrite still open the same view. It works on phones (filters in a bottom sheet) and desktops (a sticky toolbar), in light and dark themes.
+The [web app](https://bargain-scraper.netlify.app/) lets you pick a category (shoes, clothes, accessories), choose brands, search, set a minimum discount, pick clothing and footwear sizes, and sort. Every filter lives in the URL, so any view can be bookmarked or shared, and links shared before the rewrite still open the same view. It works on phones (filters in a bottom sheet) and desktops (a sticky toolbar), in light and dark themes.
 
 **How it fits together**
 
 ```mermaid
 flowchart LR
-    api["📦 Backend<br/><small>GET /v1/deals</small>"]
-    query["🗄️ TanStack Query<br/><small>cache · saved in the browser</small>"]
-    url["🔗 URL<br/><small>?gender · category · brands · search · discount · sizes · sort</small>"]
+    api["📦 Backend<br/><small>GET /v2/deals · filters, sorts, counts, pages</small>"]
+    query["🗄️ TanStack Query<br/><small>one cache entry per request · pages on scroll</small>"]
+    url["🔗 URL<br/><small>?gender · category · stores · brands · search · discount · sizes · sort</small>"]
     nuqs["🧭 nuqs<br/><small>typed URL state</small>"]
-    page["📄 DealsPage<br/><small>one filter + sort pass</small>"]
+    page["📄 DealsPage<br/><small>URL state = the request</small>"]
     ui["🖥️ Toolbar · chips · deal grid"]
 
-    api -- "validated deals" --> query --> page
+    page -- "the request" --> query -- "query string + cursor" --> api
+    api -- "validated page: deals, total, facet counts" --> query --> page
     url <--> nuqs -- "filter values" --> page
     page --> ui
     ui -- "you change a filter" --> nuqs
 ```
 
-The deals come from the server and are cached; the filters come from the URL. `DealsPage` is the only place the two meet: it filters and sorts the cached list in one pass, and everything below it just displays what it's given.
+The filters live in the URL, and the URL is the request: the backend filters, sorts, counts and pages, and the app shows one page at a time as you scroll. `DealsPage` is the only place the two meet, and everything below it just displays what it's given.
 
 **Tools and what they do here**
 
@@ -57,10 +58,10 @@ The deals come from the server and are cached; the filters come from the URL. `D
 | React 19 + React Compiler | The UI. The compiler memoises components automatically, so the code needs almost no `useMemo` or `useCallback`. |
 | TypeScript (strict) | Types everywhere, including the API response, the URL parameters and the filter values. |
 | Tailwind CSS 4 | Styling. The colours, radii and font are design tokens defined in CSS (`src/styles/theme.css`), not Tailwind's default palette. |
-| [TanStack Query](https://tanstack.com/query) | Fetches and caches the deals: retries network errors, refreshes every 5 minutes and when you come back to the tab, and saves the last list in the browser for 24 hours. |
+| [TanStack Query](https://tanstack.com/query) | Fetches and caches the deals: retries network errors, refreshes every 5 minutes and when you come back to the tab, loads the next page as you scroll, and saves the unfiltered first page in the browser for 24 hours. |
 | [nuqs](https://nuqs.dev) | Keeps the filters in the URL with typed parsers: defaults are left out, history isn't spammed, and search writes are throttled. |
-| zod (mini) | Checks every deal the API returns. Bad items are dropped instead of breaking the page. |
-| [Base UI](https://base-ui.com) | Unstyled, accessible building blocks for the sizes popover, the About dialog and the size toggles. |
+| zod (mini) | Checks every response. A bad deal is dropped instead of breaking the page; a malformed response is an error. |
+| [Base UI](https://base-ui.com) | Unstyled, accessible building blocks for the brands and sizes popovers, the About dialog and the toggle chips. |
 | lucide-react | The icons. |
 | class-variance-authority + clsx | Style variants for the shared components (button tones, chip sizes). |
 | Vitest, Testing Library, MSW, axe | Unit and component tests in a simulated browser, with the API mocked at the network level and an accessibility check on every state. |
@@ -70,9 +71,9 @@ The deals come from the server and are cached; the filters come from the URL. `D
 **Key concepts**
 
 - **The URL is the filter state.** There's no separate store to keep in sync. Changing a filter rewrites the URL (replacing the history entry, so Back still leaves the page); reloading or opening a shared link restores the exact view.
-- **A new filter is one registry entry.** Each filter in `features/filters/model/registry.ts` declares how it's read from and written to the URL, when it's active, how it filters a deal, and its removable chip. The URL handling, the filter pass, the chips, "Clear all" and the phone's "Filters (n)" count all come from that list; only the control is written by hand.
-- **Waking a sleeping server.** Render's free tier sleeps, and a freshly started backend answers `503` until its first scrape finishes. The app shows the last list saved in the browser straight away, retries quietly as the server asks (for up to two minutes), says "Waking the server" after 3 seconds, and only then shows an error. If a refresh fails while a list is on screen, a small banner says the deals may be out of date.
-- **Explaining an empty result.** When the filters match nothing, the app tries relaxing each filter on its own and offers those as one-tap fixes, for example "Show 12 deals at 50% or more".
+- **A new filter is one registry entry.** Each filter in `features/filters/model/registry.ts` declares how it's read from and written to the URL, when it's active, and its removable chip. The backend does the filtering, so the registry never touches a deal. The URL handling, the chips, "Clear all" and the phone's "Filters (n)" count all come from that list; only the control is written by hand.
+- **Waking a sleeping server.** Render's free tier sleeps, and a freshly started backend answers `503` until its first scrape finishes. The app shows the page saved in the browser straight away, retries quietly as the server asks (for up to two minutes), says "Waking the server" after 3 seconds, and only then shows an error. If a refresh fails while a list is on screen, a small banner says the deals may be out of date.
+- **Explaining an empty result.** When the filters match nothing, the backend's counts say which single filter to relax, and the app offers those as one-tap fixes, for example "Show 12 deals at 50% or more".
 - **Layers with enforced boundaries.** `app/` (page and layout) uses `features/` (deals, filters, theme, about), which use `shared/` (generic UI and helpers). Imports only go downwards, features are used only through their `index.ts`, and the deals feature never imports filters. Breaking these rules is a lint error, not a code-review comment.
 - **Design tokens and themes.** Components use semantic colours (`accent`, `surface`, `text-muted`) defined once in CSS; the dark theme just swaps their values. A tiny script in `index.html` picks the theme before the first paint, so there's no flash, and it follows the system setting until you choose one.
 - **Accessible by default.** Header, main and footer landmarks, a skip link, native controls where they exist (radio buttons, a `<select>`, a `<dialog>` sheet), and every control named for screen readers. axe runs against each state in tests.
@@ -80,7 +81,7 @@ The deals come from the server and are cached; the filters come from the URL. `D
 
 **Tests**
 
-Tests check behaviour (roles, accessible names, URL writes, requests made), never class names, so a restyle can't break them. Unit tests cover the data model, the filter pass and the URL parsing; component tests render the real page against MSW for success, empty, error, retry and slow-server states; Playwright covers search, the phone sheet, a reload restoring filters, the theme, layout at 390 px and 1280 px, and axe in both themes. CI never calls the real API.
+Tests check behaviour (roles, accessible names, URL writes, requests made), never class names, so a restyle can't break them. Unit tests cover the data model, the request building and the URL parsing; component tests render the real page against MSW for success, empty, error, retry and slow-server states; Playwright covers search, category and brands, loading more on scroll, the phone sheet, a reload restoring filters, the theme, layout at 390 px and 1280 px, and axe in both themes. CI never calls the real API.
 
 **Layout**
 
@@ -90,7 +91,7 @@ frontend/
     app/        page, layout (header, footer), providers
     features/
       deals/    API client, schema, deal model, grid and cards
-      filters/  registry, filter pass, URL state, toolbar, sheet
+      filters/  registry, URL state, toolbar, sheet
       theme/    light / dark toggle
       about/    About dialog
     shared/     generic UI (Button, Chip, Dialog…), formatting, config
@@ -100,14 +101,15 @@ frontend/
   netlify.toml  build command, SPA redirect, caching and security headers
 ```
 
-See [docs/frontend-rewrite-spec.md](docs/frontend-rewrite-spec.md) for the full design and [docs/frontend-rewrite-notes.md](docs/frontend-rewrite-notes.md) for every decision made while building it.
+See [docs/frontend-rewrite-spec.md](docs/frontend-rewrite-spec.md) for the original design (written when the browser did the filtering; the diagram above is the current data flow) and [docs/frontend-rewrite-notes.md](docs/frontend-rewrite-notes.md) for every decision made while building it.
 
 ### Backend
-- Bun with zero runtime dependencies (built-in HTTP server)
+- Bun with its built-in HTTP server, and no runtime dependencies so far
 - Reads JD's product search (Algolia) directly: one request per category instead of scraping HTML
 - Sold-out detection, with a safety check so a failed fetch never wipes the list
-- The deals list is rebuilt after each scrape and served from memory with browser caching; Render compresses responses (Brotli)
-- No database or files: everything lives in memory and is rebuilt by scraping on boot
+- One query endpoint filters, searches, sorts, counts and pages, so the browser never downloads the whole catalogue
+- A read-only snapshot is rebuilt after each scrape and served from memory with browser caching; Render compresses responses (Brotli)
+- No database or files yet: everything lives in memory and is rebuilt by scraping on boot
 - See [backend/README.md](backend/README.md) for details, and [FRONTEND_API.md](FRONTEND_API.md) for the API contract the frontend relies on
 - [docs/backend-v2-rewrite.md](docs/backend-v2-rewrite.md): the story of the backend rewrite, its design decisions, the final result and open items
 

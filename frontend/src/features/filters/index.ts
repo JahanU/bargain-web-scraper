@@ -1,17 +1,14 @@
 export { ActiveFilterChips } from "./components/ActiveFilterChips";
 export { FilterBar } from "./components/FilterBar";
-export { useFilteredDeals } from "./hooks/useFilteredDeals";
+export { useDealsRequest } from "./hooks/useDealsRequest";
 export { useFilters } from "./hooks/useFilters";
-export { type FilterState, applyFilters } from "./model/applyFilters";
 export { type EmptyExplanation, explainEmpty } from "./model/explainEmpty";
 export {
   type ActiveChip,
   activeChips,
-  DEFAULT_DISCOUNT,
-  discountCounts,
   type FilterKey,
+  type FilterState,
   type FilterValues,
   SEARCH_MAX_LENGTH,
 } from "./model/registry";
 export { loadDealsRequest } from "./model/scope";
-export { DEFAULT_SORT, SORTS, type SortId } from "./model/sort";
