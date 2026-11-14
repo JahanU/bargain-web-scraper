@@ -37,7 +37,7 @@ test("the head declares a real title, description, manifest and icons, and they 
   request,
 }) => {
   await page.goto("/");
-  await expect(page).toHaveTitle("Bargain: the biggest discounts on JD Sports and Size");
+  await expect(page).toHaveTitle("Bargain: the biggest discounts on JD Sports, Size and END.");
   await expect(page.locator('meta[name="description"]')).toHaveAttribute(
     "content",
     /30% off or more/,
