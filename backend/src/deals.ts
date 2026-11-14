@@ -88,7 +88,10 @@ export class DealStore {
         };
     }
 
-    /** Deals at or above the discount floor, best discount first, then cheapest. */
+    /**
+     * Deals at or above the discount floor, best discount first, then cheapest. No request sees
+     * this order, but the snapshot's four sorts run almost twice as fast on a list sorted once here.
+     */
     deals(minDiscount: number): Deal[] {
         return [...this.byRetailer.values()]
             .flatMap((products) => [...products.values()])

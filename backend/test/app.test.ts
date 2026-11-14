@@ -36,8 +36,14 @@ function start(
     stops.push(app.stop);
 
     const get = (path: string) => fetch(new URL(path, app.server.url));
-    // Every deal served: no test here holds more than one page of them.
-    const deals = async () => ((await (await get('/v2/deals?limit=100')).json()) as DealPage).items;
+    /** Every deal served. Fails by name if they are not being served, or if one page cannot hold them all. */
+    const deals = async () => {
+        const response = await get('/v2/deals?limit=100');
+        expect(response.status).toBe(200);
+        const { items, nextCursor } = (await response.json()) as DealPage;
+        expect(nextCursor).toBeNull();
+        return items;
+    };
     return {
         jd,
         clock,

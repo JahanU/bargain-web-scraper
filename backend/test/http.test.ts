@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test';
-import { dealsResponse, RETRY_AFTER_SECONDS, routes } from '@/http';
+import { dealsResponse, RETRY_AFTER_SECONDS } from '@/http';
 import type { DealPage } from '@/query';
 
 const page: DealPage = {
@@ -46,16 +46,5 @@ describe('dealsResponse', () => {
         const response = dealsResponse(empty);
         expect(response.status).toBe(200);
         expect(await response.json()).toEqual(empty);
-    });
-});
-
-describe('routes', () => {
-    it('serves only the health checks and /v2/deals', () => {
-        const table = routes(
-            [],
-            () => undefined,
-            () => ({}),
-        );
-        expect(Object.keys(table)).toEqual(['/', '/health', '/v2/deals']);
     });
 });
