@@ -1,4 +1,4 @@
-import { type BrandCount, brandCounts, CATEGORIES, type Deal, type DealFilter, filterDeals, GENDERS } from '@/deals';
+import { CATEGORIES, GENDERS } from '@/deals';
 import { createLogger, duration, type Level } from '@/log';
 import {
     DEFAULT_SORT,
@@ -24,15 +24,15 @@ export const RETRY_AFTER_SECONDS = 10;
 // JavaScript unless it is exposed.
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Expose-Headers': 'Retry-After' };
 
-/** The deals (a list, a page, or their brand counts), or a 503 asking the client to retry while the first scrape is still running. */
-export function dealsResponse(deals: Deal[] | BrandCount[] | DealPage | undefined): Response {
-    if (!deals) {
+/** A page of deals, or a 503 asking the client to retry while the first scrape is still running. */
+export function dealsResponse(page: DealPage | undefined): Response {
+    if (!page) {
         return Response.json(
             { error: 'Deals are loading, try again shortly' },
             { status: 503, headers: { 'Retry-After': String(RETRY_AFTER_SECONDS), ...CORS } },
         );
     }
-    return Response.json(deals, { headers: { 'Cache-Control': CACHE_CONTROL, ...CORS } });
+    return Response.json(page, { headers: { 'Cache-Control': CACHE_CONTROL, ...CORS } });
 }
 
 function badRequest(error: string): Response {
@@ -41,28 +41,6 @@ function badRequest(error: string): Response {
 
 function isOneOf<T extends string>(allowed: readonly T[], value: string): value is T {
     return (allowed as readonly string[]).includes(value);
-}
-
-/**
- * The filter a query asks for, or the 400 saying what is wrong with it. An absent parameter means
- * "any" (the deployed frontend sends none).
- */
-function parseFilter(params: URLSearchParams): DealFilter | Response {
-    const gender = params.get('gender') ?? undefined;
-    if (gender !== undefined && !isOneOf(GENDERS, gender)) {
-        return badRequest(`gender must be one of ${GENDERS.join(', ')}`);
-    }
-    const category = params.get('category') ?? undefined;
-    if (category !== undefined && !isOneOf(CATEGORIES, category)) {
-        return badRequest(`category must be one of ${CATEGORIES.join(', ')}`);
-    }
-    // Only an empty brand is rejected. One that no deal has matches nothing: brands come and go
-    // with stock every scrape, so a saved link must keep working.
-    const brands = params.getAll('brand');
-    if (brands.some((brand) => brand.trim() === '')) {
-        return badRequest('brand must not be empty');
-    }
-    return { gender, category, brands };
 }
 
 const MAX_SEARCH_LENGTH = 64;
@@ -80,9 +58,20 @@ function wholeNumber(raw: string | null, fallback: number, min: number, max: num
 
 /** The `/v2/deals` query a request asks for, or the 400 saying what is wrong with it. */
 function parseQuery(params: URLSearchParams, stores: Store[]): DealQuery | Response {
-    const filter = parseFilter(params);
-    if (filter instanceof Response) {
-        return filter;
+    // An absent parameter means "any".
+    const gender = params.get('gender') ?? undefined;
+    if (gender !== undefined && !isOneOf(GENDERS, gender)) {
+        return badRequest(`gender must be one of ${GENDERS.join(', ')}`);
+    }
+    const category = params.get('category') ?? undefined;
+    if (category !== undefined && !isOneOf(CATEGORIES, category)) {
+        return badRequest(`category must be one of ${CATEGORIES.join(', ')}`);
+    }
+    // Only an empty brand is rejected. One that no deal has matches nothing: brands come and go
+    // with stock every scrape, so a saved link must keep working.
+    const brands = params.getAll('brand');
+    if (brands.some((brand) => brand.trim() === '')) {
+        return badRequest('brand must not be empty');
     }
 
     // Unlike a brand, the set of stores is fixed at startup, so an unknown one is a mistake.
@@ -119,7 +108,9 @@ function parseQuery(params: URLSearchParams, stores: Store[]): DealQuery | Respo
     }
 
     return {
-        ...filter,
+        gender,
+        category,
+        brands,
         stores: wantedStores,
         sizes,
         words: search?.toLowerCase().split(/\s+/) ?? [],
@@ -130,7 +121,7 @@ function parseQuery(params: URLSearchParams, stores: Store[]): DealQuery | Respo
     };
 }
 
-/** One page of the deals matching the query. Like v1, a bad query is a 400 even before the first scrape. */
+/** One page of the deals matching the query. A bad query is a 400 even before the first scrape: retrying won't fix it. */
 function pageFor(request: Request, stores: Store[], snapshot: Snapshot | undefined): Response {
     const query = parseQuery(new URL(request.url).searchParams, stores);
     if (query instanceof Response) {
@@ -139,43 +130,16 @@ function pageFor(request: Request, stores: Store[], snapshot: Snapshot | undefin
     return dealsResponse(snapshot && queryDeals(snapshot, query));
 }
 
-/** The deals matching the query. A bad query is a 400 even before the first scrape: retrying won't fix it. */
-function dealsFor(request: Request, deals: Deal[] | undefined): Response {
-    const filter = parseFilter(new URL(request.url).searchParams);
-    if (filter instanceof Response) {
-        return filter;
-    }
-    return dealsResponse(deals && filterDeals(deals, filter));
-}
-
-/** The brands among the deals matching `gender` and `category`, each with how many it has. */
-function brandsFor(request: Request, deals: Deal[] | undefined): Response {
-    const params = new URL(request.url).searchParams;
-    // The list is what the brand filter chooses from, so a selected brand must not narrow it.
-    params.delete('brand');
-    const filter = parseFilter(params);
-    if (filter instanceof Response) {
-        return filter;
-    }
-    return dealsResponse(deals && brandCounts(filterDeals(deals, filter)));
-}
-
 /** Route table for Bun.serve. `snapshot()` is undefined until the first good scrape. */
 export function routes(stores: Store[], snapshot: () => Snapshot | undefined, health: () => object) {
-    const deals = () => snapshot()?.deals;
     // Health checks are frequent keep-awake pings, so they only show at LOG_LEVEL=debug.
     const healthResponse = logged(() => Response.json(health(), { headers: CORS }), 'debug');
-    const dealsRoute = { GET: logged((request) => dealsFor(request, deals())) };
 
     return {
         // `/` as well, so a keep-awake ping or platform health check aimed at the root gets a 200.
         '/': healthResponse,
         '/health': healthResponse,
-        '/v1/deals': dealsRoute,
-        '/v1/brands': { GET: logged((request) => brandsFor(request, deals())) },
         '/v2/deals': { GET: logged((request) => pageFor(request, stores, snapshot())) },
-        // The path the current frontend calls.
-        '/webscrape/getBestDeals': dealsRoute,
     };
 }
 

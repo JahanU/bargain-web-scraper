@@ -1,4 +1,4 @@
-import type { Deal, DealFilter } from '@/deals';
+import type { Category, Deal, Gender } from '@/deals';
 
 /** A retailer as the query needs it: the id deals are stamped with, and the name shoppers search by. */
 export interface Store {
@@ -37,7 +37,11 @@ export const DEFAULT_SORT: SortId = 'discount-high-to-low';
 export type SortKey = [number, number, string];
 
 /** A validated `/v2/deals` query. An absent field or an empty list means "any". */
-export interface DealQuery extends DealFilter {
+export interface DealQuery {
+    gender?: Gender;
+    category?: Category;
+    /** A deal matches if its brand is any of these, compared exactly. */
+    brands: string[];
     stores: string[];
     sizes: string[];
     /** The search words, lowercased. A deal must contain every one. */
@@ -64,7 +68,7 @@ interface Row {
 
 /** Everything a request reads: built once per accepted scrape, never changed afterwards. */
 export interface Snapshot {
-    /** Best discount first, then cheapest: the order the v1 routes serve. */
+    /** Every deal served. */
     deals: Deal[];
     stores: Store[];
     /** The discount facet's rows: every multiple of 10 from the configured floor up to 100. */
