@@ -160,6 +160,7 @@ export function createJDRetailer(): Retailer {
 
     return {
         id: 'jd',
+        name: 'JD Sports',
         async fetchListing() {
             try {
                 config ??= await learnConfig();

@@ -39,6 +39,7 @@ export function fakeRetailer(id = 'jd', first: FakeRetailer['next'] = () => comp
         next: first,
         retailer: {
             id,
+            name: `Shop ${id}`,
             fetchListing: async () => {
                 fake.calls++;
                 return fake.next();

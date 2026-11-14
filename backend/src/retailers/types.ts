@@ -29,5 +29,7 @@ export interface Listing {
 /** A source of sale products. Throws when nothing usable could be fetched. */
 export interface Retailer {
     id: string;
+    /** The shop's name as shoppers know it, e.g. "JD Sports". */
+    name: string;
     fetchListing(): Promise<Listing>;
 }

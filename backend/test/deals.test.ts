@@ -139,6 +139,7 @@ describe('DealStore', () => {
                 gender: 'Male',
                 brand: 'Nike',
                 category: 'Shoes',
+                store: 'jd',
             });
             expect(deals[2]).toMatchObject({ imageUrl: 'https://img/a', sizes: undefined });
         });

@@ -7,7 +7,10 @@ import { complete, manualSleep, range } from './helpers';
 describe('scrapeRetailer', () => {
     it('feeds a successful listing to the store and reports the result', async () => {
         const store = new DealStore();
-        const run = await scrapeRetailer({ id: 'jd', fetchListing: async () => complete(range(2)) }, store);
+        const run = await scrapeRetailer(
+            { id: 'jd', name: 'JD Sports', fetchListing: async () => complete(range(2)) },
+            store,
+        );
 
         expect(run).toMatchObject({ status: 'ok', products: 2, added: 2, removed: 0 });
         expect(store.deals(0)).toHaveLength(2);
@@ -18,6 +21,7 @@ describe('scrapeRetailer', () => {
         store.accept('jd', complete(range(2)));
         const broken: Retailer = {
             id: 'jd',
+            name: 'JD Sports',
             fetchListing: () => {
                 throw new Error('bad config');
             },
@@ -30,6 +34,7 @@ describe('scrapeRetailer', () => {
     it('times the fetch', async () => {
         const slow: Retailer = {
             id: 'slow',
+            name: 'Slow',
             fetchListing: async () => {
                 await Bun.sleep(60);
                 return complete([]);

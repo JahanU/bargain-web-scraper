@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'bun:test';
 import type { BrandCount, Deal } from '@/deals';
 import { dealsResponse, RETRY_AFTER_SECONDS, routes } from '@/http';
+import { buildSnapshot } from '@/query';
 import { idsOf } from './helpers';
 
 const deal: Deal = {
@@ -13,7 +14,17 @@ const deal: Deal = {
     gender: 'Male',
     brand: 'Nike',
     category: 'Shoes',
+    store: 'jd',
 };
+
+const STORES = [{ id: 'jd', name: 'JD Sports' }];
+/** The routes as they are once a scrape produced these deals (or before the first one). */
+const serving = (deals: Deal[] | undefined) =>
+    routes(
+        STORES,
+        () => deals && buildSnapshot(deals, STORES, 0),
+        () => ({}),
+    );
 
 describe('dealsResponse', () => {
     it('answers 503 with a readable Retry-After until the first scrape', () => {
@@ -45,9 +56,8 @@ describe('GET /v1/deals?gender=', () => {
     const male = deal;
     const female: Deal = { ...deal, name: 'Nike Dunk Low', url: 'https://example.com/2', gender: 'Female' };
     const unisex: Deal = { ...deal, name: 'Crocs Classic', url: 'https://example.com/3', gender: 'Unisex' };
-    const health = () => ({});
     const getFrom = (deals: Deal[] | undefined, query: string) =>
-        routes(() => deals, health)['/v1/deals'].GET(new Request(`http://localhost/v1/deals${query}`));
+        serving(deals)['/v1/deals'].GET(new Request(`http://localhost/v1/deals${query}`));
     const get = (query: string) => getFrom([male, female, unisex], query);
 
     it.each([
@@ -95,14 +105,8 @@ describe('filtering by category and brand', () => {
         make('7', 'Unisex', 'Shoes', 'Nike'),
         make('8', 'Male', 'Shoes', 'Puma'),
     ];
-    const table = routes(
-        () => deals,
-        () => ({}),
-    );
-    const loading = routes(
-        () => undefined,
-        () => ({}),
-    );
+    const table = serving(deals);
+    const loading = serving(undefined);
     const get = (path: '/v1/deals' | '/v1/brands' | '/webscrape/getBestDeals', query = '', from = table) =>
         from[path].GET(new Request(`http://localhost${path}${query}`));
     const ids = async (query: string) => idsOf((await get('/v1/deals', query).json()) as Deal[]);
