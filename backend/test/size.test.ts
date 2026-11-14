@@ -62,6 +62,7 @@ describe('Size listing', () => {
         expect(listing.products.map((product) => product.externalId)).toEqual([
             '104660',
             '19735669',
+            '19735837',
             '19653807',
             '19602559',
             '19739336',
@@ -89,7 +90,7 @@ describe('Size listing', () => {
                 ? new Response('slow down', { status: 429, headers: { 'Retry-After': '0' } })
                 : page(),
         );
-        expect((await size.fetchListing()).products).toHaveLength(6);
+        expect((await size.fetchListing()).products).toHaveLength(7);
         expect(calls).toHaveLength(4);
     });
 
@@ -122,7 +123,7 @@ describe('Size listing', () => {
         const listing = await size.fetchListing();
 
         expect(listing.complete).toBe(false);
-        expect(listing.products).toHaveLength(4);
+        expect(listing.products).toHaveLength(5);
         expect(calls.map((call) => call.handle)).toEqual(['mens-sale', 'womens-sale']);
     });
 
@@ -164,7 +165,7 @@ describe('Size products', () => {
     it("reads gender and category from Size's product type", async () => {
         const byId = await products();
         expect(byId['19739336']).toMatchObject({ gender: 'Female', category: 'Shoes' });
-        expect(byId['19735669']).toMatchObject({ gender: 'Male', category: 'Shoes', brand: 'New Balance' });
+        expect(byId['19735837']).toMatchObject({ gender: 'Male', category: 'Clothes', brand: 'Home Grown' });
     });
 
     it('takes the gender of the sale when the product type names only a kind', async () => {
@@ -173,26 +174,21 @@ describe('Size products', () => {
         expect(byId['19653807']).toMatchObject({ gender: 'Male', category: 'Shoes' });
     });
 
-    it("skips kids' products, warning once with how many", async () => {
+    it("skips kids' products and types from another shop, warning once with how many", async () => {
         const warn = spyOn(console, 'error').mockImplementation(() => {});
         Bun.env.LOG_LEVEL = 'warn';
         const byId = await products();
 
         expect(byId['19696319']).toBeUndefined();
+        expect(byId['16498476']).toBeUndefined();
         expect(warn).toHaveBeenCalledTimes(1);
-        expect(String(warn.mock.calls[0])).toContain('skipped=1');
+        expect(String(warn.mock.calls[0])).toContain('skipped=2');
     });
 
-    it("passes over blocked names and brands we don't list, without a warning", async () => {
-        const warn = spyOn(console, 'error').mockImplementation(() => {});
-        Bun.env.LOG_LEVEL = 'warn';
-        const listing = await fakeSize((call, page) =>
-            call.cursor === 'page-2' ? Response.json(saved['womens-sale'][0]) : page(),
-        ).size.fetchListing();
-        const ids = listing.products.map((product) => product.externalId);
-
-        expect(ids).not.toContain('19726669'); // "... Hitch Cap"
-        expect(ids).not.toContain('19735837'); // Home Grown
-        expect(warn).not.toHaveBeenCalled();
+    it('keeps every brand, and applies the blocklist to the name, not the brand', async () => {
+        const byId = await products();
+        expect(byId['19726669']).toBeUndefined(); // "... Hitch Cap"
+        expect(byId['19735837']?.brand).toBe('Home Grown'); // not on our list, and "home" is a blocked word
+        expect(byId['19602559']?.brand).toBe('PUMA'); // on our list: our spelling
     });
 });
