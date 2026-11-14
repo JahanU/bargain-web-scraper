@@ -60,12 +60,14 @@ function fakeJD({ listing = () => new Response(page({ algoliaConfig })), algolia
         const headers = init?.headers as Record<string, string>;
         const { page: pageNumber, facetFilters, attributesToRetrieve } = JSON.parse(String(init?.body));
         calls.attributes = attributesToRetrieve;
-        const [[sale], [category]] = facetFilters;
+        const [[sale], [category], brands] = facetFilters;
         const authorised =
             url === 'https://APP-dsn.algolia.net/1/indexes/jd_main/query' &&
             headers['x-algolia-application-id'] === 'APP' &&
             headers['x-algolia-api-key'] === 'KEY' &&
-            sale === 'onSale:true';
+            sale === 'onSale:true' &&
+            brands.includes('brand:Nike') &&
+            !brands.includes('brand:McKenzie');
         return authorised
             ? algolia(pageNumber, category.replace('hierarchicalCategories.lvl0:', ''))
             : new Response('bad search', { status: 400 });
@@ -131,6 +133,15 @@ describe('JD products', () => {
         const lvl1 = ['Women > Womens Sale', 'Women > Womens Clothing'];
         const [product] = await productsFor([hit({ category, hierarchicalCategories: { lvl0: ['Women'], lvl1 } })]);
         expect(product).toMatchObject({ category: 'Clothes' });
+    });
+
+    it("stores our name for the brand, and drops brands we don't list", async () => {
+        const products = await productsFor([
+            hit({ objectID: '1', brand: ["LEVI'S"] }),
+            hit({ objectID: '2', brand: ['Emporio Armani EA7'] }),
+            hit({ objectID: '3', brand: ['McKenzie'] }),
+        ]);
+        expect(products.map((product) => product.brand)).toEqual(["Levi's", 'EA7']);
     });
 
     it('skips hits with no brand or no category, warning once with how many', async () => {

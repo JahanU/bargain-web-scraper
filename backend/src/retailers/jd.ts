@@ -1,6 +1,7 @@
 import { type Category, UNISEX } from '@/deals';
 import { createLogger, duration } from '@/log';
 import { isBlockedName } from '@/retailers/blocklist';
+import { BRAND_SPELLINGS, canonicalBrand } from '@/retailers/brands';
 import type { Listing, Product, Retailer } from '@/retailers/types';
 
 const log = createLogger('jd');
@@ -14,6 +15,9 @@ const NEXT_DATA_PATTERN = /<script id="__NEXT_DATA__" type="application\/json">(
 // JD's top-level categories we read. Each is its own query: Algolia serves at most 5,000 hits per
 // query, and the men's and women's sales together can pass that.
 const CATEGORIES = ['Men', 'Women'];
+
+// Only the brands we list. JD matches brand names whatever their case.
+const BRAND_FILTER = BRAND_SPELLINGS.map((brand) => `brand:${brand}`);
 
 // Algolia's per-request maximum.
 const HITS_PER_PAGE = 1000;
@@ -102,7 +106,7 @@ export function createJDRetailer(): Retailer {
             method: 'POST',
             headers: { 'x-algolia-application-id': applicationId, 'x-algolia-api-key': searchApiKey },
             body: JSON.stringify({
-                facetFilters: [['onSale:true'], [`hierarchicalCategories.lvl0:${category}`]],
+                facetFilters: [['onSale:true'], [`hierarchicalCategories.lvl0:${category}`], BRAND_FILTER],
                 hitsPerPage: HITS_PER_PAGE,
                 page,
                 attributesToRetrieve: ATTRIBUTES,
@@ -181,9 +185,9 @@ function categoryOf(hit: Hit): Category | undefined {
     return kind?.[1];
 }
 
-/** Maps one hit to a product, or nothing if it has no brand or no category we can tell. */
+/** Maps one hit to a product, or nothing if it has no brand we list or no category we can tell. */
 function parseHit(hit: Hit): Product | undefined {
-    const brand = hit.brand?.[0]?.trim();
+    const brand = canonicalBrand(hit.brand?.[0] ?? '');
     const category = categoryOf(hit);
     if (!brand || !category) {
         return undefined;

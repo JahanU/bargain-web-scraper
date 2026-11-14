@@ -1,5 +1,6 @@
 // Team kits, accessories and other items not worth listing.
 // biome-ignore format: a compact word list reads better than one word per line
+// todo maybe delete later
 const BLOCKED_WORDS = [
     'fc', 'nba', 'home', 'hip', 'gloves', 'cap', 'training', 'away', 'team', 'gb',
     'england', 'scotland', 'wales', 'ireland', 'basketball', 'football',
