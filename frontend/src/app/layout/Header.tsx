@@ -8,9 +8,10 @@ const REPO_URL = "https://github.com/JahanU/bargain-web-scraper";
 export function Header() {
   return (
     <header className="sticky top-0 z-30 border-b border-border bg-surface-raised">
-      <div className="mx-auto flex h-12 max-w-[1440px] items-center gap-2 px-4 sm:gap-4 sm:h-[52px] sm:px-6">
+      <div className="page-container flex h-header items-center justify-between">
         <Brand />
-        <div className="ml-auto flex items-center gap-1">
+        {/* Pulled out by the buttons' own padding, so the glyphs end on the container edge. */}
+        <div className="-mr-2 flex items-center">
           <ThemeToggle />
           <AboutButton />
           <a
@@ -18,7 +19,7 @@ export function Header() {
             target="_blank"
             rel="noopener"
             aria-label="GitHub (opens in a new tab)"
-            className="hidden h-10 items-center gap-1 rounded-sm px-2 text-sm font-medium text-text-muted hover:text-text sm:inline-flex"
+            className="hidden h-10 items-center gap-1 rounded-sm px-2 text-sm font-semibold transition-colors duration-fast hover:bg-surface-sunken sm:inline-flex"
           >
             GitHub
             <ExternalLink size={16} aria-hidden />

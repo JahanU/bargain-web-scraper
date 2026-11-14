@@ -12,11 +12,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         Skip to deals
       </a>
       <Header />
-      <main
-        id="main"
-        tabIndex={-1}
-        className="mx-auto w-full max-w-[1440px] flex-1 px-4 py-4 sm:px-6"
-      >
+      <main id="main" tabIndex={-1} className="flex-1">
         {children}
       </main>
       <Footer />

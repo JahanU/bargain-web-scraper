@@ -42,8 +42,9 @@ export function FilterBar(props: FilterBarProps) {
   const sheetFilters = activeChips(values).filter((chip) => chip.filter !== "search").length;
 
   return (
-    <div className="sticky top-12 z-20 -mx-4 -mt-4 mb-3 border-b border-border bg-surface-raised px-4 py-2 sm:top-[52px] sm:-mx-6 sm:px-6">
+    <div className="sticky top-header z-20 border-b border-border bg-surface-raised py-2">
       <form
+        className="page-container"
         // oxlint-disable-next-line jsx-a11y/prefer-tag-over-role -- <search> needs Safari 17; the floor is 16.4
         role="search"
         aria-label="Filter deals"

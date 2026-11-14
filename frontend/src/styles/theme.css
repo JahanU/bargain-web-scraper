@@ -24,6 +24,9 @@
   --radius-md: 6px;
   --radius-lg: 8px;
 
+  /* The sticky header's height, which is also where the toolbar under it sticks. */
+  --spacing-header: 3rem;
+
   --font-sans: "Archivo", "Archivo Fallback", ui-sans-serif, system-ui, sans-serif;
 }
 
@@ -43,6 +46,12 @@
   --color-text-faint: oklch(55% 0.006 80);
   --color-warning-bg: oklch(28% 0.05 80);
   --color-warning-fg: oklch(85% 0.12 85);
+}
+
+/* Every band (header, toolbar, content, footer) is full-bleed and holds one of these, so their
+   edges line up at any viewport width. */
+@utility page-container {
+  @apply mx-auto w-full max-w-[1440px] px-4 sm:px-6;
 }
 
 /* Motion: 120, 180 and 260 ms, all off under reduced motion (base.css). */
