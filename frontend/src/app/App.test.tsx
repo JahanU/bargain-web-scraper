@@ -56,7 +56,7 @@ test("the About button opens a factual dialog, and Escape returns focus", async 
 
   const dialog = await screen.findByRole("dialog", { name: "About Bargain" });
   expect(dialog).toHaveTextContent("30% off or more");
-  expect(dialog).toHaveTextContent("Not affiliated with JD Sports.");
+  expect(dialog).toHaveTextContent("Not affiliated with JD Sports or Size.");
 
   await userEvent.keyboard("{Escape}");
   await expect.poll(() => screen.queryByRole("dialog")).toBeNull();

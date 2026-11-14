@@ -11,13 +11,14 @@ export default function AboutDialog({ open, onOpenChange }: AboutDialogProps) {
     <Dialog open={open} onOpenChange={onOpenChange} title="About Bargain">
       <div className="space-y-3 text-sm text-text-muted">
         <p>
-          Bargain lists JD Sports UK sale items that are 30% off or more. It checks the sale every 5
-          minutes, and sold-out items drop off at the next check.
+          Bargain lists JD Sports and Size sale items that are 30% off or more. It checks the sale
+          every 5 minutes, and sold-out items drop off at the next check.
         </p>
         <p>
-          Prices and stock can change on JD’s site between checks, so confirm there before you buy.
+          Prices and stock can change on the store’s site between checks, so confirm there before
+          you buy.
         </p>
-        <p>Not affiliated with JD Sports.</p>
+        <p>Not affiliated with JD Sports or Size.</p>
         <p>
           <a
             href={REPO_URL}

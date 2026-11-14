@@ -17,13 +17,15 @@ const tee = deal({
 });
 
 test("one link, named by its own text with the price read once, opening a new tab", async () => {
-  const { container } = render(<DealCard deal={tee} serverStart={tee.foundAt} priority={false} />);
+  const { container } = render(
+    <DealCard deal={tee} store="JD Sports" serverStart={tee.foundAt} priority={false} />,
+  );
 
   const link = screen.getByRole("link");
   expect(link).not.toHaveAttribute("aria-label"); // visible text is the name (WCAG 2.5.3)
   // The whole name, so the price provably appears once.
   expect(link).toHaveAccessibleName(
-    /^Nike NFL Tee\s*£10 was £30\s*, 67% off\s*Sizes\s*S\s*M\s*L\s*XL\s*XXL\s*\+2\s*Men$/,
+    /^Nike NFL Tee\s*£10 was £30\s*, 67% off\s*Sizes\s*S\s*M\s*L\s*XL\s*XXL\s*\+2\s*JD Sports,\s*Men$/,
   );
   expect(link).toHaveAttribute("href", "https://www.jdsports.co.uk/product/nike-nfl-tee/1/");
   expect(link).toHaveAttribute("target", "_blank");
@@ -33,17 +35,21 @@ test("one link, named by its own text with the price read once, opening a new ta
 });
 
 test("shows prices, the badge and the first five sizes with +N", () => {
-  render(<DealCard deal={tee} serverStart={0} priority={false} />);
+  render(<DealCard deal={tee} store="JD Sports" serverStart={0} priority={false} />);
 
   expect(screen.getByText("£10")).toBeVisible();
   expect(screen.getByText("£30").tagName).toBe("S");
   expect(screen.getByText("-67%")).toHaveAttribute("aria-hidden", "true");
+  // The store badge, hidden like the others: the link's name says the store once.
+  expect(screen.getAllByText("JD Sports")[0]).toHaveAttribute("aria-hidden", "true");
   expect(screen.getByText("+2")).toBeInTheDocument();
   expect(screen.queryByText("XXXL")).not.toBeInTheDocument();
 });
 
 test("the image is decorative, responsive and at the plate size", () => {
-  const { container } = render(<DealCard deal={tee} serverStart={0} priority={false} />);
+  const { container } = render(
+    <DealCard deal={tee} store="JD Sports" serverStart={0} priority={false} />,
+  );
   const image = container.querySelector("img");
 
   expect(image).toHaveAttribute("alt", "");
@@ -58,6 +64,7 @@ test("a deal found since the server started is marked new and says when", () => 
   const now = Date.now();
   render(
     <DealCard
+      store="JD Sports"
       deal={deal({ name: "Fresh", timestamp: now - 60_000 })}
       serverStart={now - 3_600_000}
       priority
@@ -72,7 +79,12 @@ test("a deal found since the server started is marked new and says when", () => 
 test("a deal from the server-start batch has no found time and no marker", () => {
   const start = Date.now() - 60_000;
   render(
-    <DealCard deal={deal({ timestamp: start, gender: "Female" })} serverStart={start} priority />,
+    <DealCard
+      store="JD Sports"
+      deal={deal({ timestamp: start, gender: "Female" })}
+      serverStart={start}
+      priority
+    />,
   );
 
   expect(screen.queryByText("New")).not.toBeInTheDocument();

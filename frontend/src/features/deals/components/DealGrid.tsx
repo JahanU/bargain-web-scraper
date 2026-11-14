@@ -1,5 +1,6 @@
 import { useWindowVirtualizer } from "@tanstack/react-virtual";
 import { useCallback, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
+import type { Facets } from "../api/dealSchema";
 import type { Deal } from "../model/Deal";
 import { PAGE_SIZE } from "../model/request";
 import { DealCard } from "./DealCard";
@@ -25,6 +26,8 @@ type DealGridProps = {
   deals: readonly Deal[];
   /** Deals the request matches, loaded or not. */
   total: number;
+  /** Names the store on each card; until it arrives a card shows the store's id. */
+  stores?: Facets["stores"];
   /** The response's `trackingSince`: see foundTime. */
   serverStart: number;
   /** More pages exist and may be asked for now. */
@@ -42,6 +45,7 @@ type DealGridProps = {
 export function DealGrid({
   deals,
   total,
+  stores,
   serverStart,
   hasMore,
   loadingMore,
@@ -130,6 +134,7 @@ export function DealGrid({
             deals={deals}
             total={total}
             columns={columns}
+            stores={stores}
             serverStart={serverStart}
           />
         ))}
@@ -151,11 +156,21 @@ type DealRowProps = {
   deals: readonly Deal[];
   total: number;
   columns: number;
+  stores: Facets["stores"] | undefined;
   serverStart: number;
 };
 
 /** Compiled (unlike DealGrid), so a scroll that only moves the window doesn't re-render cards. */
-function DealRow({ index, offset, measureRef, deals, total, columns, serverStart }: DealRowProps) {
+function DealRow({
+  index,
+  offset,
+  measureRef,
+  deals,
+  total,
+  columns,
+  stores,
+  serverStart,
+}: DealRowProps) {
   const first = index * columns;
   return (
     <div
@@ -178,6 +193,7 @@ function DealRow({ index, offset, measureRef, deals, total, columns, serverStart
         >
           <DealCard
             deal={deal}
+            store={stores?.find((row) => row.store === deal.store)?.name ?? deal.store}
             serverStart={serverStart}
             priority={first + column < PRIORITY_COUNT}
           />
