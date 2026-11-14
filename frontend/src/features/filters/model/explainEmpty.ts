@@ -31,6 +31,9 @@ export function explainEmpty(deals: readonly Deal[], values: FilterState): Empty
     if (found > 0)
       suggestions.push({ label: `Show ${plural(found)} in any size`, next: { sizes: [] } });
   }
+  // The loaded deals are already this brand selection's, so there is nothing to count.
+  if (values.brands.length > 0)
+    suggestions.push({ label: "Show deals from any brand", next: { brands: [] } });
   if (term) {
     const found = count(deals, { ...values, search: "" });
     if (found > 0)
@@ -38,7 +41,10 @@ export function explainEmpty(deals: readonly Deal[], values: FilterState): Empty
   }
 
   const onlySearch =
-    term !== "" && values.sizes.length === 0 && values.discount === DEFAULT_DISCOUNT;
+    term !== "" &&
+    values.sizes.length === 0 &&
+    values.brands.length === 0 &&
+    values.discount === DEFAULT_DISCOUNT;
   if (onlySearch) {
     return {
       title: `Nothing matches “${term}”`,
@@ -51,6 +57,7 @@ export function explainEmpty(deals: readonly Deal[], values: FilterState): Empty
     ...(term ? [`for “${term}”`] : []),
     `at ${values.discount}% or more`,
     ...(values.sizes.length > 0 ? [`in size ${values.sizes.join(" or ")}`] : []),
+    ...(values.brands.length > 0 ? [`from ${values.brands.join(" or ")}`] : []),
   ];
   return { title: `No deals ${parts.join(" ")}`, suggestions };
 }

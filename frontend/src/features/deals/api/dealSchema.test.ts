@@ -41,3 +41,20 @@ test("a body that isn't a list is an invalid-body error; an empty list is fine",
 test("every deal in the checked-in fixture is valid", () => {
   expect(parseDeals(fixture)).toHaveLength(81);
 });
+
+test("a deal without a brand or with an unknown category is dropped", () => {
+  const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+  const { brand: _brand, ...noBrand } = makeDeal();
+  const valid = makeDeal();
+
+  expect(parseDeals([noBrand, { ...makeDeal(), category: "Kids" }, valid])).toHaveLength(1);
+  expect(warn).toHaveBeenCalledWith("Dropped 2 of 3 deals that failed validation.");
+});
+
+test("a list with no valid deal is an invalid-body error, not an empty sale", () => {
+  const { brand: _brand, ...noBrand } = makeDeal();
+
+  expect(() => parseDeals([noBrand, noBrand])).toThrow(
+    expect.objectContaining({ kind: "invalid-body" }),
+  );
+});

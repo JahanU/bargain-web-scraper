@@ -1,7 +1,7 @@
 import { ChevronDown } from "lucide-react";
 import { type SizeFacet as Facet, type SizeGroup, compareSizes, sizeGroup } from "@/features/deals";
 import { Button, Popover, ToggleGroup } from "@/shared/ui";
-import { toolbarLabel } from "./toolbarLabel";
+import { facetCount, toolbarLabel } from "./toolbarLabel";
 
 const GROUPS: { group: SizeGroup; title: string }[] = [
   { group: "clothing", title: "Clothing" },
@@ -48,7 +48,7 @@ export function SizeOptions({ selected, onChange, facets }: SizeFacetProps) {
                 name: `${size}, ${count} ${count === 1 ? "deal" : "deals"}`,
                 label: (
                   <>
-                    {size} <span className="text-[11px] opacity-70">{count}</span>
+                    {size} <span className={facetCount}>{count}</span>
                   </>
                 ),
               }))}

@@ -8,7 +8,7 @@ const REPO_URL = "https://github.com/JahanU/bargain-web-scraper";
 export function Header() {
   return (
     <header className="sticky top-0 z-30 border-b border-border bg-surface-raised">
-      <div className="mx-auto flex h-12 max-w-[1440px] items-center gap-4 px-4 sm:h-[52px] sm:px-6">
+      <div className="mx-auto flex h-12 max-w-[1440px] items-center gap-2 px-4 sm:gap-4 sm:h-[52px] sm:px-6">
         <Brand />
         <div className="ml-auto flex items-center gap-1">
           <ThemeToggle />

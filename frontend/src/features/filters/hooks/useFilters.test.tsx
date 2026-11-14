@@ -18,8 +18,10 @@ test("reads a legacy link on mount", () => {
     search: "nike",
     discount: 30,
     sizes: ["S", "M", "L"],
+    brands: [],
     sort: "price-low-to-high",
     gender: "Male",
+    category: "All",
   });
 });
 
@@ -79,19 +81,35 @@ test("clearing search to empty removes it from the URL", async () => {
   expect(lastUrl()?.queryString).toBe("");
 });
 
-test("clearAll resets every filter but keeps the sort and gender", async () => {
+test("clearAll resets every filter but keeps the sort, gender and category", async () => {
   const { result, lastUrl } = setup(
-    "?search=nike&discount=50&sizes=M&sort=price-high-to-low&gender=Female",
+    "?search=nike&discount=50&sizes=M&brands=Nike&sort=price-high-to-low&gender=Female&category=Shoes",
   );
 
   await act(() => result.current[1].clearAll());
 
-  expect(lastUrl()?.queryString).toBe("?sort=price-high-to-low&gender=Female");
+  expect(lastUrl()?.queryString).toBe("?sort=price-high-to-low&gender=Female&category=Shoes");
   expect(result.current[0]).toEqual({
     search: "",
     discount: 30,
     sizes: [],
+    brands: [],
     sort: "price-high-to-low",
     gender: "Female",
+    category: "Shoes",
   });
+});
+
+test.each(["shoes", "Kids", ""])("category=%j reads as All", (value) => {
+  expect(setup(`?category=${value}`).result.current[0].category).toBe("All");
+});
+
+test("category is written to the URL, and All is left out", async () => {
+  const { result, lastUrl } = setup();
+
+  await act(() => result.current[1].set({ category: "Accessories" }));
+  expect(lastUrl()?.queryString).toBe("?category=Accessories");
+
+  await act(() => result.current[1].set({ category: "All" }));
+  expect(lastUrl()?.queryString).toBe("");
 });

@@ -11,7 +11,7 @@ Everything the frontend needs to know to work with the rewritten backend: the en
 - [ ] Use a **plain `fetch(url)`**: no custom headers and no `cache: 'no-store'`. The browser then handles caching and decompression for you.
 - [ ] Use **`deal.url` as the React key**; it's unique per product.
 - [ ] `sizes` and `imageUrl` can be **missing**. Prices are **numbers in GBP**.
-- [ ] Do filtering, sorting and search **in the browser**. The API always returns the full list.
+- [ ] Filter by **gender, category and brand on the server** (`?gender=`, `?category=`, `?brand=`), and read the brand list with its counts from **`GET /v1/brands`**. Search, sizes, the discount slider and sorting stay **in the browser**.
 - [ ] Don't poll more often than **every 60s**; the data only changes every 5 minutes.
 
 ---
@@ -28,7 +28,8 @@ Everything the frontend needs to know to work with the rewritten backend: the en
 | Method | Path | Use it for |
 |---|---|---|
 | `GET` | **`/v1/deals`** | **The deals list.** Use this in the new frontend. |
-| `GET` | `/webscrape/getBestDeals` | Same response. Kept for the current frontend; switch to `/v1/deals`. |
+| `GET` | `/webscrape/getBestDeals` | Same response and parameters. Kept for the current frontend; switch to `/v1/deals`. |
+| `GET` | **`/v1/brands`** | The brands in the current deals, each with its number of deals. Use it to build the brand filter. |
 | `GET` | `/health` (also `/`) | Backend status (optional: a status banner, debugging) |
 
 Anything else returns `404` with `{ "error": "Not Found" }`. The old `/firebase/*`, `/telegram/*` and `/client/*` endpoints are gone.
@@ -37,7 +38,27 @@ Anything else returns `404` with `{ "error": "Not Found" }`. The old `/firebase/
 
 ## `GET /v1/deals`
 
-Optional query: `?gender=Male`, `Female` or `Unisex` returns only deals with exactly that `gender` (unisex items appear only under `Unisex`). Without it you get every deal. Any other value, including an empty one, is a `400` with `{ "error": "gender must be one of Male, Female, Unisex" }`.
+All query parameters are optional. Without any you get every deal. Together they combine with AND.
+
+| Parameter | Values | Behaviour |
+|---|---|---|
+| `gender` | `Male`, `Female` or `Unisex` | Only deals with exactly that `gender` (unisex items appear only under `Unisex`). Any other value, including an empty one, is a `400`. |
+| `category` | `Shoes`, `Clothes` or `Accessories` | Only deals with exactly that `category`. Any other value, including an empty one, is a `400`. |
+| `brand` | A brand name exactly as `deal.brand` and `/v1/brands` give it (case-sensitive) | Only deals of that brand. Repeat it to allow several brands: `?brand=Nike&brand=adidas` returns deals from either. An empty or whitespace-only value is a `400`. |
+
+A brand that no current deal has is not an error. It matches nothing, so `?brand=Reebok` alone returns `[]`. Brands appear and disappear with stock every five minutes, so a saved or shared link keeps working.
+
+Build the query with `URLSearchParams` so brand names with spaces or `&` are encoded:
+
+```ts
+const params = new URLSearchParams();
+if (gender) params.set('gender', gender);
+if (category) params.set('category', category);
+for (const brand of brands) params.append('brand', brand);
+const response = await fetch(`${BASE_URL}/v1/deals?${params}`);
+```
+
+A bad value is a `400` even while the backend is still loading, because retrying will not fix it.
 
 ### Response: `200 OK`
 
@@ -63,6 +84,10 @@ export interface Deal {
     timestamp: number;
     /** From the sale listing it came from; "Unisex" if it's in both men's and women's sales. */
     gender: 'Male' | 'Female' | 'Unisex';
+    /** The brand as JD spells it, e.g. "Nike", "adidas", "The North Face". Always present. */
+    brand: string;
+    /** Always present. */
+    category: 'Shoes' | 'Clothes' | 'Accessories';
 }
 ```
 
@@ -79,7 +104,9 @@ Example:
     "imageUrl": "https://i8.amplience.net/i/jpl/jd_752441_plc",
     "sizes": ["7", "8", "9"],
     "timestamp": 1793703053984,
-    "gender": "Male"
+    "gender": "Male",
+    "brand": "Nike",
+    "category": "Shoes"
   }
 ]
 ```
@@ -91,7 +118,7 @@ Notes on the data:
 | Prices | Numbers in pounds (never strings like `"£54.99"`). Format with `new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP' })`. |
 | `discount` | The list only contains deals at or above the backend's floor (30%), so a frontend discount slider below 30 changes nothing. |
 | `sizes` / `imageUrl` | Optional: the key is missing rather than `null` or `[]`. Show "N/A" or a placeholder. |
-| Size of the list | A few hundred deals, about 100 KB of JSON, much smaller on the wire because Render compresses it. There's no pagination; filter and sort client-side. |
+| Size of the list | A few hundred deals, about 100 KB of JSON, much smaller on the wire because Render compresses it. There's no pagination. Narrow by gender, category and brand with the query parameters, and do the rest client-side. |
 | Sold-out items | Removed by the backend within about 5 minutes. Everything in the list was in stock at the last scrape. |
 
 ### Response: `503 Service Unavailable` (still loading)
@@ -112,11 +139,43 @@ The frontend should show a loading state, wait `Retry-After` seconds, and try ag
 
 | Status | Body | Meaning |
 |---|---|---|
-| `400` | `{ "error": "gender must be one of Male, Female, Unisex" }` (JSON) | Unknown `gender` value |
+| `400` | `{ "error": "gender must be one of Male, Female, Unisex" }` (JSON) | Unknown or empty `gender` value |
+| `400` | `{ "error": "category must be one of Shoes, Clothes, Accessories" }` (JSON) | Unknown or empty `category` value |
+| `400` | `{ "error": "brand must not be empty" }` (JSON) | An empty or whitespace-only `brand` value |
 | `404` | `{ "error": "Not Found" }` (JSON) | Wrong path |
 | `500` / `502` | Possibly **not JSON** (Bun's or Render's error page) | Backend crashed or is restarting. Treat it as a network error and retry later. |
 
 Always check `response.ok` / `response.status` before calling `.json()`.
+
+---
+
+## `GET /v1/brands`
+
+The brands to offer in a brand filter, with how many deals each has.
+
+Optional query: `gender` and `category`, with the same values and the same `400` responses as `/v1/deals`. Any `brand` parameter is ignored, so you can send the same query string to both endpoints and the list does not shrink to the brands already selected.
+
+### Response: `200 OK`
+
+A JSON array holding only the brands that have at least one deal matching `gender` and `category`, sorted by `count` (highest first), then by brand name. It is `[]` when nothing matches.
+
+```ts
+export interface BrandCount {
+    brand: string;
+    count: number;
+}
+```
+
+```json
+[
+  { "brand": "Nike", "count": 41 },
+  { "brand": "adidas", "count": 17 }
+]
+```
+
+`count` is exactly the number of deals `/v1/deals` returns for the same `gender` and `category` plus that single `brand`. For example, if `/v1/brands?gender=Male&category=Shoes` lists `{ "brand": "Nike", "count": 41 }`, then `/v1/deals?gender=Male&category=Shoes&brand=Nike` returns 41 deals. Both are computed from the same snapshot, but the two requests can straddle a scrape (or one can come from the browser cache), so allow for a brief mismatch around a refresh.
+
+It has the same `Cache-Control` and CORS headers as `/v1/deals`, and the same `503` with `Retry-After` while the first scrape is running.
 
 ---
 
@@ -221,6 +280,8 @@ interface Health {
 | Prices | Once formatted strings (`"£54.99"`) | Always numbers in GBP | Remove any string-to-number conversion |
 | `inStock` field | `"IN STOCK"` | **Removed**; every listed deal is in stock | Remove it from the type |
 | `gender` | `"Male"` / `"Female"` | Adds **`"Unisex"`** | Handle it in any gender filter |
+| `brand`, `category` | Not present | On every deal | Add them to the type |
+| Filtering | All in the browser | `gender`, `category` and `brand` on the server, brand counts from `/v1/brands` | Send them as query parameters |
 | `sizes` | Array or missing | Missing when unknown (never `[]`) | Keep treating it as optional |
 | `timestamp` | Reset daily | First seen by the current backend process | See caveats |
 | Loading state | Empty list `[]` after a restart | **`503` + `Retry-After`** until the first scrape | Retry instead of showing "No items" or the error page |
@@ -232,4 +293,5 @@ interface Health {
 
 - **`timestamp` resets on every backend deploy or restart**, and when an item sells out and later comes back. The backend keeps everything in memory, so right after a deploy every deal shows the same "found" time. Prefer a relative label ("found 2h ago"), and consider hiding it when it's within a few minutes of the backend starting.
 - **`gender` comes from the sale listing URL**, not the product itself, so treat it as a hint.
+- **`brand` and `category` come from JD's own product data.** A product JD gives no brand or no recognisable category is left out of the list (the backend logs how many per scrape).
 - **One retailer (JD Sports UK) today.** More retailers would appear in the same list with the same shape; nothing in this contract would change.

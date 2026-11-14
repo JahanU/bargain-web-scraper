@@ -1,6 +1,11 @@
 import { clockTime, relativeTime } from "@/shared/lib/format";
 
-type ResultsSummaryProps = { shown: number; total: number; updatedAt: number };
+type ResultsSummaryProps = {
+  shown: number;
+  total: number;
+  /** Left out while the list on screen is the previous selection's. */
+  updatedAt: number | undefined;
+};
 
 const deals = (count: number) => `${count} ${count === 1 ? "deal" : "deals"}`;
 
@@ -11,10 +16,14 @@ export function ResultsSummary({ shown, total, updatedAt }: ResultsSummaryProps)
       <span aria-live="polite">
         {shown === total ? deals(total) : `${shown} of ${deals(total)}`}
       </span>
-      {" · updated "}
-      <time dateTime={new Date(updatedAt).toISOString()} title={clockTime(updatedAt)}>
-        {relativeTime(updatedAt)}
-      </time>
+      {updatedAt !== undefined && (
+        <>
+          {" · updated "}
+          <time dateTime={new Date(updatedAt).toISOString()} title={clockTime(updatedAt)}>
+            {relativeTime(updatedAt)}
+          </time>
+        </>
+      )}
     </p>
   );
 }

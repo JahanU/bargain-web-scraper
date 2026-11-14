@@ -6,12 +6,32 @@ import { defineFilter, type FilterChip, type FilterDefinition } from "./types";
 
 export const SEARCH_MAX_LENGTH = 64;
 export const DEFAULT_DISCOUNT = 30;
-/** The backend's MIN_DISCOUNT: stops below it show the same deals as it does. */
-export const BACKEND_MIN_DISCOUNT = 30;
-export const DISCOUNT_STOPS = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100] as const;
+/** The backend sends nothing under 30% off, so the stops start there. */
+export const DISCOUNT_STOPS = [30, 40, 50, 60, 70, 80, 90, 100] as const;
 
 const sameList = (a: readonly string[], b: readonly string[]) =>
   a.length === b.length && a.every((item, index) => item === b[index]);
+
+/** A comma-separated list, written in canonical order so a selection always makes the same link. */
+const listParser = (compare?: (a: string, b: string) => number) =>
+  createParser({
+    parse: (value) => {
+      const items = [
+        ...new Set(
+          value
+            .split(",")
+            .map((item) => item.trim())
+            .filter(Boolean),
+        ),
+      ];
+      return items.length > 0 ? items : null;
+    },
+    serialize: (items: string[]) => [...items].sort(compare).join(","),
+    eq: sameList,
+  }).withDefault([]);
+
+const listChips = (items: string[]) =>
+  items.map((item) => ({ label: item, next: items.filter((other) => other !== item) }));
 
 export const filterRegistry = {
   search: defineFilter({
@@ -30,14 +50,9 @@ export const filterRegistry = {
   }),
 
   discount: defineFilter({
-    parser: createParser({
-      // Multiples of 10 from 10 to 100; anything else falls back to the default.
-      parse: (value) => {
-        const number = Number(value);
-        return Number.isInteger(number) && number >= 10 && number <= 100 && number % 10 === 0
-          ? number
-          : null;
-      },
+    parser: createParser<number>({
+      // Only the stops; anything else falls back to the default.
+      parse: (value) => DISCOUNT_STOPS.find((stop) => String(stop) === value) ?? null,
       serialize: String,
     }).withDefault(DEFAULT_DISCOUNT),
     isActive: (value) => value !== DEFAULT_DISCOUNT,
@@ -46,30 +61,22 @@ export const filterRegistry = {
   }),
 
   sizes: defineFilter<string[]>({
-    parser: createParser({
-      parse: (value) => {
-        const sizes = [
-          ...new Set(
-            value
-              .split(",")
-              .map((size) => size.trim())
-              .filter(Boolean),
-          ),
-        ];
-        return sizes.length > 0 ? sizes : null;
-      },
-      // Canonical order, so the same selection always makes the same link.
-      serialize: (sizes) => [...sizes].sort(compareSizes).join(","),
-      eq: sameList,
-    }).withDefault([]),
+    parser: listParser(compareSizes),
     isActive: (sizes) => sizes.length > 0,
     // OR within sizes; AND with the other filters.
     predicate: (sizes) => {
       const wanted = new Set(sizes);
       return (deal) => deal.sizes.some((size) => wanted.has(size));
     },
-    chips: (sizes) =>
-      sizes.map((size) => ({ label: size, next: sizes.filter((other) => other !== size) })),
+    chips: listChips,
+  }),
+
+  // The backend applies brands; the predicate keeps the list right while that request is in flight.
+  brands: defineFilter<string[]>({
+    parser: listParser(),
+    isActive: (brands) => brands.length > 0,
+    predicate: (brands) => (deal) => brands.includes(deal.brand),
+    chips: listChips,
   }),
 };
 

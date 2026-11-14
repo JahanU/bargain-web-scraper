@@ -12,8 +12,10 @@ const values = (overrides: Partial<FilterState>): FilterState => ({
   search: "",
   discount: 30,
   sizes: [],
+  brands: [],
   sort: "discount-high-to-low",
   gender: "Male",
+  category: "All",
   ...overrides,
 });
 
@@ -39,5 +41,12 @@ test("a relaxation that still shows nothing isn't offered", () => {
   expect(explainEmpty(deals, values({ search: "puma", sizes: ["XS"], discount: 90 }))).toEqual({
     title: "No deals for “puma” at 90% or more in size XS",
     suggestions: [],
+  });
+});
+
+test("brands are named, and dropping them is offered even when nothing is loaded to count", () => {
+  expect(explainEmpty([], values({ brands: ["Fila", "Kappa"] }))).toEqual({
+    title: "No deals at 30% or more from Fila or Kappa",
+    suggestions: [{ label: "Show deals from any brand", next: { brands: [] } }],
   });
 });

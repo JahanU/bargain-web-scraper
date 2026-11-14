@@ -1,4 +1,4 @@
-import { type Deal, GENDERS, type Gender } from '@/deals';
+import { type BrandCount, brandCounts, CATEGORIES, type Deal, type DealFilter, filterDeals, GENDERS } from '@/deals';
 import { createLogger, duration, type Level } from '@/log';
 
 const log = createLogger('http');
@@ -14,8 +14,8 @@ export const RETRY_AFTER_SECONDS = 10;
 // JavaScript unless it is exposed.
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Expose-Headers': 'Retry-After' };
 
-/** The deals, or a 503 asking the client to retry while the first scrape is still running. */
-export function dealsResponse(deals: Deal[] | undefined): Response {
+/** The deals (or their brand counts), or a 503 asking the client to retry while the first scrape is still running. */
+export function dealsResponse(deals: Deal[] | BrandCount[] | undefined): Response {
     if (!deals) {
         return Response.json(
             { error: 'Deals are loading, try again shortly' },
@@ -25,23 +25,55 @@ export function dealsResponse(deals: Deal[] | undefined): Response {
     return Response.json(deals, { headers: { 'Cache-Control': CACHE_CONTROL, ...CORS } });
 }
 
-/**
- * The deals for `?gender=`, or all of them when it is absent (the deployed frontend doesn't send
- * it). An unknown gender is a 400 even before the first scrape: retrying won't fix it.
- */
-function dealsFor(request: Request, deals: Deal[] | undefined): Response {
-    const gender = new URL(request.url).searchParams.get('gender');
-    if (gender === null) {
-        return dealsResponse(deals);
-    }
-    if (!isGender(gender)) {
-        return Response.json({ error: `gender must be one of ${GENDERS.join(', ')}` }, { status: 400, headers: CORS });
-    }
-    return dealsResponse(deals?.filter((deal) => deal.gender === gender));
+function badRequest(error: string): Response {
+    return Response.json({ error }, { status: 400, headers: CORS });
 }
 
-function isGender(value: string): value is Gender {
-    return (GENDERS as readonly string[]).includes(value);
+function isOneOf<T extends string>(allowed: readonly T[], value: string): value is T {
+    return (allowed as readonly string[]).includes(value);
+}
+
+/**
+ * The filter a query asks for, or the 400 saying what is wrong with it. An absent parameter means
+ * "any" (the deployed frontend sends none).
+ */
+function parseFilter(params: URLSearchParams): DealFilter | Response {
+    const gender = params.get('gender') ?? undefined;
+    if (gender !== undefined && !isOneOf(GENDERS, gender)) {
+        return badRequest(`gender must be one of ${GENDERS.join(', ')}`);
+    }
+    const category = params.get('category') ?? undefined;
+    if (category !== undefined && !isOneOf(CATEGORIES, category)) {
+        return badRequest(`category must be one of ${CATEGORIES.join(', ')}`);
+    }
+    // Only an empty brand is rejected. One that no deal has matches nothing: brands come and go
+    // with stock every scrape, so a saved link must keep working.
+    const brands = params.getAll('brand');
+    if (brands.some((brand) => brand.trim() === '')) {
+        return badRequest('brand must not be empty');
+    }
+    return { gender, category, brands };
+}
+
+/** The deals matching the query. A bad query is a 400 even before the first scrape: retrying won't fix it. */
+function dealsFor(request: Request, deals: Deal[] | undefined): Response {
+    const filter = parseFilter(new URL(request.url).searchParams);
+    if (filter instanceof Response) {
+        return filter;
+    }
+    return dealsResponse(deals && filterDeals(deals, filter));
+}
+
+/** The brands among the deals matching `gender` and `category`, each with how many it has. */
+function brandsFor(request: Request, deals: Deal[] | undefined): Response {
+    const params = new URL(request.url).searchParams;
+    // The list is what the brand filter chooses from, so a selected brand must not narrow it.
+    params.delete('brand');
+    const filter = parseFilter(params);
+    if (filter instanceof Response) {
+        return filter;
+    }
+    return dealsResponse(deals && brandCounts(filterDeals(deals, filter)));
 }
 
 /** Route table for Bun.serve. `deals()` is undefined until the first good scrape. */
@@ -55,6 +87,7 @@ export function routes(deals: () => Deal[] | undefined, health: () => object) {
         '/': healthResponse,
         '/health': healthResponse,
         '/v1/deals': dealsRoute,
+        '/v1/brands': { GET: logged((request) => brandsFor(request, deals())) },
         // The path the current frontend calls.
         '/webscrape/getBestDeals': dealsRoute,
     };

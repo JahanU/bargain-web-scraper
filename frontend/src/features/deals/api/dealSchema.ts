@@ -1,5 +1,5 @@
 import * as z from "zod/mini";
-import { GENDERS } from "../model/Deal";
+import { CATEGORIES, GENDERS } from "../model/Deal";
 import { ApiError } from "./ApiError";
 
 // Prices are numbers now; the old backend sent strings like "£54.99", so those still parse.
@@ -24,11 +24,13 @@ const wireDeal = z.object({
   timestamp: z.number(),
   // A hint only (it comes from the listing URL), so an unknown value doesn't drop the deal.
   gender: z.catch(z.enum(GENDERS), "Unisex"),
+  brand: z.string().check(z.minLength(1)),
+  category: z.enum(CATEGORIES),
 });
 
 export type WireDeal = z.infer<typeof wireDeal>;
 
-/** Keeps every valid deal and drops the rest; only a body that isn't a list is an error. */
+/** Keeps every valid deal and drops the rest; a body that isn't a list, or has no valid deal, is an error. */
 export function parseDeals(body: unknown): WireDeal[] {
   if (!Array.isArray(body)) throw new ApiError("invalid-body");
   const deals: WireDeal[] = [];
@@ -37,6 +39,8 @@ export function parseDeals(body: unknown): WireDeal[] {
     if (result.success) deals.push(result.data);
   }
   const dropped = body.length - deals.length;
+  // Nothing valid in a non-empty list is a backend that speaks another shape, not an empty sale.
+  if (dropped > 0 && deals.length === 0) throw new ApiError("invalid-body");
   if (dropped > 0)
     console.warn(`Dropped ${dropped} of ${body.length} deals that failed validation.`);
   return deals;

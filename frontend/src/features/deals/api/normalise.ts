@@ -1,4 +1,3 @@
-import { brandOf } from "../model/brand";
 import type { Deal } from "../model/Deal";
 import { buildImage } from "../model/image";
 import { sortSizes } from "../model/sizes";
@@ -10,7 +9,7 @@ export function normaliseDeal(wire: WireDeal): Deal {
     id: wire.url,
     url: wire.url,
     name: wire.name,
-    brand: brandOf(wire.name),
+    brand: wire.brand,
     store: new URL(wire.url).hostname.replace(/^www\./, ""),
     nowPrice: wire.nowPrice,
     wasPrice: wire.wasPrice,
@@ -21,6 +20,7 @@ export function normaliseDeal(wire: WireDeal): Deal {
     searchText: wire.name.toLowerCase(),
     foundAt: wire.timestamp,
     gender: wire.gender,
+    category: wire.category,
   };
 }
 

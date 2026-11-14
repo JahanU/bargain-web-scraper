@@ -1,4 +1,5 @@
 import AxeBuilder from "@axe-core/playwright";
+import { devices } from "@playwright/test";
 import { expect, test } from "./test";
 
 for (const colorScheme of ["light", "dark"] as const) {
@@ -12,3 +13,28 @@ for (const colorScheme of ["light", "dark"] as const) {
     expect(results.violations).toEqual([]);
   });
 }
+
+test("no axe violations with the Brands popover open", async ({ page }) => {
+  await page.setViewportSize(devices["Desktop Chrome"].viewport);
+  await page.goto("/?brands=Nike");
+  await page.getByRole("button", { name: /^Brands/ }).click();
+  const popup = page.getByRole("dialog", { name: "Filter by brand" });
+  await expect(popup.getByRole("button", { name: "Nike, 22 deals" })).toBeVisible();
+  await popup.getByRole("button", { name: "Show all 12 brands" }).click();
+
+  const results = await new AxeBuilder({ page }).analyze();
+
+  expect(results.violations).toEqual([]);
+});
+
+test("no axe violations with the phone filter sheet open", async ({ page }) => {
+  await page.setViewportSize(devices["iPhone 13"].viewport);
+  await page.goto("/?brands=Nike&category=Clothes");
+  await page.getByRole("button", { name: "Filters (1)" }).click();
+  const sheet = page.getByRole("dialog", { name: "Filters" });
+  await expect(sheet.getByRole("button", { name: "Nike, 20 deals" })).toBeVisible();
+
+  const results = await new AxeBuilder({ page }).analyze();
+
+  expect(results.violations).toEqual([]);
+});

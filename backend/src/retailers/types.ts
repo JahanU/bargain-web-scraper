@@ -1,4 +1,4 @@
-import type { Gender } from '@/deals';
+import type { Category, Gender } from '@/deals';
 
 /** One product as a retailer lists it right now, normalised to our shape. */
 export interface Product {
@@ -7,6 +7,8 @@ export interface Product {
     url: string;
     imageUrl: string | null;
     gender: Gender;
+    brand: string;
+    category: Category;
     sizes: string[];
     wasPricePence: number;
     nowPricePence: number;

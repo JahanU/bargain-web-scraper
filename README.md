@@ -35,7 +35,7 @@ The [web app](https://bargain-scraper.netlify.app/) lets you search, set a minim
 flowchart LR
     api["📦 Backend<br/><small>GET /v1/deals</small>"]
     query["🗄️ TanStack Query<br/><small>cache · saved in the browser</small>"]
-    url["🔗 URL<br/><small>?search · discount · sizes · sort</small>"]
+    url["🔗 URL<br/><small>?gender · category · brands · search · discount · sizes · sort</small>"]
     nuqs["🧭 nuqs<br/><small>typed URL state</small>"]
     page["📄 DealsPage<br/><small>one filter + sort pass</small>"]
     ui["🖥️ Toolbar · chips · deal grid"]
