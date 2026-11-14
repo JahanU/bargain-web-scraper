@@ -115,8 +115,7 @@ export function createSizeRetailer({ delayMs = REQUEST_DELAY_MS } = {}): Retaile
                         await Bun.sleep(delayMs);
                     }
                     const { nodes, pageInfo } = await salePage(handle, cursor);
-                    // Most of Size's brands are ones we don't list, so they are passed over without a warning.
-                    const wanted = nodes.filter((node) => canonicalBrand(node.vendor) && !isBlockedName(node.title));
+                    const wanted = nodes.filter((node) => !isBlockedName(nameWithoutBrand(node)));
                     const parsed = wanted
                         .map((node) => parseNode(node, gender))
                         .filter((product) => product !== undefined);
@@ -132,13 +131,18 @@ export function createSizeRetailer({ delayMs = REQUEST_DELAY_MS } = {}): Retaile
             }
 
             if (products.length < listed) {
-                log.warn('⚠ skipped products with no usable category or audience', {
+                log.warn('⚠ skipped products with no usable brand, category or audience', {
                     skipped: listed - products.length,
                 });
             }
             return { products, complete };
         },
     };
+}
+
+/** Size starts every title with the brand, and a brand such as "Home Grown" is not a blocked word. */
+function nameWithoutBrand({ title, vendor }: Node): string {
+    return title.startsWith(vendor) ? title.slice(vendor.length) : title;
 }
 
 /** The audience a product type names. One with no path ("Footwear") takes the gender of its sale. */
@@ -152,9 +156,11 @@ function genderOf(productType: string, sale: Gender): Gender | undefined {
 
 const pence = (pounds: string) => Math.round(Number(pounds) * 100);
 
-/** Maps one product, or nothing if it has no brand we list, or no category or audience we can tell. */
+/** Maps one product, or nothing if it has no brand, category or audience we can tell. */
 function parseNode(node: Node, sale: Gender): Product | undefined {
-    const brand = canonicalBrand(node.vendor);
+    // Size is kept whole: the brand list exists for JD's filler labels. A brand on it takes our
+    // spelling, so it is one entry across stores; any other keeps Size's.
+    const brand = canonicalBrand(node.vendor) ?? node.vendor.trim();
     const category = categoryIn([node.productType]);
     const gender = genderOf(node.productType, sale);
     if (!brand || !category || !gender) {
