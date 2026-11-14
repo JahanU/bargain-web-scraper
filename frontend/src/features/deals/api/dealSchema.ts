@@ -1,5 +1,5 @@
 import * as z from "zod/mini";
-import { CATEGORIES, GENDERS, STORES } from "../model/Deal";
+import { CATEGORIES, GENDERS } from "../model/Deal";
 import { ApiError } from "./ApiError";
 
 // Prices are numbers now; the old backend sent strings like "£54.99", so those still parse.
@@ -26,22 +26,50 @@ const wireDeal = z.object({
   gender: z.catch(z.enum(GENDERS), "Unisex"),
   brand: z.string().check(z.minLength(1)),
   category: z.enum(CATEGORIES),
-  // Optional: snapshots saved before Size was added, and an older backend, have none.
-  store: z.optional(z.enum(STORES)),
+  store: z.string().check(z.minLength(1)),
 });
 
 export type WireDeal = z.infer<typeof wireDeal>;
 
-/** Keeps every valid deal and drops the rest; only a body that isn't a list is an error. */
-export function parseDeals(body: unknown): WireDeal[] {
-  if (!Array.isArray(body)) throw new ApiError("invalid-body");
-  const deals: WireDeal[] = [];
-  for (const item of body) {
-    const result = wireDeal.safeParse(item);
-    if (result.success) deals.push(result.data);
+const label = z.string().check(z.minLength(1));
+const count = z.int().check(z.nonnegative());
+
+const facets = z.object({
+  stores: z.array(z.object({ store: label, name: label, count })),
+  brands: z.array(z.object({ brand: label, count })),
+  sizes: z.array(z.object({ size: label, count })),
+  discounts: z.array(z.object({ minDiscount: z.int(), count })),
+});
+
+export type Facets = z.infer<typeof facets>;
+
+const envelope = z.object({
+  items: z.array(z.unknown()),
+  total: count,
+  nextCursor: z.nullable(z.string()),
+  trackingSince: z.number(),
+  facets: z.optional(facets),
+});
+
+/** One page of GET /v2/deals. `facets` come with the first page only. */
+export type WirePage = Omit<z.infer<typeof envelope>, "items"> & { items: WireDeal[] };
+
+/**
+ * The envelope is strict: its totals and counts are shown as facts, so anything malformed is an
+ * error. The deals are tolerant: every valid one is kept and the rest dropped.
+ */
+export function parsePage(body: unknown): WirePage {
+  const result = envelope.safeParse(body);
+  if (!result.success) throw new ApiError("invalid-body");
+  const items: WireDeal[] = [];
+  for (const item of result.data.items) {
+    const deal = wireDeal.safeParse(item);
+    if (deal.success) items.push(deal.data);
   }
-  const dropped = body.length - deals.length;
+  const dropped = result.data.items.length - items.length;
+  // Nothing valid in a non-empty page is a backend that speaks another shape, not an empty sale.
+  if (dropped > 0 && items.length === 0) throw new ApiError("invalid-body");
   if (dropped > 0)
-    console.warn(`Dropped ${dropped} of ${body.length} deals that failed validation.`);
-  return deals;
+    console.warn(`Dropped ${dropped} of ${result.data.items.length} deals that failed validation.`);
+  return { ...result.data, items };
 }

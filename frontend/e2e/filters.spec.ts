@@ -1,6 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
 import { devices } from "@playwright/test";
-import { dealsApi, expect, test } from "./test";
+import { dealsApi, expect, fixture, serveDeals, test } from "./test";
 
 test("desktop: search, discount and sizes filter the grid, and a reload restores them", async ({
   page,
@@ -19,14 +19,13 @@ test("desktop: search, discount and sizes filter the grid, and a reload restores
   await page.keyboard.press("Escape");
 
   await expect(page).toHaveURL(/\?search=nike&discount=50&sizes=M$/);
-  const summary = page.getByText(/^\d+ of 81 deals$/);
-  const filtered = await summary.textContent();
+  await expect(page.getByText("12 deals")).toBeVisible();
 
   await page.reload();
 
   await expect(page.getByRole("searchbox", { name: "Search deals" })).toHaveValue("nike");
   await expect(page.getByRole("radio", { name: "50%" })).toBeChecked();
-  await expect(page.getByText(filtered ?? "")).toBeVisible();
+  await expect(page.getByText("12 deals")).toBeVisible();
   await expect(page.getByRole("list", { name: "Active filters" }).getByRole("button")).toHaveText([
     "“nike”",
     "≥50%",
@@ -62,7 +61,7 @@ test("desktop: category and brands narrow the list through the API, by keyboard,
 
   await expect(page).toHaveURL(/\?category=Shoes&brands=Vans,adidas$/);
   await expect(page.getByText("12 deals")).toBeVisible();
-  expect(requests.at(-1)).toBe("?gender=Male&category=Shoes&brand=Vans&brand=adidas");
+  expect(requests.at(-1)).toBe("?gender=Male&category=Shoes&brand=Vans&brand=adidas&limit=60");
 
   await page.keyboard.press("Escape");
   await expect(popup).toBeHidden();
@@ -81,61 +80,6 @@ test("desktop: category and brands narrow the list through the API, by keyboard,
   await page.getByRole("button", { name: "Clear all" }).click();
   await expect(page).toHaveURL(/\?category=Shoes$/);
   await expect(page.getByText("21 deals")).toBeVisible();
-});
-
-test("each card shows its store; Size asks the API for store=size only, and All sends no store", async ({
-  page,
-}) => {
-  await page.setViewportSize(devices["Desktop Chrome"].viewport);
-  const requests: string[] = [];
-  page.on("request", (request) => {
-    const url = new URL(request.url());
-    if (url.pathname.startsWith("/v1/")) requests.push(url.pathname + url.search);
-  });
-  await page.goto("/");
-  await expect(page.getByText("81 deals")).toBeVisible();
-  const store = page.getByRole("group", { name: "Store" });
-  await expect(store.getByRole("radio", { name: "All" })).toBeChecked();
-  expect(requests.some((request) => request.includes("store"))).toBe(false);
-
-  const cards = page.locator("a", { has: page.getByRole("heading", { level: 2 }) });
-  const badge = (label: string) => page.getByText(label, { exact: true }).and(page.locator("span"));
-  await expect(cards.first()).toHaveAccessibleName(/^Nike NFL Las Vegas Raiders .* JD, Men/);
-  await expect(cards.first().locator(badge("JD"))).toBeVisible();
-  await expect(cards.filter({ has: badge("Size") }).first()).toHaveAccessibleName(/ Size, Men/);
-
-  requests.length = 0;
-  await store.getByRole("radio", { name: "Size" }).check();
-
-  await expect(page.getByText("13 deals")).toBeVisible();
-  await expect(page).toHaveURL(/\?store=size$/);
-  expect(requests.sort()).toEqual([
-    "/v1/brands?gender=Male&store=size",
-    "/v1/deals?gender=Male&store=size",
-  ]);
-  await expect(cards.filter({ has: badge("Size") })).toHaveCount(await cards.count());
-  await expect(cards.filter({ has: badge("JD") })).toHaveCount(0);
-
-  await page.reload();
-  await expect(page.getByText("13 deals")).toBeVisible();
-  await expect(store.getByRole("radio", { name: "Size" })).toBeChecked();
-
-  requests.length = 0;
-  await store.getByRole("radio", { name: "JD" }).check();
-  await expect(page.getByText("68 deals")).toBeVisible();
-  expect(requests.sort()).toEqual([
-    "/v1/brands?gender=Male&store=jd",
-    "/v1/deals?gender=Male&store=jd",
-  ]);
-
-  requests.length = 0;
-  // The deals for All are still cached from the first load, so make the app ask again.
-  await page.reload();
-  await store.getByRole("radio", { name: "All" }).check();
-  await expect(page.getByText("81 deals")).toBeVisible();
-  await expect(page).toHaveURL(/\/$/);
-  const afterAll = requests.filter((request) => !request.includes("store=jd"));
-  expect(afterAll.sort()).toEqual(["/v1/brands?gender=Male", "/v1/deals?gender=Male"]);
 });
 
 test.describe("phone", () => {
@@ -201,3 +145,65 @@ test.describe("phone", () => {
     await expect(page).toHaveURL(/\?discount=60$/);
   });
 });
+
+// Four copies of the fixture: enough Nike deals in size M to need a second page.
+const catalogue = [0, 1, 2, 3].flatMap((copy) =>
+  fixture.map((deal) => ({ ...deal, url: `${deal.url}?copy=${copy}` })),
+);
+const nikeInM = catalogue.filter((deal) => deal.brand === "Nike" && deal.sizes?.includes("M"));
+
+for (const { device, viewport } of [
+  { device: "desktop", viewport: devices["Desktop Chrome"].viewport },
+  { device: "phone", viewport: devices["iPhone 13"].viewport },
+]) {
+  test(`${device}: search, a brand and a size narrow the list, and scrolling loads its second page`, async ({
+    page,
+  }) => {
+    await page.setViewportSize(viewport);
+    await serveDeals(page, catalogue);
+    const cursors: Array<string | null> = [];
+    page.on("request", (request) => {
+      const url = new URL(request.url());
+      if (dealsApi(url) && url.searchParams.get("q") === "nike" && url.searchParams.has("size"))
+        cursors.push(url.searchParams.get("cursor"));
+    });
+    await page.goto("/");
+    await expect(page.getByText(`${catalogue.length} deals`)).toBeVisible();
+
+    await page.getByRole("searchbox", { name: "Search deals" }).fill("nike");
+    if (device === "desktop") {
+      await page.getByRole("button", { name: /^Brands/ }).click();
+      await page.getByRole("button", { name: /^Nike, / }).click();
+      await page.keyboard.press("Escape");
+      await page.getByRole("button", { name: /^Sizes/ }).click();
+      await page.getByRole("button", { name: /^M, / }).click();
+      await page.keyboard.press("Escape");
+    } else {
+      await page.getByRole("button", { name: "Filters" }).click();
+      const sheet = page.getByRole("dialog", { name: "Filters" });
+      await sheet.getByRole("button", { name: /^Nike, / }).click();
+      await sheet.getByRole("button", { name: /^M, / }).click();
+      await sheet.getByRole("button", { name: `Show ${nikeInM.length} deals` }).click();
+    }
+
+    await expect(page).toHaveURL(/\?search=nike&brands=Nike&sizes=M$/);
+    await expect(page.getByText(`${nikeInM.length} deals`)).toBeVisible();
+    const cards = page.locator("main [aria-posinset]");
+    await expect(cards.first()).toHaveAttribute("aria-setsize", String(nikeInM.length));
+    expect(cursors).toEqual([null]); // one page so far
+
+    // Each scroll reaches the end of what is loaded; the last deal arrives with the second page.
+    await expect(async () => {
+      await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+      await expect(cards.last()).toHaveAttribute("aria-posinset", String(nikeInM.length), {
+        timeout: 1000,
+      });
+    }).toPass();
+    expect(cursors).toHaveLength(2);
+    expect(cursors[1]).not.toBeNull();
+    await expect(page.getByText("Loading more deals…")).toHaveCount(0);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(
+      viewport.width,
+    );
+  });
+}

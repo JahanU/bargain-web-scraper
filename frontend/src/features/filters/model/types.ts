@@ -1,15 +1,12 @@
 import type { SingleParserBuilder } from "nuqs";
-import type { Deal } from "@/features/deals";
 
 export type FilterChip<T> = { label: string; next: T };
 
-/** One filter: everything the app needs except its control. */
+/** One filter: everything the app needs except its control. The backend does the filtering. */
 export type FilterDefinition<T> = {
   /** URL parsing and serialising; its default is omitted from the URL. */
   parser: SingleParserBuilder<T> & { readonly defaultValue: T };
   isActive: (value: T) => boolean;
-  /** Built once per filter pass, then run per deal. */
-  predicate: (value: T) => (deal: Deal) => boolean;
   /** One removable chip per active part of the value, with the value after removing it. */
   chips: (value: T) => FilterChip<T>[];
 };

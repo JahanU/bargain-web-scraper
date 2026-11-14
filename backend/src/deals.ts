@@ -6,10 +6,6 @@ export type Gender = (typeof GENDERS)[number];
 export const CATEGORIES = ['Shoes', 'Clothes', 'Accessories'] as const;
 export type Category = (typeof CATEGORIES)[number];
 
-/** The shops we read. Called stores, as on the site, though each is a `Retailer` in the code. */
-export const STORES = ['jd', 'size'] as const;
-export type Store = (typeof STORES)[number];
-
 /** A deal exactly as the frontend's `Item` expects it. */
 export interface Deal {
     name: string;
@@ -24,14 +20,14 @@ export interface Deal {
     gender: Gender;
     brand: string;
     category: Category;
-    store: Store;
+    /** The id of the retailer selling it, e.g. "jd". */
+    store: string;
 }
 
 /** What a request narrows the deals by. An absent field (or no brands) means "any". */
 export interface DealFilter {
     gender?: Gender;
     category?: Category;
-    store?: Store;
     /** A deal matches if its brand is any of these, compared exactly. */
     brands: string[];
 }
@@ -41,12 +37,11 @@ export interface BrandCount {
     count: number;
 }
 
-export function filterDeals(deals: Deal[], { gender, category, store, brands }: DealFilter): Deal[] {
+export function filterDeals(deals: Deal[], { gender, category, brands }: DealFilter): Deal[] {
     return deals.filter(
         (deal) =>
             (gender === undefined || deal.gender === gender) &&
             (category === undefined || deal.category === category) &&
-            (store === undefined || deal.store === store) &&
             (brands.length === 0 || brands.includes(deal.brand)),
     );
 }
@@ -87,6 +82,8 @@ export const UNISEX: Gender = 'Unisex';
 
 interface StoredProduct extends Product {
     firstSeenAt: number;
+    /** The id of the retailer it was listed by. */
+    store: string;
 }
 
 /**
@@ -94,10 +91,10 @@ interface StoredProduct extends Product {
  * accepted listing, so a product that sells out is simply gone.
  */
 export class DealStore {
-    private readonly byRetailer = new Map<Store, Map<string, StoredProduct>>();
-    private readonly heldBack = new Set<Store>();
+    private readonly byRetailer = new Map<string, Map<string, StoredProduct>>();
+    private readonly heldBack = new Set<string>();
 
-    accept(retailer: Store, listing: Listing, now = Date.now()): AcceptResult {
+    accept(retailer: string, listing: Listing, now = Date.now()): AcceptResult {
         const previous = this.byRetailer.get(retailer) ?? new Map<string, StoredProduct>();
         const listed = dedupe(listing.products);
         const inStock = [...listed.values()].filter((product) => product.inStock);
@@ -112,7 +109,7 @@ export class DealStore {
         }
         for (const product of inStock) {
             const firstSeenAt = previous.get(product.externalId)?.firstSeenAt ?? now;
-            next.set(product.externalId, { ...product, firstSeenAt });
+            next.set(product.externalId, { ...product, firstSeenAt, store: retailer });
         }
 
         this.byRetailer.set(retailer, next);
@@ -126,16 +123,14 @@ export class DealStore {
 
     /** Deals at or above the discount floor, best discount first, then cheapest. */
     deals(minDiscount: number): Deal[] {
-        return [...this.byRetailer]
-            .flatMap(([store, products]) => [...products.values()].map((product) => ({ store, product })))
-            .filter(({ product }) => product.discount >= minDiscount)
-            .sort(
-                (a, b) => b.product.discount - a.product.discount || a.product.nowPricePence - b.product.nowPricePence,
-            )
-            .map(({ store, product }) => toDeal(product, store));
+        return [...this.byRetailer.values()]
+            .flatMap((products) => [...products.values()])
+            .filter((product) => product.discount >= minDiscount)
+            .sort((a, b) => b.discount - a.discount || a.nowPricePence - b.nowPricePence)
+            .map(toDeal);
     }
 
-    private statusFor(retailer: Store, complete: boolean, inStock: number, held: number): AcceptStatus {
+    private statusFor(retailer: string, complete: boolean, inStock: number, held: number): AcceptStatus {
         if (!complete) {
             return 'incomplete';
         }
@@ -171,7 +166,7 @@ function dedupe(products: Product[]): Map<string, Product> {
     return byId;
 }
 
-function toDeal(product: StoredProduct, store: Store): Deal {
+function toDeal(product: StoredProduct): Deal {
     return {
         name: product.name,
         wasPrice: product.wasPricePence / 100,
@@ -184,6 +179,6 @@ function toDeal(product: StoredProduct, store: Store): Deal {
         gender: product.gender,
         brand: product.brand,
         category: product.category,
-        store,
+        store: product.store,
     };
 }

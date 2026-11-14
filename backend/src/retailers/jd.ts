@@ -1,8 +1,7 @@
-import { UNISEX } from '@/deals';
+import { type Category, UNISEX } from '@/deals';
 import { createLogger, duration } from '@/log';
 import { isBlockedName } from '@/retailers/blocklist';
-import { categoryIn } from '@/retailers/category';
-import { request } from '@/retailers/request';
+import { BRAND_SPELLINGS, canonicalBrand } from '@/retailers/brands';
 import type { Listing, Product, Retailer } from '@/retailers/types';
 
 const log = createLogger('jd');
@@ -16,6 +15,9 @@ const NEXT_DATA_PATTERN = /<script id="__NEXT_DATA__" type="application\/json">(
 // JD's top-level categories we read. Each is its own query: Algolia serves at most 5,000 hits per
 // query, and the men's and women's sales together can pass that.
 const CATEGORIES = ['Men', 'Women'];
+
+// Only the brands we list. JD matches brand names whatever their case.
+const BRAND_FILTER = BRAND_SPELLINGS.map((brand) => `brand:${brand}`);
 
 // Algolia's per-request maximum.
 const HITS_PER_PAGE = 1000;
@@ -36,6 +38,16 @@ const ATTRIBUTES = [
     'brand',
     'category',
 ];
+
+// JD's product kinds, as its `category` field names them and as they appear in its lvl1 paths
+// ("Men > Mens Footwear").
+const KINDS: [jd: string, ours: Category][] = [
+    ['Footwear', 'Shoes'],
+    ['Clothing', 'Clothes'],
+    ['Accessories', 'Accessories'],
+];
+
+const REQUEST_TIMEOUT_MS = 15_000;
 
 interface SearchConfig {
     applicationId: string;
@@ -71,7 +83,10 @@ export function createJDRetailer(): Retailer {
 
     /** Reads the Algolia credentials and main product index out of a listing page. */
     async function learnConfig(): Promise<SearchConfig> {
-        const response = await request('Listing page', CONFIG_PAGE_URL);
+        const response = await fetch(CONFIG_PAGE_URL, { signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS) });
+        if (!response.ok) {
+            throw new Error(`Listing page returned status ${response.status}`);
+        }
         const payload = JSON.parse((await response.text()).match(NEXT_DATA_PATTERN)?.[1] ?? 'null');
         const { applicationId, searchApiKey, indices } = payload?.props?.pageProps?.algoliaConfig ?? {};
         const indexName = indices?.find((index: { type: string }) => index.type === 'main')?.name;
@@ -87,22 +102,22 @@ export function createJDRetailer(): Retailer {
         page: number,
     ) {
         const started = performance.now();
-        const response = await request(
-            'Algolia search',
-            `https://${applicationId}-dsn.algolia.net/1/indexes/${indexName}/query`,
-            {
-                method: 'POST',
-                headers: { 'x-algolia-application-id': applicationId, 'x-algolia-api-key': searchApiKey },
-                body: JSON.stringify({
-                    facetFilters: [['onSale:true'], [`hierarchicalCategories.lvl0:${category}`]],
-                    hitsPerPage: HITS_PER_PAGE,
-                    page,
-                    attributesToRetrieve: ATTRIBUTES,
-                    // Without this, Algolia adds match highlighting to every hit: 2.5MB a page instead of 320KB.
-                    attributesToHighlight: [],
-                }),
-            },
-        );
+        const response = await fetch(`https://${applicationId}-dsn.algolia.net/1/indexes/${indexName}/query`, {
+            method: 'POST',
+            headers: { 'x-algolia-application-id': applicationId, 'x-algolia-api-key': searchApiKey },
+            body: JSON.stringify({
+                facetFilters: [['onSale:true'], [`hierarchicalCategories.lvl0:${category}`], BRAND_FILTER],
+                hitsPerPage: HITS_PER_PAGE,
+                page,
+                attributesToRetrieve: ATTRIBUTES,
+                // Without this, Algolia adds match highlighting to every hit: 2.5MB a page instead of 320KB.
+                attributesToHighlight: [],
+            }),
+            signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+        });
+        if (!response.ok) {
+            throw new Error(`Algolia search failed with status ${response.status}`);
+        }
         const body = (await response.json()) as SearchPage;
         log.debug(`algolia ${category} page ${page + 1}/${body.nbPages}`, {
             hits: body.hits.length,
@@ -149,6 +164,7 @@ export function createJDRetailer(): Retailer {
 
     return {
         id: 'jd',
+        name: 'JD Sports',
         async fetchListing() {
             try {
                 config ??= await learnConfig();
@@ -162,13 +178,16 @@ export function createJDRetailer(): Retailer {
 }
 
 /** JD's own `category` when it names a kind we know, else the kind in its lvl1 paths. */
-function categoryOf(hit: Hit) {
-    return categoryIn(hit.category?.slice(0, 1) ?? []) ?? categoryIn(hit.hierarchicalCategories.lvl1 ?? []);
+function categoryOf(hit: Hit): Category | undefined {
+    const paths = hit.hierarchicalCategories.lvl1 ?? [];
+    const kind =
+        KINDS.find(([jd]) => jd === hit.category?.[0]) ?? KINDS.find(([jd]) => paths.some((path) => path.includes(jd)));
+    return kind?.[1];
 }
 
-/** Maps one hit to a product, or nothing if it has no brand or no category we can tell. */
+/** Maps one hit to a product, or nothing if it has no brand we list or no category we can tell. */
 function parseHit(hit: Hit): Product | undefined {
-    const brand = hit.brand?.[0]?.trim();
+    const brand = canonicalBrand(hit.brand?.[0] ?? '');
     const category = categoryOf(hit);
     if (!brand || !category) {
         return undefined;

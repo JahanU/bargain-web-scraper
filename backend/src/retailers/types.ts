@@ -1,4 +1,4 @@
-import type { Category, Gender, Store } from '@/deals';
+import type { Category, Gender } from '@/deals';
 
 /** One product as a retailer lists it right now, normalised to our shape. */
 export interface Product {
@@ -28,6 +28,8 @@ export interface Listing {
 
 /** A source of sale products. Throws when nothing usable could be fetched. */
 export interface Retailer {
-    id: Store;
+    id: string;
+    /** The shop's name as shoppers know it, e.g. "JD Sports". */
+    name: string;
     fetchListing(): Promise<Listing>;
 }

@@ -1,6 +1,5 @@
 import { createLoader, createSerializer } from "nuqs";
 import { expect, test } from "vite-plus/test";
-import { deal } from "@/test/deal";
 import { activeChips, filterRegistry } from "./registry";
 import { sortParser } from "./sort";
 
@@ -9,6 +8,7 @@ const parsers = {
   discount: filterRegistry.discount.parser,
   sizes: filterRegistry.sizes.parser,
   brands: filterRegistry.brands.parser,
+  stores: filterRegistry.stores.parser,
   sort: sortParser,
 };
 const load = createLoader(parsers);
@@ -18,6 +18,7 @@ const DEFAULTS = {
   discount: 30,
   sizes: [] as string[],
   brands: [] as string[],
+  stores: [] as string[],
   sort: "discount-high-to-low" as const,
 };
 
@@ -27,6 +28,7 @@ test("a link shared before the rewrite parses as it did", () => {
     discount: 30,
     sizes: ["M", "L"],
     brands: [],
+    stores: [],
     sort: "price-low-to-high",
   });
 });
@@ -44,6 +46,7 @@ test.each([
   ["?discount=50", { discount: 50 }],
   ["?sizes=S,M,8", { sizes: ["S", "M", "8"] }],
   ["?brands=New+Balance,Nike", { brands: ["New Balance", "Nike"] }],
+  ["?stores=footlocker,jd", { stores: ["footlocker", "jd"] }],
   ["?sort=price-high-to-low", { sort: "price-high-to-low" }],
   [
     "?search=air+max&discount=70&sizes=XL,9&sort=discount-low-to-high",
@@ -66,14 +69,15 @@ test("search is trimmed and capped at 64 characters", () => {
   expect(serialize({ search: " nike " })).toBe("?search=nike");
 });
 
-test.each(["5", "10", "20", "35", "0", "110", "abc", "50.5", "5e1", ""])(
+test.each(["5", "10", "20", "29", "0", "101", "110", "abc", "50.5", "5e1", "-40", ""])(
   "discount=%j falls back to 30",
   (value) => {
     expect(load(`?discount=${value}`).discount).toBe(30);
   },
 );
 
-test.each([30, 40, 100])("discount=%i is a valid stop", (value) => {
+// The stops on offer are the backend's; the URL takes any whole percentage it could list.
+test.each([30, 35, 40, 100])("discount=%i is kept", (value) => {
   expect(load(`?discount=${value}`).discount).toBe(value);
 });
 
@@ -105,24 +109,22 @@ test("unknown params are ignored", () => {
 
 test("one chip per non-default value, each knowing the value without it", () => {
   expect(
-    activeChips({ search: "nike", discount: 50, sizes: ["M", "L"], brands: ["Nike"] }),
+    activeChips({
+      search: "nike",
+      discount: 50,
+      sizes: ["M", "L"],
+      brands: ["Nike"],
+      stores: ["jd"],
+    }),
   ).toEqual([
     { filter: "search", label: "“nike”", next: "" },
     { filter: "discount", label: "≥50%", next: 30 },
     { filter: "sizes", label: "M", next: ["L"] },
     { filter: "sizes", label: "L", next: ["M"] },
     { filter: "brands", label: "Nike", next: [] },
+    { filter: "stores", label: "jd", next: [] },
   ]);
-  expect(activeChips({ search: "  ", discount: 30, sizes: [], brands: [] })).toEqual([]);
-});
-
-test("predicates", () => {
-  const tee = deal({ name: "Nike Tee", discount: 40, sizes: ["M"] });
-  expect(filterRegistry.search.predicate(" TEE ")(tee)).toBe(true);
-  expect(filterRegistry.discount.predicate(40)(tee)).toBe(true);
-  expect(filterRegistry.discount.predicate(50)(tee)).toBe(false);
-  expect(filterRegistry.sizes.predicate(["S", "M"])(tee)).toBe(true);
-  expect(filterRegistry.sizes.predicate(["S"])(tee)).toBe(false);
-  expect(filterRegistry.brands.predicate(["adidas", "Nike"])(tee)).toBe(true);
-  expect(filterRegistry.brands.predicate(["adidas"])(tee)).toBe(false);
+  expect(activeChips({ search: "  ", discount: 30, sizes: [], brands: [], stores: [] })).toEqual(
+    [],
+  );
 });

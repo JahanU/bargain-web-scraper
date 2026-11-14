@@ -2,7 +2,6 @@ import { startApp } from '@/app';
 import { loadConfig } from '@/config';
 import { createLogger, duration } from '@/log';
 import { createJDRetailer } from '@/retailers/jd';
-import { createSizeRetailer } from '@/retailers/size';
 
 const log = createLogger('app');
 const config = loadConfig();
@@ -14,4 +13,4 @@ log.info('▶ starting', {
     logLevel: Bun.env.LOG_LEVEL || 'info',
 });
 
-startApp({ ...config, retailers: [createJDRetailer(), createSizeRetailer()] });
+startApp({ ...config, retailers: [createJDRetailer()] });

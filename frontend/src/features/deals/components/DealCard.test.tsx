@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
-import { expect, test } from "vite-plus/test";
+import { expect, test, vi } from "vite-plus/test";
 import { axe } from "vitest-axe";
 import { deal } from "@/test/deal";
 import { DealCard } from "./DealCard";
@@ -23,7 +23,7 @@ test("one link, named by its own text with the price read once, opening a new ta
   expect(link).not.toHaveAttribute("aria-label"); // visible text is the name (WCAG 2.5.3)
   // The whole name, so the price provably appears once.
   expect(link).toHaveAccessibleName(
-    /^Nike NFL Tee\s*£10 was £30\s*, 67% off\s*Sizes\s*S\s*M\s*L\s*XL\s*XXL\s*\+2\s*JD, Men$/,
+    /^Nike NFL Tee\s*£10 was £30\s*, 67% off\s*Sizes\s*S\s*M\s*L\s*XL\s*XXL\s*\+2\s*Men$/,
   );
   expect(link).toHaveAttribute("href", "https://www.jdsports.co.uk/product/nike-nfl-tee/1/");
   expect(link).toHaveAttribute("target", "_blank");
@@ -38,7 +38,6 @@ test("shows prices, the badge and the first five sizes with +N", () => {
   expect(screen.getByText("£10")).toBeVisible();
   expect(screen.getByText("£30").tagName).toBe("S");
   expect(screen.getByText("-67%")).toHaveAttribute("aria-hidden", "true");
-  expect(screen.getByText("JD", { selector: "[aria-hidden]" })).toBeVisible();
   expect(screen.getByText("+2")).toBeInTheDocument();
   expect(screen.queryByText("XXXL")).not.toBeInTheDocument();
 });
@@ -81,9 +80,44 @@ test("a deal from the server-start batch has no found time and no marker", () =>
   expect(screen.queryByText(/Found/)).not.toBeInTheDocument();
 });
 
+const LOADED = { serverStart: 0, hasMore: false, loadingMore: false, onLoadMore: () => {} };
+
+test("the grid asks for the next page once its last rows are near, and not before", () => {
+  const onLoadMore = vi.fn();
+  const many = Array.from({ length: 200 }, () => deal());
+  const far = render(
+    <DealGrid {...LOADED} deals={many} total={500} hasMore onLoadMore={onLoadMore} />,
+  );
+  expect(onLoadMore).not.toHaveBeenCalled();
+  far.unmount();
+
+  render(
+    <DealGrid {...LOADED} deals={many.slice(0, 6)} total={500} hasMore onLoadMore={onLoadMore} />,
+  );
+  expect(onLoadMore).toHaveBeenCalled();
+});
+
+test("the end of the list has no control, and never asks for more", () => {
+  const onLoadMore = vi.fn();
+  render(<DealGrid {...LOADED} deals={[deal()]} total={1} onLoadMore={onLoadMore} />);
+
+  expect(onLoadMore).not.toHaveBeenCalled();
+  expect(screen.queryByRole("status")).not.toBeInTheDocument();
+});
+
+test("while more can load a status row waits, and says so once the next page is on its way", () => {
+  const deals = Array.from({ length: 6 }, () => deal());
+  const { rerender } = render(<DealGrid {...LOADED} deals={deals} total={500} hasMore />);
+  expect(screen.getByRole("status")).toBeEmptyDOMElement();
+
+  rerender(<DealGrid {...LOADED} deals={deals} total={500} hasMore loadingMore />);
+
+  expect(screen.getByRole("status")).toHaveTextContent("Loading more deals…");
+});
+
 test("the grid renders only the rows near the viewport, each card knowing its place in the list", () => {
   const deals = Array.from({ length: 200 }, () => deal());
-  const { container } = render(<DealGrid deals={deals} serverStart={0} />);
+  const { container } = render(<DealGrid {...LOADED} deals={deals} total={500} />);
   const items = [...container.querySelectorAll('[role="listitem"]')]; // not the size chips' <li>s
 
   expect(items.length).toBeGreaterThan(0);
@@ -91,12 +125,13 @@ test("the grid renders only the rows near the viewport, each card knowing its pl
   expect(items.map((item) => item.getAttribute("aria-posinset"))).toEqual(
     items.map((_, index) => String(index + 1)),
   );
-  expect(items.every((item) => item.getAttribute("aria-setsize") === "200")).toBe(true);
+  // The size is every match, not just the pages loaded so far.
+  expect(items.every((item) => item.getAttribute("aria-setsize") === "500")).toBe(true);
 });
 
 test("the grid loads the first ten images eagerly at high priority and the rest lazily", () => {
   const deals = Array.from({ length: 12 }, () => deal());
-  const { container } = render(<DealGrid deals={deals} serverStart={0} />);
+  const { container } = render(<DealGrid {...LOADED} deals={deals} total={12} />);
   const images = [...container.querySelectorAll("img")];
 
   expect(images.slice(0, 10).every((image) => image.getAttribute("loading") === "eager")).toBe(

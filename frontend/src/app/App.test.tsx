@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
 import { beforeEach, expect, test } from "vite-plus/test";
 import { axe } from "vitest-axe";
+import { queryDeals } from "@/mocks/api";
 import { server } from "@/mocks/server";
 import { makeDeal } from "@/test/makeDeal";
 import { renderWithClient } from "@/test/render";
@@ -11,7 +12,9 @@ import { App } from "./App";
 // The shell doesn't need the full fixture; a short list keeps these tests fast.
 beforeEach(() => {
   server.use(
-    http.get("http://localhost:8000/v1/deals", () => HttpResponse.json([makeDeal(), makeDeal()])),
+    http.get("http://localhost:8000/v2/deals", () =>
+      HttpResponse.json(queryDeals([makeDeal(), makeDeal()]).json),
+    ),
   );
 });
 
@@ -53,7 +56,7 @@ test("the About button opens a factual dialog, and Escape returns focus", async 
 
   const dialog = await screen.findByRole("dialog", { name: "About Bargain" });
   expect(dialog).toHaveTextContent("30% off or more");
-  expect(dialog).toHaveTextContent("Not affiliated with JD Sports or Size.");
+  expect(dialog).toHaveTextContent("Not affiliated with JD Sports.");
 
   await userEvent.keyboard("{Escape}");
   await expect.poll(() => screen.queryByRole("dialog")).toBeNull();
