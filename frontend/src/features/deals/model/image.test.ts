@@ -23,3 +23,18 @@ test("replaces any size parameters already on the URL", () => {
 test("an unusable URL gives no image rather than a broken one", () => {
   expect(buildImage("not a url")).toBeUndefined();
 });
+
+test("a Shopify photo (Size) keeps its version and is resized by width only, so it keeps its shape", () => {
+  const file =
+    "https://cdn.shopify.com/s/files/1/0921/0911/1619/files/sz_778334_a_441b0d25-2f80-496f-86ff-e6419ac43475.jpg";
+  const image = buildImage(`${file}?v=1792586592`);
+
+  expect(image?.srcSet.split(", ")).toEqual([
+    `${file}?v=1792586592&width=240 240w`,
+    `${file}?v=1792586592&width=360 360w`,
+    `${file}?v=1792586592&width=480 480w`,
+    `${file}?v=1792586592&width=720 720w`,
+  ]);
+  expect(image?.src).toBe(`${file}?v=1792586592&width=360`);
+  expect(buildImage(`${file}?v=1&width=2000&height=2000`)?.src).toBe(`${file}?v=1&width=360`);
+});
