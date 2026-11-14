@@ -37,7 +37,7 @@ export function DealsPage() {
 
   return (
     <>
-      <h1 className="sr-only">Deals from JD Sports UK</h1>
+      <h1 className="sr-only">Deals from JD Sports and Size</h1>
       <FilterBar
         values={values}
         onChange={change}
@@ -65,6 +65,7 @@ export function DealsPage() {
             <DealGrid
               deals={result.deals}
               total={result.total}
+              stores={result.facets?.stores}
               serverStart={result.trackingSince}
               // Not after a failure: the grid asks on every render, and the banner has Retry.
               hasMore={query.hasNextPage && !query.isPlaceholderData && !query.isError}

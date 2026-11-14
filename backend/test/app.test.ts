@@ -1,6 +1,6 @@
 // End-to-end scenarios: the real server and scrape loop, with fake retailers and a test-driven
 // clock, exercised over HTTP the way the frontend uses it.
-import { afterEach, describe, expect, it } from 'bun:test';
+import { afterEach, describe, expect, it, mock, spyOn } from 'bun:test';
 import { type AppOptions, startApp } from '@/app';
 import type { Deal } from '@/deals';
 import type { DealPage } from '@/query';
@@ -13,6 +13,8 @@ const stops: (() => Promise<void>)[] = [];
 
 afterEach(async () => {
     await Promise.all(stops.splice(0).map((stop) => stop()));
+    mock.restore();
+    Bun.env.LOG_LEVEL = 'silent';
 });
 
 /**
@@ -21,14 +23,14 @@ afterEach(async () => {
  */
 function start(
     firstResponse?: FakeRetailer['next'],
-    options: { retailers?: Retailer[]; loop?: AppOptions['loop'] } = {},
+    options: { retailers?: Retailer[]; loop?: AppOptions['loop']; intervalMs?: number } = {},
 ) {
     const jd = fakeRetailer('jd', firstResponse);
     const clock = manualSleep();
     const app = startApp({
         port: 0,
         minDiscount: 30,
-        scrapeIntervalMs: INTERVAL_MS,
+        scrapeIntervalMs: options.intervalMs ?? INTERVAL_MS,
         retailers: options.retailers ?? [jd.retailer],
         loop: options.loop ?? { sleep: clock.sleep },
     });
@@ -40,6 +42,7 @@ function start(
         clock,
         get,
         dealIds: async () => idsOf((await (await get('/v1/deals')).json()) as Deal[]),
+        deals: async () => (await (await get('/v1/deals')).json()) as Deal[],
         health: async () => (await get('/health')).json() as Promise<Record<string, unknown>>,
     };
 }
@@ -216,6 +219,30 @@ describe('several retailers', () => {
         expect(broken.calls).toBeGreaterThanOrEqual(3);
         expect(healthy.calls).toBe(1);
         expect(await dealIds()).toEqual(['0', '1']);
+    });
+
+    it('keeps updating JD while Size fails, keeps the Size deals it had, and logs the failure', async () => {
+        const jd = fakeRetailer('jd', () => complete([product('jd-old')]));
+        const size = fakeRetailer('size', () => complete([product('size-kept')]));
+        const { deals, health } = start(undefined, {
+            retailers: [jd.retailer, size.retailer],
+            loop: { firstRetryMs: 10 }, // real timers: every scrape and retry is 10ms apart
+            intervalMs: 10,
+        });
+        await Bun.sleep(50);
+
+        const logged = spyOn(console, 'error').mockImplementation(() => {});
+        Bun.env.LOG_LEVEL = 'error';
+        size.next = () => Promise.reject(new Error('Size is down'));
+        jd.next = () => complete([product('jd-new')]);
+        await Bun.sleep(100);
+
+        const served = (await deals()).map((deal) => `${deal.store}:${deal.url.split('/').pop()}`);
+        expect(served.sort()).toEqual(['jd:jd-new', 'size:size-kept']);
+        expect(await health()).toMatchObject({
+            runs: { jd: { status: 'ok' }, size: { status: 'failed', error: 'Error: Size is down' } },
+        });
+        expect(logged.mock.calls.flat().join('\n')).toContain('size scrape failed');
     });
 });
 

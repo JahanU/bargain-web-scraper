@@ -7,7 +7,7 @@ export function Footer() {
     <footer className="border-t border-border">
       <p className="mx-auto max-w-[1440px] px-4 py-4 text-xs text-text-muted sm:px-6">
         <LastUpdated request={request} />
-        Refreshes every 5 min · Prices from jdsports.co.uk
+        Refreshes every 5 min · Prices from jdsports.co.uk and size.co.uk
       </p>
     </footer>
   );
