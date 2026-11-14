@@ -1,6 +1,8 @@
 # Backend
 
-The deals API and scraper. It runs on Bun with **zero runtime dependencies**: the HTTP server is built into Bun, everything is held in memory, and Render compresses responses on the way out.
+The deals API and scraper. It runs on Bun. Today the HTTP server is the one built into Bun, the deals are held in memory, and there are no runtime dependencies. Render compresses responses on the way out.
+
+That is how it works now, not a rule. Add a library, a database or a search service whenever it is the better tool for the job.
 
 ```mermaid
 flowchart TB
@@ -32,7 +34,7 @@ These are the behaviours the code is built around, and the end-to-end tests (`te
 | **R2** | A bad fetch never wipes deals. A failed fetch keeps the previous list. An incomplete listing adds, refreshes and drops what it says is out of stock, but removes nothing else. A sudden drop of over 50% is held back once, then accepted if the next scrape confirms it (even at zero). This may be removed later: see [#59](https://github.com/JahanU/bargain-web-scraper/issues/59). |
 | **R3** | Before the first good scrape, deal requests get an immediate `503` with `Retry-After: 10`, and the frontend retries. |
 | **R4** | One loop per retailer, so its scrapes never overlap and one failing retailer never makes the others scrape more often: scrape, then sleep 5 minutes, or 15s, 30s, 60s… (capped at 5 minutes) after a failure. |
-| **R5** | Memory only. Render's free tier wipes the disk anyway, so the app scrapes on boot. "Found" is when this process first saw the item. |
+| **R5** | Deals are held in memory today, so the app scrapes on boot and "Found" is when this process first saw the item. Render's free tier wipes the disk, which is why nothing is saved yet. A current choice, not a constraint. |
 | **R6** | The backend is the single source of truth for the list. `/v2/deals` filters, searches, sorts, counts and pages, so the browser never downloads the catalogue and a new retailer costs it nothing. Every request is a pure function of the latest snapshot and its validated query. |
 
 How `DealStore.accept()` applies R1 and R2 to each scrape:

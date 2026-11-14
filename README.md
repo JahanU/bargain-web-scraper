@@ -104,12 +104,12 @@ frontend/
 See [docs/frontend-rewrite-spec.md](docs/frontend-rewrite-spec.md) for the original design (written when the browser did the filtering; the diagram above is the current data flow) and [docs/frontend-rewrite-notes.md](docs/frontend-rewrite-notes.md) for every decision made while building it.
 
 ### Backend
-- Bun with zero runtime dependencies (built-in HTTP server)
+- Bun with its built-in HTTP server, and no runtime dependencies so far
 - Reads JD's product search (Algolia) directly: one request per category instead of scraping HTML
 - Sold-out detection, with a safety check so a failed fetch never wipes the list
 - One query endpoint filters, searches, sorts, counts and pages, so the browser never downloads the whole catalogue
 - A read-only snapshot is rebuilt after each scrape and served from memory with browser caching; Render compresses responses (Brotli)
-- No database or files: everything lives in memory and is rebuilt by scraping on boot
+- No database or files yet: everything lives in memory and is rebuilt by scraping on boot
 - See [backend/README.md](backend/README.md) for details, and [FRONTEND_API.md](FRONTEND_API.md) for the API contract the frontend relies on
 - [docs/backend-v2-rewrite.md](docs/backend-v2-rewrite.md): the story of the backend rewrite, its design decisions, the final result and open items
 
