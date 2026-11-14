@@ -1,9 +1,10 @@
 import { X } from "lucide-react";
-import { useEffect, useRef } from "react";
+import { type ReactNode, useEffect, useRef } from "react";
 import { Button, IconButton } from "@/shared/ui";
-import { BrandOptions } from "./BrandFacet";
-import type { FilterBarProps } from "./FilterBar";
+import { ChipFacetOptions } from "./ChipFacet";
 import { DiscountControl } from "./DiscountControl";
+import { brandOptions, storeOptions } from "./facetOptions";
+import type { FilterBarProps } from "./FilterBar";
 import { SizeOptions } from "./SizeFacet";
 import { SortSelect } from "./SortSelect";
 import { toolbarLabel } from "./toolbarLabel";
@@ -18,13 +19,12 @@ export default function FilterSheet({
   values,
   onChange,
   onClearAll,
-  sizeFacets,
-  brandCounts,
-  discountCounts,
+  facets,
   resultCount,
   onClose,
 }: FilterSheetProps) {
   const dialog = useRef<HTMLDialogElement>(null);
+  const stores = storeOptions(facets);
   useEffect(() => {
     dialog.current?.showModal();
   }, []);
@@ -51,35 +51,42 @@ export default function FilterSheet({
       </div>
 
       <div className="space-y-6 overflow-y-auto px-4 py-4">
-        <section className="space-y-2">
-          <h3 className={toolbarLabel}>Brands</h3>
-          <BrandOptions
+        {stores && (
+          <Section title="Stores">
+            <ChipFacetOptions
+              noun="store"
+              selected={values.stores}
+              onChange={(next) => onChange({ stores: next })}
+              options={stores}
+            />
+          </Section>
+        )}
+        <Section title="Brands">
+          <ChipFacetOptions
+            noun="brand"
             selected={values.brands}
             onChange={(brands) => onChange({ brands })}
-            counts={brandCounts}
+            options={brandOptions(facets)}
           />
-        </section>
-        <section className="space-y-2">
-          <h3 className={toolbarLabel}>Minimum discount</h3>
+        </Section>
+        <Section title="Minimum discount">
           <DiscountControl
             value={values.discount}
             onChange={(discount) => onChange({ discount })}
-            counts={discountCounts}
+            stops={facets?.discounts}
             name="discount-sheet"
           />
-        </section>
-        <section className="space-y-2">
-          <h3 className={toolbarLabel}>Sizes</h3>
+        </Section>
+        <Section title="Sizes">
           <SizeOptions
             selected={values.sizes}
             onChange={(sizes) => onChange({ sizes })}
-            facets={sizeFacets}
+            counts={facets?.sizes}
           />
-        </section>
-        <section className="space-y-2">
-          <h3 className={toolbarLabel}>Sort</h3>
+        </Section>
+        <Section title="Sort">
           <SortSelect value={values.sort} onChange={(sort) => onChange({ sort })} />
-        </section>
+        </Section>
       </div>
 
       <div className="flex gap-2 border-t border-border px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
@@ -91,5 +98,14 @@ export default function FilterSheet({
         </Button>
       </div>
     </dialog>
+  );
+}
+
+function Section({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <section className="space-y-2">
+      <h3 className={toolbarLabel}>{title}</h3>
+      {children}
+    </section>
   );
 }

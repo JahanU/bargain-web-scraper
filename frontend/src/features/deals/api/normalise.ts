@@ -1,29 +1,46 @@
 import type { Deal } from "../model/Deal";
 import { buildImage } from "../model/image";
 import { sortSizes } from "../model/sizes";
-import type { WireDeal } from "./dealSchema";
+import type { Facets, WireDeal, WirePage } from "./dealSchema";
 
 export function normaliseDeal(wire: WireDeal): Deal {
-  const sizes = sortSizes(wire.sizes ?? []);
   return {
     id: wire.url,
     url: wire.url,
     name: wire.name,
     brand: wire.brand,
-    store: new URL(wire.url).hostname.replace(/^www\./, ""),
+    store: wire.store,
     nowPrice: wire.nowPrice,
     wasPrice: wire.wasPrice,
     discount: wire.discount,
     image: wire.imageUrl ? buildImage(wire.imageUrl) : undefined,
-    sizes,
-    sizeSet: new Set(sizes),
-    searchText: wire.name.toLowerCase(),
+    sizes: sortSizes(wire.sizes ?? []),
     foundAt: wire.timestamp,
     gender: wire.gender,
     category: wire.category,
   };
 }
 
-export function normaliseDeals(wire: readonly WireDeal[]): Deal[] {
-  return wire.map(normaliseDeal);
+/** What the page shows for one request: every loaded deal, and the first page's facts. */
+export type DealsResult = {
+  deals: Deal[];
+  /** Matches across all pages, loaded or not. */
+  total: number;
+  trackingSince: number;
+  facets: Facets | undefined;
+};
+
+export function normalisePages({ pages }: { pages: readonly WirePage[] }): DealsResult {
+  const first = pages[0]!; // a loaded query has at least its first page
+  // A deal whose price changed between two page fetches can come back on the later page.
+  const seen = new Set<string>();
+  const deals: Deal[] = [];
+  for (const page of pages) {
+    for (const wire of page.items) {
+      if (seen.has(wire.url)) continue;
+      seen.add(wire.url);
+      deals.push(normaliseDeal(wire));
+    }
+  }
+  return { deals, total: first.total, trackingSince: first.trackingSince, facets: first.facets };
 }

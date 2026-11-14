@@ -1,9 +1,7 @@
-import type { CategoryScope, DealsRequest, Gender } from "../model/Deal";
+import { type DealsRequest, dealsQuery } from "../model/request";
 
 export const dealsKeys = {
   all: ["deals"] as const,
-  // Brands are sorted, so the same selection in any order is the same cache entry.
-  list: ({ gender, category, brands }: DealsRequest) =>
-    [...dealsKeys.all, gender, category, [...brands].sort()] as const,
-  brands: (gender: Gender, category: CategoryScope) => ["brands", gender, category] as const,
+  /** The gender (a new one starts from a skeleton), then the whole request as its query string. */
+  list: (request: DealsRequest) => [...dealsKeys.all, request.gender, dealsQuery(request)] as const,
 };

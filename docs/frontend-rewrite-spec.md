@@ -6,6 +6,8 @@
 
 # Bargain Scraper Frontend Rewrite Spec
 
+> **Historical.** This is the design the frontend was first built from. Since then filtering, search, sorting, counts and paging moved to the backend (`GET /v2/deals`). For how it works today, see the root `README.md` and `FRONTEND_API.md`.
+
 Nov 3, 2026 · @Jahan
 
 ## Summary

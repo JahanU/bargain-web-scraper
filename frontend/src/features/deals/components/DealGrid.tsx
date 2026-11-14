@@ -1,10 +1,13 @@
 import { useWindowVirtualizer } from "@tanstack/react-virtual";
 import { useCallback, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
 import type { Deal } from "../model/Deal";
+import { PAGE_SIZE } from "../model/request";
 import { DealCard } from "./DealCard";
 
 const PRIORITY_COUNT = 10; // roughly the first two rows on any screen
 const TOP_DEAL_KEY = "top-deal";
+const LOAD_AHEAD_ROWS = 3; // ask for the next page this many rows before the last one shows
+const RESTORE_LIMIT = 10 * PAGE_SIZE; // a reload fetches at most this far to find its deal
 
 // The virtualizer scrolls on mount, which cancels the browser's own scroll restore (and restored
 // pixels would point at other deals anyway), so DealGrid restores by deal: see savedTopDeal.
@@ -18,27 +21,45 @@ const COLUMNS_AT = [
 ] as const;
 
 type DealGridProps = {
+  /** The pages loaded so far. */
   deals: readonly Deal[];
-  /** From the full list, not the filtered one: see serverStartOf. */
+  /** Deals the request matches, loaded or not. */
+  total: number;
+  /** The response's `trackingSince`: see foundTime. */
   serverStart: number;
+  /** More pages exist and may be asked for now. */
+  hasMore: boolean;
+  loadingMore: boolean;
+  /** Asks for the next page. Called again while it is still wanted, so it must not restart a fetch. */
+  onLoadMore: () => void;
 };
 
 /**
- * Only the rows near the viewport are in the DOM, so the page costs the same at 80 deals or
- * 8,000. The window scrolls (not an inner box), so the header, filters and footer are unchanged.
+ * Only the rows near the viewport are in the DOM and only the pages scrolled to are loaded, so the
+ * page costs the same at 80 deals or 80,000. The window scrolls (not an inner box), so the header,
+ * filters and footer are unchanged.
  */
-export function DealGrid({ deals, serverStart }: DealGridProps) {
+export function DealGrid({
+  deals,
+  total,
+  serverStart,
+  hasMore,
+  loadingMore,
+  onLoadMore,
+}: DealGridProps) {
   const columns = useSyncExternalStore(subscribeToColumns, currentColumns);
   const listRef = useRef<HTMLDivElement>(null);
   const [scrollMargin, setScrollMargin] = useState(0);
   // The deal in the top visible row. Pixels mean nothing once rows change, so this is what a
-  // reload or a column change puts back. It starts as the one saved before a reload.
-  const [top] = useState(() => ({ columns: 0, id: savedTopDeal() }));
+  // reload or a column change puts back. It starts as the one saved before a reload, with how
+  // many deals were loaded then: the saved one may sit pages below the first.
+  const [top] = useState(() => ({ columns: 0, ...savedTopDeal() }));
+  const rows = Math.ceil(deals.length / columns);
   // The virtualizer is one mutable object, so the compiler leaves DealGrid unmemoised (as it
   // should); DealRow gets only plain values and the stable measureElement.
   // oxlint-disable-next-line react/incompatible-library -- intended, see above
   const virtualizer = useWindowVirtualizer({
-    count: Math.ceil(deals.length / columns),
+    count: rows,
     // Row heights are cached by key; a row of another column count is a different row.
     getItemKey: useCallback((index: number) => `${columns}:${index}`, [columns]),
     estimateSize: () => (columns === 2 ? 350 : 410), // a card; real rows are measured
@@ -57,7 +78,7 @@ export function DealGrid({ deals, serverStart }: DealGridProps) {
     observer.observe(document.documentElement);
     const save = () => {
       try {
-        sessionStorage.setItem(TOP_DEAL_KEY, top.id ?? "");
+        sessionStorage.setItem(TOP_DEAL_KEY, JSON.stringify({ id: top.id, loaded: top.loaded }));
       } catch {
         // storage blocked: a reload starts at the top
       }
@@ -75,34 +96,51 @@ export function DealGrid({ deals, serverStart }: DealGridProps) {
   useLayoutEffect(() => {
     if (top.columns === columns) {
       top.id = deals[(virtualizer.range?.startIndex ?? 0) * columns]?.id;
-      return;
+      top.loaded = deals.length;
+    } else {
+      const index = deals.findIndex((deal) => deal.id === top.id);
+      // Not loaded yet: fetch as far as the reload had, then give up and stay at the top.
+      const within = Math.min(top.loaded, RESTORE_LIMIT);
+      if (index === -1 && top.id !== undefined && hasMore && deals.length < within) {
+        onLoadMore();
+        return;
+      }
+      top.columns = columns;
+      if (index >= columns)
+        virtualizer.scrollToIndex(Math.floor(index / columns), { align: "start" });
     }
-    top.columns = columns;
-    const index = deals.findIndex((deal) => deal.id === top.id);
-    if (index >= columns)
-      virtualizer.scrollToIndex(Math.floor(index / columns), { align: "start" });
+    if (hasMore && (virtualizer.range?.endIndex ?? 0) >= rows - 1 - LOAD_AHEAD_ROWS) onLoadMore();
   });
 
   return (
-    <div
-      ref={listRef}
-      // oxlint-disable-next-line jsx-a11y/prefer-tag-over-role -- rows are <div>s, which a <ul> can't hold
-      role="list"
-      className="relative"
-      style={{ height: virtualizer.getTotalSize() }}
-    >
-      {virtualizer.getVirtualItems().map((row) => (
-        <DealRow
-          key={row.key}
-          index={row.index}
-          offset={row.start - scrollMargin}
-          measureRef={virtualizer.measureElement}
-          deals={deals}
-          columns={columns}
-          serverStart={serverStart}
-        />
-      ))}
-    </div>
+    <>
+      <div
+        ref={listRef}
+        // oxlint-disable-next-line jsx-a11y/prefer-tag-over-role -- rows are <div>s, which a <ul> can't hold
+        role="list"
+        className="relative"
+        style={{ height: virtualizer.getTotalSize() }}
+      >
+        {virtualizer.getVirtualItems().map((row) => (
+          <DealRow
+            key={row.key}
+            index={row.index}
+            offset={row.start - scrollMargin}
+            measureRef={virtualizer.measureElement}
+            deals={deals}
+            total={total}
+            columns={columns}
+            serverStart={serverStart}
+          />
+        ))}
+      </div>
+      {hasMore && (
+        // Always there while more can load, so its text changing is what gets announced.
+        <output className="flex h-12 items-center justify-center text-xs text-text-muted">
+          {loadingMore && "Loading more deals…"}
+        </output>
+      )}
+    </>
   );
 }
 
@@ -111,12 +149,13 @@ type DealRowProps = {
   offset: number;
   measureRef: (element: HTMLDivElement | null) => void;
   deals: readonly Deal[];
+  total: number;
   columns: number;
   serverStart: number;
 };
 
 /** Compiled (unlike DealGrid), so a scroll that only moves the window doesn't re-render cards. */
-function DealRow({ index, offset, measureRef, deals, columns, serverStart }: DealRowProps) {
+function DealRow({ index, offset, measureRef, deals, total, columns, serverStart }: DealRowProps) {
   const first = index * columns;
   return (
     <div
@@ -135,7 +174,7 @@ function DealRow({ index, offset, measureRef, deals, columns, serverStart }: Dea
           // oxlint-disable-next-line jsx-a11y/prefer-tag-over-role -- see role="list"
           role="listitem"
           aria-posinset={first + column + 1}
-          aria-setsize={deals.length}
+          aria-setsize={total}
         >
           <DealCard
             deal={deal}
@@ -149,18 +188,23 @@ function DealRow({ index, offset, measureRef, deals, columns, serverStart }: Dea
 }
 
 /**
- * The deal a reload (or back/forward) should return to; a fresh visit starts at the top. Read
- * once: a grid that mounts again later (after an empty result, say) must not jump back to it.
+ * The deal a reload (or back/forward) should return to, and how many deals were loaded with it; a
+ * fresh visit starts at the top. Read once: a grid that mounts again later (after an empty
+ * result, say) must not jump back to it.
  */
-function savedTopDeal(): string | undefined {
+function savedTopDeal(): { id: string | undefined; loaded: number } {
   const [navigation] = performance.getEntriesByType("navigation") as PerformanceNavigationTiming[];
   try {
-    const id = sessionStorage.getItem(TOP_DEAL_KEY) || undefined;
+    const saved = sessionStorage.getItem(TOP_DEAL_KEY);
     sessionStorage.removeItem(TOP_DEAL_KEY); // on a fresh visit too, so it can't go stale
-    return navigation?.type === "reload" || navigation?.type === "back_forward" ? id : undefined;
+    if (saved && (navigation?.type === "reload" || navigation?.type === "back_forward")) {
+      const { id, loaded } = JSON.parse(saved) as { id?: unknown; loaded?: unknown };
+      if (typeof id === "string" && typeof loaded === "number") return { id, loaded };
+    }
   } catch {
-    return undefined; // storage blocked
+    // storage blocked, or not what save() wrote: start at the top
   }
+  return { id: undefined, loaded: 0 };
 }
 
 // Created once and shared by subscribe and the snapshot, which runs on every render.

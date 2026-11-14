@@ -1,6 +1,7 @@
-import { type Deal, DealStore } from '@/deals';
+import { DealStore } from '@/deals';
 import { notFound, routes } from '@/http';
 import { createLogger } from '@/log';
+import { buildSnapshot, type Snapshot } from '@/query';
 import type { Retailer } from '@/retailers/types';
 import { type LoopOptions, type RetailerRun, runScrapeLoop, scrapeRetailer } from '@/scraper';
 
@@ -18,9 +19,10 @@ const log = createLogger('app');
 /** Starts the HTTP server and a scrape loop per retailer. `stop()` shuts them down (used by tests). */
 export function startApp({ port, minDiscount, scrapeIntervalMs, retailers, loop }: AppOptions) {
     const store = new DealStore();
-    // The list served to the frontend, rebuilt after each accepted scrape. Undefined until the
-    // first one, so clients get a 503 asking them to retry.
-    let deals: Deal[] | undefined;
+    const stores = retailers.map(({ id, name }) => ({ id, name }));
+    // What every request reads, rebuilt after each accepted scrape. Undefined until the first one,
+    // so clients get a 503 asking them to retry.
+    let snapshot: Snapshot | undefined;
     const lastRuns: Record<string, RetailerRun> = {};
 
     async function scrape(retailer: Retailer): Promise<boolean> {
@@ -28,8 +30,8 @@ export function startApp({ port, minDiscount, scrapeIntervalMs, retailers, loop 
         lastRuns[retailer.id] = run;
 
         if (run.status !== 'failed') {
-            deals = store.deals(minDiscount);
-            log.info(`✓ serving ${deals.length} deals`);
+            snapshot = buildSnapshot(store.deals(minDiscount), stores, minDiscount);
+            log.info(`✓ serving ${snapshot.deals.length} deals`);
         }
         return run.status !== 'failed';
     }
@@ -37,8 +39,9 @@ export function startApp({ port, minDiscount, scrapeIntervalMs, retailers, loop 
     const server = Bun.serve({
         port,
         routes: routes(
-            () => deals,
-            () => ({ ok: true, ready: deals !== undefined, deals: deals?.length ?? 0, runs: lastRuns }),
+            stores,
+            () => snapshot,
+            () => ({ ok: true, ready: snapshot !== undefined, deals: snapshot?.deals.length ?? 0, runs: lastRuns }),
         ),
         fetch: notFound,
     });

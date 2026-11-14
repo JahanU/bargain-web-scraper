@@ -1,17 +1,15 @@
 import { expect, test } from "vite-plus/test";
 import { deal } from "@/test/deal";
-import { foundTime, isNew, serverStartOf } from "./describe";
+import { foundTime, isNew } from "./describe";
 
 const HOUR = 3_600_000;
 
-test("the earliest batch marks the server start: no found time, never new", () => {
+test("the batch from the server start has no found time and is never new", () => {
   const now = 10 * HOUR;
   const startBatch = deal({ timestamp: now - HOUR });
   const later = deal({ timestamp: now - HOUR / 2 });
-  const old = deal({ timestamp: now - HOUR + 1 });
-  const start = serverStartOf([later, startBatch, old]);
+  const start = now - HOUR;
 
-  expect(start).toBe(now - HOUR);
   expect(foundTime(startBatch, start)).toBeUndefined();
   expect(isNew(startBatch, start, now)).toBe(false);
   expect(foundTime(later, start)).toBe(now - HOUR / 2);

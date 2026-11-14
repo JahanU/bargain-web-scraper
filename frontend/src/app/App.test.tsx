@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
 import { beforeEach, expect, test } from "vite-plus/test";
 import { axe } from "vitest-axe";
+import { queryDeals } from "@/mocks/api";
 import { server } from "@/mocks/server";
 import { makeDeal } from "@/test/makeDeal";
 import { renderWithClient } from "@/test/render";
@@ -11,7 +12,9 @@ import { App } from "./App";
 // The shell doesn't need the full fixture; a short list keeps these tests fast.
 beforeEach(() => {
   server.use(
-    http.get("http://localhost:8000/v1/deals", () => HttpResponse.json([makeDeal(), makeDeal()])),
+    http.get("http://localhost:8000/v2/deals", () =>
+      HttpResponse.json(queryDeals([makeDeal(), makeDeal()]).json),
+    ),
   );
 });
 

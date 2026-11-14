@@ -1,16 +1,6 @@
 import { useQueryStates } from "nuqs";
-import { categoryParser, genderParser } from "../model/scope";
-import { FILTER_KEYS, filterRegistry, type FilterKey } from "../model/registry";
-import { sortParser } from "../model/sort";
-
-const parsers = {
-  ...(Object.fromEntries(FILTER_KEYS.map((key) => [key, filterRegistry[key].parser])) as {
-    [K in FilterKey]: (typeof filterRegistry)[K]["parser"];
-  }),
-  sort: sortParser,
-  gender: genderParser,
-  category: categoryParser,
-};
+import { FILTER_KEYS, type FilterKey } from "../model/registry";
+import { urlParsers } from "../model/scope";
 
 const ALL_FILTERS_CLEARED = Object.fromEntries(FILTER_KEYS.map((key) => [key, null])) as Record<
   FilterKey,
@@ -22,7 +12,7 @@ const ALL_FILTERS_CLEARED = Object.fromEntries(FILTER_KEYS.map((key) => [key, nu
  * left out, and search writes are throttled to one per 250 ms.
  */
 export function useFilters() {
-  const [values, setValues] = useQueryStates(parsers, { history: "replace" });
+  const [values, setValues] = useQueryStates(urlParsers, { history: "replace" });
   const actions = {
     set: setValues,
     /** Resets every filter; the sort, gender and category stay. */

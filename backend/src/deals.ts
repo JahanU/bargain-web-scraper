@@ -20,6 +20,8 @@ export interface Deal {
     gender: Gender;
     brand: string;
     category: Category;
+    /** The id of the retailer selling it, e.g. "jd". */
+    store: string;
 }
 
 /** What a request narrows the deals by. An absent field (or no brands) means "any". */
@@ -80,6 +82,8 @@ export const UNISEX: Gender = 'Unisex';
 
 interface StoredProduct extends Product {
     firstSeenAt: number;
+    /** The id of the retailer it was listed by. */
+    store: string;
 }
 
 /**
@@ -105,7 +109,7 @@ export class DealStore {
         }
         for (const product of inStock) {
             const firstSeenAt = previous.get(product.externalId)?.firstSeenAt ?? now;
-            next.set(product.externalId, { ...product, firstSeenAt });
+            next.set(product.externalId, { ...product, firstSeenAt, store: retailer });
         }
 
         this.byRetailer.set(retailer, next);
@@ -175,5 +179,6 @@ function toDeal(product: StoredProduct): Deal {
         gender: product.gender,
         brand: product.brand,
         category: product.category,
+        store: product.store,
     };
 }

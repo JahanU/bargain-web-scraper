@@ -15,7 +15,7 @@ if (import.meta.env.MODE === "mock") {
 
 // Show the saved snapshot at once, then start the request before React renders anything.
 await restoreAndPersist();
-void queryClient.prefetchQuery(dealsQueryOptions(loadDealsRequest(location.search)));
+void queryClient.prefetchInfiniteQuery(dealsQueryOptions(loadDealsRequest(location.search)));
 
 const root = document.getElementById("root");
 if (!root) throw new Error("#root is missing from index.html");
