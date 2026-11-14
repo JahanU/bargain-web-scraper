@@ -32,7 +32,7 @@ export type FilterBarProps = {
 
 /**
  * Sticky toolbar. Wide screens: gender, category, search and sort in a row, then discount, brands
- * and sizes; below lg search drops to its own row. Phones: gender, category, search, then a
+ * and sizes; below lg search and sort wrap to a row of their own. Phones: gender, category, search, then a
  * Filters button (opening a sheet with everything else) next to sort.
  */
 export function FilterBar(props: FilterBarProps) {
@@ -65,7 +65,7 @@ export function FilterBar(props: FilterBarProps) {
           <SearchField
             value={values.search}
             onChange={(search) => onChange({ search })}
-            className="w-full sm:order-1 lg:order-none lg:w-80"
+            className="w-full sm:w-auto sm:min-w-48 sm:flex-1 lg:w-80 lg:flex-none"
           />
           <Button
             ref={filtersButton}
@@ -81,7 +81,7 @@ export function FilterBar(props: FilterBarProps) {
             onChange={(sort) => onChange({ sort })}
             className="flex-1 sm:ml-auto sm:flex-none"
           />
-          <div className="hidden w-full flex-wrap items-center gap-2 sm:order-2 sm:flex">
+          <div className="hidden w-full flex-wrap items-center gap-2 sm:flex">
             <span className={toolbarLabel} aria-hidden>
               Discount ≥
             </span>

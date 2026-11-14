@@ -30,7 +30,7 @@ const wireDeal = z.object({
 
 export type WireDeal = z.infer<typeof wireDeal>;
 
-/** Keeps every valid deal and drops the rest; only a body that isn't a list is an error. */
+/** Keeps every valid deal and drops the rest; a body that isn't a list, or has no valid deal, is an error. */
 export function parseDeals(body: unknown): WireDeal[] {
   if (!Array.isArray(body)) throw new ApiError("invalid-body");
   const deals: WireDeal[] = [];
@@ -39,6 +39,8 @@ export function parseDeals(body: unknown): WireDeal[] {
     if (result.success) deals.push(result.data);
   }
   const dropped = body.length - deals.length;
+  // Nothing valid in a non-empty list is a backend that speaks another shape, not an empty sale.
+  if (dropped > 0 && deals.length === 0) throw new ApiError("invalid-body");
   if (dropped > 0)
     console.warn(`Dropped ${dropped} of ${body.length} deals that failed validation.`);
   return deals;

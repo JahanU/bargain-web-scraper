@@ -131,3 +131,27 @@ test("a column change keeps the deal that was at the top in view", async ({ page
 
   await expect(page.locator(`main [aria-posinset="${before}"]`)).toBeInViewport();
 });
+
+for (const width of [640, 768, 1280]) {
+  test(`${width} px: Tab moves through the toolbar in the order it is laid out`, async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto("/");
+    await expect(page.getByText("81 deals")).toBeVisible();
+
+    const positions = await page
+      .getByRole("search", { name: "Filter deals" })
+      .locator("fieldset, input[type=search], select, button")
+      .evaluateAll((nodes) =>
+        nodes
+          .map((node) => node.getBoundingClientRect())
+          .filter((box) => box.width > 0)
+          // Controls in one row differ in height, so rows are told apart by their centre line.
+          .map(
+            (box) => Math.round((box.top + box.height / 2) / 20) * 10_000 + Math.round(box.left),
+          ),
+      );
+    expect(positions).toEqual([...positions].sort((a, b) => a - b));
+  });
+}

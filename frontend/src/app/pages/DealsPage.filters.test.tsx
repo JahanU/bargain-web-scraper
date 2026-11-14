@@ -267,6 +267,28 @@ test("the list narrows at once from the deals on screen while the brand request 
   expect(await screen.findByText(/^1 deal/)).toBeInTheDocument();
 });
 
+test("swapping to a brand not on screen shows loading, not an empty state, until it lands", async () => {
+  await setup("?brands=PUMA");
+  let release = () => {};
+  const released = new Promise<void>((resolve) => (release = resolve));
+  server.use(
+    http.get(DEALS_URL, async () => {
+      await released;
+      return HttpResponse.json([DEALS[2]]);
+    }),
+  );
+  const popup = await openBrands();
+
+  await userEvent.click(await popup.findByRole("button", { name: "adidas, 1 deal" }));
+  await userEvent.click(popup.getByRole("button", { name: "PUMA, 1 deal" }));
+
+  expect(screen.getByText("Loading deals…")).toBeInTheDocument();
+  expect(screen.queryByText(/^No deals/)).not.toBeInTheDocument();
+
+  release();
+  expect(await screen.findByRole("link", { name: /^Adidas Trainer / })).toBeInTheDocument();
+});
+
 test("Clear all clears brands and keeps the category and gender", async () => {
   const { url } = await setup("?discount=40&brands=Nike,adidas&category=Clothes");
   expect(requests).toEqual(["?gender=Male&category=Clothes&brand=Nike&brand=adidas"]);

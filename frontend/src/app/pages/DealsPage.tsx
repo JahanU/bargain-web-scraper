@@ -33,6 +33,9 @@ export function DealsPage() {
   const deals = query.data;
   const { visible, withoutSizeFilter, withoutDiscountFilter } = useFilteredDeals(deals, values);
   const sizeFacets = useDealFacets(withoutSizeFilter);
+  // The list kept from the last brand selection may hold none of the new brands: that is not
+  // "no deals", the answer just hasn't landed yet.
+  const awaitingBrands = query.isPlaceholderData && visible?.length === 0;
   const change = (next: Partial<FilterState>) => void actions.set(next);
   const clearAll = () => void actions.clearAll();
   const waking = useAfter(query.isPending, WAKING_AFTER_MS);
@@ -55,7 +58,7 @@ export function DealsPage() {
       {deals && query.isError && (
         <StaleBanner updatedAt={query.dataUpdatedAt} onRetry={retry} retrying={query.isFetching} />
       )}
-      {deals && visible ? (
+      {deals && visible && !awaitingBrands ? (
         <>
           <ResultsSummary
             shown={visible.length}
