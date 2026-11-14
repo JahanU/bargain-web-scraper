@@ -1,17 +1,30 @@
 import { X } from "lucide-react";
 import { Button } from "@/shared/ui";
 import { chip } from "@/shared/ui/chipStyles";
+import type { Facets } from "@/features/deals";
 import { activeChips, type FilterValues } from "../model/registry";
 
 type ActiveFilterChipsProps = {
   values: FilterValues;
   onChange: (next: Partial<FilterValues>) => void;
   onClearAll: () => void;
+  /** Names the store chips; until it arrives they show the store's id. */
+  stores: Facets["stores"] | undefined;
 };
 
 /** One removable chip per non-default filter value, and Clear all. Renders nothing at defaults. */
-export function ActiveFilterChips({ values, onChange, onClearAll }: ActiveFilterChipsProps) {
-  const chips = activeChips(values);
+export function ActiveFilterChips({
+  values,
+  onChange,
+  onClearAll,
+  stores,
+}: ActiveFilterChipsProps) {
+  const chips = activeChips(values).map((chip) => ({
+    ...chip,
+    label:
+      (chip.filter === "stores" && stores?.find((row) => row.store === chip.label)?.name) ||
+      chip.label,
+  }));
   if (chips.length === 0) return null;
   return (
     <div className="mb-3 flex items-center gap-2 overflow-x-auto max-sm:-mx-4 max-sm:px-4">

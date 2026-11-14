@@ -1,41 +1,35 @@
 import { useEffect, useState } from "react";
 import {
-  type Deal,
   DealGrid,
   DealGridSkeleton,
   EmptyState,
   ErrorState,
+  type Facets,
   ResultsSummary,
   StaleBanner,
-  serverStartOf,
-  useBrandsQuery,
-  useDealFacets,
   useDealsQuery,
 } from "@/features/deals";
 import {
   ActiveFilterChips,
   FilterBar,
   type FilterState,
-  discountCounts,
+  activeChips,
   explainEmpty,
-  useFilteredDeals,
+  useDealsRequest,
   useFilters,
 } from "@/features/filters";
 
 const WAKING_AFTER_MS = 3000;
 
-/** The single orchestrator: the only place server state and URL state meet. */
+/** The single orchestrator: the URL state is the request, and the backend's answer is the page. */
 export function DealsPage() {
   const [values, actions] = useFilters();
-  const { gender, category, brands } = values;
-  const query = useDealsQuery({ gender, category, brands });
-  const brandCounts = useBrandsQuery(gender, category).data;
-  const deals = query.data;
-  const { visible, withoutSizeFilter, withoutDiscountFilter } = useFilteredDeals(deals, values);
-  const sizeFacets = useDealFacets(withoutSizeFilter);
-  // The list kept from the last brand selection may hold none of the new brands: that is not
-  // "no deals", the answer just hasn't landed yet.
-  const awaitingBrands = query.isPlaceholderData && visible?.length === 0;
+  const request = useDealsRequest(values);
+  const query = useDealsQuery(request);
+  const result = query.data;
+  // The result kept from the last request may be empty: that is not "no deals" for this one,
+  // the answer just hasn't landed yet.
+  const awaiting = query.isPlaceholderData && result?.deals.length === 0;
   const change = (next: Partial<FilterState>) => void actions.set(next);
   const clearAll = () => void actions.clearAll();
   const waking = useAfter(query.isPending, WAKING_AFTER_MS);
@@ -48,27 +42,44 @@ export function DealsPage() {
         values={values}
         onChange={change}
         onClearAll={clearAll}
-        sizeFacets={sizeFacets}
-        brandCounts={brandCounts}
-        discountCounts={withoutDiscountFilter && discountCounts(withoutDiscountFilter)}
-        resultCount={visible?.length}
-        busy={!deals}
+        facets={result?.facets}
+        resultCount={query.isPlaceholderData ? undefined : result?.total}
+        busy={!result}
       />
-      <ActiveFilterChips values={values} onChange={change} onClearAll={clearAll} />
-      {deals && query.isError && (
+      <ActiveFilterChips
+        values={values}
+        onChange={change}
+        onClearAll={clearAll}
+        stores={result?.facets?.stores}
+      />
+      {result && query.isError && (
         <StaleBanner updatedAt={query.dataUpdatedAt} onRetry={retry} retrying={query.isFetching} />
       )}
-      {deals && visible && !awaitingBrands ? (
+      {result && !awaiting ? (
         <>
           <ResultsSummary
-            shown={visible.length}
-            total={deals.length}
+            total={result.total}
             updatedAt={query.isPlaceholderData ? undefined : query.dataUpdatedAt}
           />
-          {visible.length > 0 ? (
-            <DealGrid deals={visible} serverStart={serverStartOf(deals)} />
+          {result.deals.length > 0 ? (
+            <DealGrid
+              deals={result.deals}
+              total={result.total}
+              serverStart={result.trackingSince}
+              // Not after a failure: the grid asks on every render, and the banner has Retry.
+              hasMore={query.hasNextPage && !query.isPlaceholderData && !query.isError}
+              loadingMore={query.isFetchingNextPage}
+              // A refresh already under way finishes first; the grid asks again after it.
+              onLoadMore={() => void query.fetchNextPage({ cancelRefetch: false })}
+            />
           ) : (
-            <NoDeals deals={deals} values={values} onChange={change} onClearAll={clearAll} />
+            <NoDeals
+              // The request, not the URL: while a search settles they differ, and these are its deals.
+              values={request}
+              facets={result.facets}
+              onChange={change}
+              onClearAll={clearAll}
+            />
           )}
         </>
       ) : query.isError ? (
@@ -86,15 +97,14 @@ export function DealsPage() {
 }
 
 type NoDealsProps = {
-  deals: readonly Deal[];
   values: FilterState;
+  facets: Facets | undefined;
   onChange: (next: Partial<FilterState>) => void;
   onClearAll: () => void;
 };
 
-function NoDeals({ deals, values, onChange, onClearAll }: NoDealsProps) {
-  // With brands chosen an empty answer is the brands' doing, which explainEmpty says.
-  if (deals.length === 0 && values.brands.length === 0) {
+function NoDeals({ values, facets, onChange, onClearAll }: NoDealsProps) {
+  if (activeChips(values).length === 0) {
     return (
       <EmptyState
         title="No deals right now"
@@ -103,7 +113,7 @@ function NoDeals({ deals, values, onChange, onClearAll }: NoDealsProps) {
       />
     );
   }
-  const { title, hint, suggestions } = explainEmpty(deals, values);
+  const { title, hint, suggestions } = explainEmpty(values, facets);
   return (
     <EmptyState
       title={title}

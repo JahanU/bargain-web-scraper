@@ -1,6 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
 import { devices } from "@playwright/test";
-import { dealsApi, expect, test } from "./test";
+import { dealsApi, expect, fixture, serveDeals, test } from "./test";
 
 test("desktop: search, discount and sizes filter the grid, and a reload restores them", async ({
   page,
@@ -19,14 +19,13 @@ test("desktop: search, discount and sizes filter the grid, and a reload restores
   await page.keyboard.press("Escape");
 
   await expect(page).toHaveURL(/\?search=nike&discount=50&sizes=M$/);
-  const summary = page.getByText(/^\d+ of 81 deals$/);
-  const filtered = await summary.textContent();
+  await expect(page.getByText("12 deals")).toBeVisible();
 
   await page.reload();
 
   await expect(page.getByRole("searchbox", { name: "Search deals" })).toHaveValue("nike");
   await expect(page.getByRole("radio", { name: "50%" })).toBeChecked();
-  await expect(page.getByText(filtered ?? "")).toBeVisible();
+  await expect(page.getByText("12 deals")).toBeVisible();
   await expect(page.getByRole("list", { name: "Active filters" }).getByRole("button")).toHaveText([
     "“nike”",
     "≥50%",
@@ -62,7 +61,7 @@ test("desktop: category and brands narrow the list through the API, by keyboard,
 
   await expect(page).toHaveURL(/\?category=Shoes&brands=Vans,adidas$/);
   await expect(page.getByText("12 deals")).toBeVisible();
-  expect(requests.at(-1)).toBe("?gender=Male&category=Shoes&brand=Vans&brand=adidas");
+  expect(requests.at(-1)).toBe("?gender=Male&category=Shoes&brand=Vans&brand=adidas&limit=60");
 
   await page.keyboard.press("Escape");
   await expect(popup).toBeHidden();
@@ -146,3 +145,65 @@ test.describe("phone", () => {
     await expect(page).toHaveURL(/\?discount=60$/);
   });
 });
+
+// Four copies of the fixture: enough Nike deals in size M to need a second page.
+const catalogue = [0, 1, 2, 3].flatMap((copy) =>
+  fixture.map((deal) => ({ ...deal, url: `${deal.url}?copy=${copy}` })),
+);
+const nikeInM = catalogue.filter((deal) => deal.brand === "Nike" && deal.sizes?.includes("M"));
+
+for (const { device, viewport } of [
+  { device: "desktop", viewport: devices["Desktop Chrome"].viewport },
+  { device: "phone", viewport: devices["iPhone 13"].viewport },
+]) {
+  test(`${device}: search, a brand and a size narrow the list, and scrolling loads its second page`, async ({
+    page,
+  }) => {
+    await page.setViewportSize(viewport);
+    await serveDeals(page, catalogue);
+    const cursors: Array<string | null> = [];
+    page.on("request", (request) => {
+      const url = new URL(request.url());
+      if (dealsApi(url) && url.searchParams.get("q") === "nike" && url.searchParams.has("size"))
+        cursors.push(url.searchParams.get("cursor"));
+    });
+    await page.goto("/");
+    await expect(page.getByText(`${catalogue.length} deals`)).toBeVisible();
+
+    await page.getByRole("searchbox", { name: "Search deals" }).fill("nike");
+    if (device === "desktop") {
+      await page.getByRole("button", { name: /^Brands/ }).click();
+      await page.getByRole("button", { name: /^Nike, / }).click();
+      await page.keyboard.press("Escape");
+      await page.getByRole("button", { name: /^Sizes/ }).click();
+      await page.getByRole("button", { name: /^M, / }).click();
+      await page.keyboard.press("Escape");
+    } else {
+      await page.getByRole("button", { name: "Filters" }).click();
+      const sheet = page.getByRole("dialog", { name: "Filters" });
+      await sheet.getByRole("button", { name: /^Nike, / }).click();
+      await sheet.getByRole("button", { name: /^M, / }).click();
+      await sheet.getByRole("button", { name: `Show ${nikeInM.length} deals` }).click();
+    }
+
+    await expect(page).toHaveURL(/\?search=nike&brands=Nike&sizes=M$/);
+    await expect(page.getByText(`${nikeInM.length} deals`)).toBeVisible();
+    const cards = page.locator("main [aria-posinset]");
+    await expect(cards.first()).toHaveAttribute("aria-setsize", String(nikeInM.length));
+    expect(cursors).toEqual([null]); // one page so far
+
+    // Each scroll reaches the end of what is loaded; the last deal arrives with the second page.
+    await expect(async () => {
+      await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+      await expect(cards.last()).toHaveAttribute("aria-posinset", String(nikeInM.length), {
+        timeout: 1000,
+      });
+    }).toPass();
+    expect(cursors).toHaveLength(2);
+    expect(cursors[1]).not.toBeNull();
+    await expect(page.getByText("Loading more deals…")).toHaveCount(0);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(
+      viewport.width,
+    );
+  });
+}

@@ -8,7 +8,7 @@
   {
     "name": "Filter sheet (lazy)",
     "path": "dist/assets/FilterSheet-*.js",
-    "limit": "1.8 kB",
+    "limit": "1.9 kB",
     "gzip": true
   },
   {

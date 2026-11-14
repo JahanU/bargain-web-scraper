@@ -1,12 +1,12 @@
 import { SlidersHorizontal } from "lucide-react";
 import { Suspense, lazy, useRef, useState } from "react";
-import type { BrandCount, SizeFacet as Facet, SizeGroup } from "@/features/deals";
+import type { Facets } from "@/features/deals";
 import { Button } from "@/shared/ui";
-import type { FilterState } from "../model/applyFilters";
-import { activeChips } from "../model/registry";
-import { BrandPopover } from "./BrandFacet";
+import { activeChips, type FilterState } from "../model/registry";
 import { CategoryControl } from "./CategoryControl";
+import { ChipFacetPopover } from "./ChipFacet";
 import { DiscountControl } from "./DiscountControl";
+import { brandOptions, storeOptions } from "./facetOptions";
 import { GenderControl } from "./GenderControl";
 import { SearchField } from "./SearchField";
 import { SizePopover } from "./SizeFacet";
@@ -20,24 +20,23 @@ export type FilterBarProps = {
   values: FilterState;
   onChange: (next: Partial<FilterState>) => void;
   onClearAll: () => void;
-  sizeFacets: Record<SizeGroup, Facet[]>;
-  /** From /v1/brands; undefined while they load or if they failed. */
-  brandCounts: readonly BrandCount[] | undefined;
-  discountCounts: Record<number, number> | undefined;
-  /** Deals the current filters show; undefined while loading. */
+  /** What each control's options would show, from the backend; undefined until deals load. */
+  facets: Facets | undefined;
+  /** Deals the current filters match; undefined until that is known. */
   resultCount: number | undefined;
   /** Deals haven't loaded yet. */
   busy: boolean;
 };
 
 /**
- * Sticky toolbar. Wide screens: gender, category, search and sort in a row, then discount, brands
- * and sizes; below lg search and sort wrap to a row of their own. Phones: gender, category, search, then a
+ * Sticky toolbar. Wide screens: gender, category, search and sort in a row, then discount, stores
+ * (when there is more than one), brands and sizes; below lg search and sort wrap to a row of their own. Phones: gender, category, search, then a
  * Filters button (opening a sheet with everything else) next to sort.
  */
 export function FilterBar(props: FilterBarProps) {
-  const { values, onChange, sizeFacets, brandCounts, discountCounts, busy } = props;
+  const { values, onChange, facets, busy } = props;
   const [sheetOpen, setSheetOpen] = useState(false);
+  const stores = storeOptions(facets);
   const filtersButton = useRef<HTMLButtonElement>(null);
   // Search sits outside the sheet, so it isn't counted on the button.
   const sheetFilters = activeChips(values).filter((chip) => chip.filter !== "search").length;
@@ -88,18 +87,27 @@ export function FilterBar(props: FilterBarProps) {
             <DiscountControl
               value={values.discount}
               onChange={(discount) => onChange({ discount })}
-              counts={discountCounts}
+              stops={facets?.discounts}
               name="discount-toolbar"
             />
-            <BrandPopover
+            {stores && (
+              <ChipFacetPopover
+                noun="store"
+                selected={values.stores}
+                onChange={(next) => onChange({ stores: next })}
+                options={stores}
+              />
+            )}
+            <ChipFacetPopover
+              noun="brand"
               selected={values.brands}
               onChange={(brands) => onChange({ brands })}
-              counts={brandCounts}
+              options={brandOptions(facets)}
             />
             <SizePopover
               selected={values.sizes}
               onChange={(sizes) => onChange({ sizes })}
-              facets={sizeFacets}
+              counts={facets?.sizes}
             />
           </div>
         </div>

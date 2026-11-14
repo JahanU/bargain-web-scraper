@@ -1,20 +1,18 @@
 import { clockTime, relativeTime } from "@/shared/lib/format";
 
 type ResultsSummaryProps = {
-  shown: number;
+  /** Deals the request matches, loaded or not. */
   total: number;
-  /** Left out while the list on screen is the previous selection's. */
+  /** Left out while the list on screen is the previous request's. */
   updatedAt: number | undefined;
 };
 
-const deals = (count: number) => `${count} ${count === 1 ? "deal" : "deals"}`;
-
-export function ResultsSummary({ shown, total, updatedAt }: ResultsSummaryProps) {
+export function ResultsSummary({ total, updatedAt }: ResultsSummaryProps) {
   return (
     <p className="mb-3 text-xs text-text-muted">
       {/* Only the count is announced; the time ticking over would be noise. */}
       <span aria-live="polite">
-        {shown === total ? deals(total) : `${shown} of ${deals(total)}`}
+        {total} {total === 1 ? "deal" : "deals"}
       </span>
       {updatedAt !== undefined && (
         <>

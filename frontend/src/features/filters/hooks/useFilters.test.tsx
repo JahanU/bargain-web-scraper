@@ -19,6 +19,7 @@ test("reads a legacy link on mount", () => {
     discount: 30,
     sizes: ["S", "M", "L"],
     brands: [],
+    stores: [],
     sort: "price-low-to-high",
     gender: "Male",
     category: "All",
@@ -83,7 +84,7 @@ test("clearing search to empty removes it from the URL", async () => {
 
 test("clearAll resets every filter but keeps the sort, gender and category", async () => {
   const { result, lastUrl } = setup(
-    "?search=nike&discount=50&sizes=M&brands=Nike&sort=price-high-to-low&gender=Female&category=Shoes",
+    "?search=nike&discount=50&sizes=M&brands=Nike&stores=jd&sort=price-high-to-low&gender=Female&category=Shoes",
   );
 
   await act(() => result.current[1].clearAll());
@@ -94,6 +95,7 @@ test("clearAll resets every filter but keeps the sort, gender and category", asy
     discount: 30,
     sizes: [],
     brands: [],
+    stores: [],
     sort: "price-high-to-low",
     gender: "Female",
     category: "Shoes",

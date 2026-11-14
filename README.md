@@ -21,7 +21,7 @@ flowchart LR
     loop -- fetch sale listing --> jd
     loop -- accepted listing --> store
     store -- "deals ≥ 30% off" --> response
-    app -- "GET /v1/deals" --> response
+    app -- "GET /v2/deals" --> response
 ```
 
 ## Features 🚀
@@ -33,20 +33,21 @@ The [web app](https://bargain-scraper.netlify.app/) lets you search, set a minim
 
 ```mermaid
 flowchart LR
-    api["📦 Backend<br/><small>GET /v1/deals</small>"]
-    query["🗄️ TanStack Query<br/><small>cache · saved in the browser</small>"]
-    url["🔗 URL<br/><small>?gender · category · brands · search · discount · sizes · sort</small>"]
+    api["📦 Backend<br/><small>GET /v2/deals · filters, sorts, counts, pages</small>"]
+    query["🗄️ TanStack Query<br/><small>one cache entry per request · pages on scroll</small>"]
+    url["🔗 URL<br/><small>?gender · category · stores · brands · search · discount · sizes · sort</small>"]
     nuqs["🧭 nuqs<br/><small>typed URL state</small>"]
-    page["📄 DealsPage<br/><small>one filter + sort pass</small>"]
+    page["📄 DealsPage<br/><small>URL state = the request</small>"]
     ui["🖥️ Toolbar · chips · deal grid"]
 
-    api -- "validated deals" --> query --> page
+    page -- "the request" --> query -- "query string + cursor" --> api
+    api -- "validated page: deals, total, facet counts" --> query --> page
     url <--> nuqs -- "filter values" --> page
     page --> ui
     ui -- "you change a filter" --> nuqs
 ```
 
-The deals come from the server and are cached; the filters come from the URL. `DealsPage` is the only place the two meet: it filters and sorts the cached list in one pass, and everything below it just displays what it's given.
+The filters live in the URL, and the URL is the request: the backend filters, sorts, counts and pages, and the app shows one page at a time as you scroll. `DealsPage` is the only place the two meet, and everything below it just displays what it's given.
 
 **Tools and what they do here**
 
@@ -72,7 +73,7 @@ The deals come from the server and are cached; the filters come from the URL. `D
 - **The URL is the filter state.** There's no separate store to keep in sync. Changing a filter rewrites the URL (replacing the history entry, so Back still leaves the page); reloading or opening a shared link restores the exact view.
 - **A new filter is one registry entry.** Each filter in `features/filters/model/registry.ts` declares how it's read from and written to the URL, when it's active, how it filters a deal, and its removable chip. The URL handling, the filter pass, the chips, "Clear all" and the phone's "Filters (n)" count all come from that list; only the control is written by hand.
 - **Waking a sleeping server.** Render's free tier sleeps, and a freshly started backend answers `503` until its first scrape finishes. The app shows the last list saved in the browser straight away, retries quietly as the server asks (for up to two minutes), says "Waking the server" after 3 seconds, and only then shows an error. If a refresh fails while a list is on screen, a small banner says the deals may be out of date.
-- **Explaining an empty result.** When the filters match nothing, the app tries relaxing each filter on its own and offers those as one-tap fixes, for example "Show 12 deals at 50% or more".
+- **Explaining an empty result.** When the filters match nothing, the backend's counts say which single filter to relax, and the app offers those as one-tap fixes, for example "Show 12 deals at 50% or more".
 - **Layers with enforced boundaries.** `app/` (page and layout) uses `features/` (deals, filters, theme, about), which use `shared/` (generic UI and helpers). Imports only go downwards, features are used only through their `index.ts`, and the deals feature never imports filters. Breaking these rules is a lint error, not a code-review comment.
 - **Design tokens and themes.** Components use semantic colours (`accent`, `surface`, `text-muted`) defined once in CSS; the dark theme just swaps their values. A tiny script in `index.html` picks the theme before the first paint, so there's no flash, and it follows the system setting until you choose one.
 - **Accessible by default.** Header, main and footer landmarks, a skip link, native controls where they exist (radio buttons, a `<select>`, a `<dialog>` sheet), and every control named for screen readers. axe runs against each state in tests.

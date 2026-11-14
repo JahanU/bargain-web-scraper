@@ -92,8 +92,11 @@ test("only the rows near the viewport are rendered, and scrolling reaches the la
 
   expect(await cards.count()).toBeLessThan(81);
 
-  await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
-  await expect(cards.last()).toHaveAttribute("aria-posinset", "81");
+  // The first scroll reaches the end of the first page, which loads the second.
+  await expect(async () => {
+    await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+    await expect(cards.last()).toHaveAttribute("aria-posinset", "81", { timeout: 1000 });
+  }).toPass();
   await expect(cards.last()).toBeInViewport();
 });
 
@@ -118,6 +121,21 @@ async function scrollIntoTheGrid(page: import("@playwright/test").Page) {
 
 test("a reload returns to the deal that was at the top", async ({ page }) => {
   const before = await scrollIntoTheGrid(page);
+
+  await page.reload();
+
+  await expect.poll(() => topDeal(page)).toBe(before);
+});
+
+test("a reload returns to a deal on the second page, loading as far as it had", async ({
+  page,
+}) => {
+  await scrollIntoTheGrid(page);
+  await expect(async () => {
+    await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+    expect(await topDeal(page)).toBeGreaterThan(60);
+  }).toPass();
+  const before = await topDeal(page);
 
   await page.reload();
 
