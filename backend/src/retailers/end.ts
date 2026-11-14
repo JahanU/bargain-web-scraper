@@ -2,6 +2,7 @@ import { type Category, type Gender, UNISEX } from '@/deals';
 import { createLogger } from '@/log';
 import { type SearchConfig, searchAll, withLearnedConfig } from '@/retailers/algolia';
 import { isBlockedName } from '@/retailers/blocklist';
+import { BRAND_SPELLINGS, canonicalBrand } from '@/retailers/brands';
 import { request } from '@/retailers/request';
 import type { Listing, Product, Retailer } from '@/retailers/types';
 
@@ -12,6 +13,9 @@ const END_BASE_URL = 'https://www.endclothing.com';
 // END.'s pages carry the settings of its Algolia search. The product index is the prefix + "products".
 const CONFIG_PAGE_URL = `${END_BASE_URL}/collections/sale`;
 const CONFIG_PATTERN = /"app_id":"([^"]+)","search_api_key":"([^"]+)","index_prefix":"([^"]+)"/;
+
+// Only the brands we list. Algolia matches a facet value whatever its case.
+const BRAND_FILTER = BRAND_SPELLINGS.map((brand) => `vendor:${brand}`);
 
 // Only what the adapter reads. The index holds one record per size, about 20,000 of them on sale.
 const ATTRIBUTES = [
@@ -77,6 +81,7 @@ export function createEndRetailer({ minDiscount }: { minDiscount: number }): Ret
     async function readSale(config: SearchConfig): Promise<Listing> {
         const query = {
             filters: `market_pricing_gbp.price_ratio <= ${maxPriceRatio}`,
+            facetFilters: [BRAND_FILTER],
             // One record per size, not one per product: the sizes are the records.
             distinct: false,
             attributesToRetrieve: ATTRIBUTES,
@@ -84,19 +89,19 @@ export function createEndRetailer({ minDiscount }: { minDiscount: number }): Ret
         const { hits, complete } = await searchAll<Hit>(config, query, log, 'sale');
 
         const sizesOf = Map.groupBy(
-            hits.filter((hit) => !isBlockedName(hit.title, hit.vendor)),
+            hits.filter((hit) => !isBlockedName(hit.title)),
             (hit) => hit.id,
         );
         const products = [...sizesOf.values()].map(parseProduct).filter((product) => product !== undefined);
         if (products.length < sizesOf.size) {
-            log.warn('⚠ skipped products with no usable brand, category, gender or price', {
+            log.warn('⚠ skipped products with no brand we list, or no usable category, gender or price', {
                 skipped: sizesOf.size - products.length,
             });
         }
         return { products, complete };
     }
 
-    return { id: 'end', fetchListing: withLearnedConfig(learnConfig, readSale) };
+    return { id: 'end', name: 'END.', fetchListing: withLearnedConfig(learnConfig, readSale) };
 }
 
 const listOf = (value: string | string[] | undefined) => [value ?? []].flat();
@@ -117,7 +122,7 @@ function sizeLabel(title: string): string {
 /** Maps the in-stock sizes of one product to a product, or nothing if a field we need is missing. */
 function parseProduct(sizes: Hit[]): Product | undefined {
     const [first] = sizes;
-    const brand = first?.vendor.trim();
+    const brand = canonicalBrand(first?.vendor ?? '');
     const category = CATEGORIES[listOf(first?.named_tags?.cat_high)[0] ?? ''];
     const gender = genderOf(listOf(first?.named_tags?.gender));
     const prices = sizes.flatMap((size) => size.market_pricing_gbp ?? []);

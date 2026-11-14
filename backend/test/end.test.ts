@@ -4,15 +4,16 @@ import { afterEach, describe, expect, it, mock, spyOn } from 'bun:test';
 import { createEndRetailer } from '@/retailers/end';
 
 const hit = (overrides: object = {}) => ({
-    id: 11102947148114,
-    handle: 'comme-des-garcons-homme-diamond-knit-polo',
-    title: 'Comme des Garçons Homme Diamond Knit Polo',
-    vendor: 'Comme des Garçons Homme',
-    variant_title: 'Medium',
-    product_image: 'https://cdn.shopify.com/s/files/1/1011/8339/0034/files/polo.jpg?v=1788611187',
-    named_tags: { cat_high: 'Apparel', cat_low: 'Polo Shirts', cat_med: 'Tops', gender: 'Mens' },
-    market_pricing_gbp: { compare_at_price: 735, price: 441, price_ratio: 0.6 },
-    objectID: '54518705226066',
+    id: 11100236841298,
+    handle: 'adidas-tobacco-sneaker-kh9634',
+    title: 'adidas Tobacco Sneaker',
+    vendor: 'Adidas',
+    variant_title: 'UK 9.5',
+    product_image:
+        'https://cdn.shopify.com/s/files/1/1011/8339/0034/files/7c833d6e943f7ad3a36300b4b49ea588675d9b4e.jpg?v=1788611187',
+    named_tags: { cat_high: 'Footwear', cat_low: 'Sneakers', cat_med: 'Sneaker', gender: 'Mens' },
+    market_pricing_gbp: { compare_at_price: 95, price: 57, price_ratio: 0.6 },
+    objectID: '54505432285522',
     ...overrides,
 });
 
@@ -68,6 +69,8 @@ describe('END. listing', () => {
             page: 0,
         });
         expect(calls.searches[0]?.attributesToRetrieve).toContain('market_pricing_gbp');
+        // Only the brands we list, so their server leaves the rest out.
+        expect(calls.searches[0]?.facetFilters).toEqual([expect.arrayContaining(['vendor:Nike'])]);
     });
 
     it('follows the configured discount floor', async () => {
@@ -107,21 +110,23 @@ describe('END. products', () => {
     const productsFor = async (hits: ReturnType<typeof hit>[]) => (await fakeEnd({ hits }).end.fetchListing()).products;
 
     it('groups the sizes of a product into one product, in our size labels', async () => {
-        const sizes = ['Small', 'Medium', 'X-Large', 'Medium'].map((variant_title, i) =>
+        const sizes = ['UK 8', 'UK 9.5', 'UK 11', 'UK 9.5'].map((variant_title, i) =>
             hit({ variant_title, objectID: String(i) }),
         );
         expect(await productsFor(sizes)).toEqual([
             {
-                externalId: '11102947148114',
-                name: 'Comme des Garçons Homme Diamond Knit Polo',
-                url: 'https://www.endclothing.com/products/comme-des-garcons-homme-diamond-knit-polo',
-                imageUrl: 'https://cdn.shopify.com/s/files/1/1011/8339/0034/files/polo.jpg?v=1788611187',
+                externalId: '11100236841298',
+                name: 'adidas Tobacco Sneaker',
+                url: 'https://www.endclothing.com/products/adidas-tobacco-sneaker-kh9634',
+                imageUrl:
+                    'https://cdn.shopify.com/s/files/1/1011/8339/0034/files/7c833d6e943f7ad3a36300b4b49ea588675d9b4e.jpg?v=1788611187',
                 gender: 'Male',
-                brand: 'Comme des Garçons Homme',
-                category: 'Clothes',
-                sizes: ['S', 'M', 'XL'],
-                wasPricePence: 73500,
-                nowPricePence: 44100,
+                // END. writes "Adidas"; ours is the one name every store's deals share.
+                brand: 'adidas',
+                category: 'Shoes',
+                sizes: ['8', '9.5', '11'],
+                wasPricePence: 9500,
+                nowPricePence: 5700,
                 discount: 40,
                 inStock: true,
             },
@@ -129,7 +134,7 @@ describe('END. products', () => {
     });
 
     it.each([
-        ['UK 9.5', '9.5'],
+        ['Medium', 'M'],
         ['XXLarge', 'XXL'],
         ['OneSize', 'One Size'],
         ['34"', '34"'],
@@ -146,7 +151,7 @@ describe('END. products', () => {
         expect(product).toMatchObject({ gender: expected, category: 'Shoes' });
     });
 
-    it('skips Lifestyle products and ones with no gender or price, warning once with how many', async () => {
+    it("skips Lifestyle products, brands we don't list and ones with no gender or price, warning once with how many", async () => {
         const warn = spyOn(console, 'error').mockImplementation(() => {});
         Bun.env.LOG_LEVEL = 'warn';
         const products = await productsFor([
@@ -154,17 +159,18 @@ describe('END. products', () => {
             hit({ id: 2, named_tags: { cat_high: 'Lifestyle', gender: 'Mens' } }),
             hit({ id: 3, named_tags: { cat_high: 'Apparel' } }),
             hit({ id: 4, market_pricing_gbp: undefined }),
+            hit({ id: 5, vendor: 'Comme des Garçons Homme' }),
         ]);
         expect(products).toHaveLength(1);
         expect(warn).toHaveBeenCalledTimes(1);
-        expect(String(warn.mock.calls[0])).toContain('skipped=3');
+        expect(String(warn.mock.calls[0])).toContain('skipped=4');
     });
 
-    it('applies the blocklist to the name, not the brand', async () => {
+    it('leaves out products with a blocked name', async () => {
         const products = await productsFor([
-            hit({ id: 1, title: 'Stone Island Logo Cap', vendor: 'Stone Island' }),
-            hit({ id: 2, title: 'Home Grown Check Shirt', vendor: 'Home Grown' }),
+            hit({ id: 1, title: 'adidas Trefoil Cap' }),
+            hit({ id: 2, title: 'adidas Samba OG Sneaker' }),
         ]);
-        expect(products.map((product) => product.name)).toEqual(['Home Grown Check Shirt']);
+        expect(products.map((product) => product.name)).toEqual(['adidas Samba OG Sneaker']);
     });
 });
