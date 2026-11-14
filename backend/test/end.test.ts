@@ -69,8 +69,8 @@ describe('END. listing', () => {
             page: 0,
         });
         expect(calls.searches[0]?.attributesToRetrieve).toContain('market_pricing_gbp');
-        // Only the brands we list, so their server leaves the rest out.
-        expect(calls.searches[0]?.facetFilters).toEqual([expect.arrayContaining(['vendor:Nike'])]);
+        // Every brand: END. is kept whole.
+        expect(calls.searches[0]?.facetFilters).toBeUndefined();
     });
 
     it('follows the configured discount floor', async () => {
@@ -151,7 +151,7 @@ describe('END. products', () => {
         expect(product).toMatchObject({ gender: expected, category: 'Shoes' });
     });
 
-    it("skips Lifestyle products, brands we don't list and ones with no gender or price, warning once with how many", async () => {
+    it('skips Lifestyle products and ones with no gender or price, warning once with how many', async () => {
         const warn = spyOn(console, 'error').mockImplementation(() => {});
         Bun.env.LOG_LEVEL = 'warn';
         const products = await productsFor([
@@ -159,18 +159,22 @@ describe('END. products', () => {
             hit({ id: 2, named_tags: { cat_high: 'Lifestyle', gender: 'Mens' } }),
             hit({ id: 3, named_tags: { cat_high: 'Apparel' } }),
             hit({ id: 4, market_pricing_gbp: undefined }),
-            hit({ id: 5, vendor: 'Comme des Garçons Homme' }),
         ]);
         expect(products).toHaveLength(1);
         expect(warn).toHaveBeenCalledTimes(1);
-        expect(String(warn.mock.calls[0])).toContain('skipped=4');
+        expect(String(warn.mock.calls[0])).toContain('skipped=3');
     });
 
-    it('leaves out products with a blocked name', async () => {
+    it('keeps a brand we do not list, under the name END. gives it', async () => {
+        const [product] = await productsFor([hit({ vendor: 'Comme des Garçons Homme' })]);
+        expect(product?.brand).toBe('Comme des Garçons Homme');
+    });
+
+    it('applies the blocklist to the name, not the brand', async () => {
         const products = await productsFor([
-            hit({ id: 1, title: 'adidas Trefoil Cap' }),
-            hit({ id: 2, title: 'adidas Samba OG Sneaker' }),
+            hit({ id: 1, title: 'Stone Island Logo Cap', vendor: 'Stone Island' }),
+            hit({ id: 2, title: 'Home Grown Check Shirt', vendor: 'Home Grown' }),
         ]);
-        expect(products.map((product) => product.name)).toEqual(['adidas Samba OG Sneaker']);
+        expect(products.map((product) => product.name)).toEqual(['Home Grown Check Shirt']);
     });
 });

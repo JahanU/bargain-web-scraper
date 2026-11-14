@@ -70,7 +70,7 @@ flowchart TD
 | `src/scraper.ts` | `scrapeRetailer` (one timed, failure-safe scrape) and the loop (R4) |
 | `src/retailers/jd.ts` | JD adapter: learns JD's Algolia credentials once, queries the men's and women's sale directly, reads every page in parallel, and flags incomplete results |
 | `src/retailers/size.ts` | Size adapter: reads the men's and women's sale from Size's Shopify Storefront API, one page at a time with a one-second pause, and fails the whole run if any page fails |
-| `src/retailers/end.ts` | END. adapter: learns END.'s Algolia credentials once, asks for every in-stock size of the brands we list at or below the discount floor, and groups the sizes into products |
+| `src/retailers/end.ts` | END. adapter: learns END.'s Algolia credentials once, asks for every in-stock size at or below the discount floor, whatever the brand, and groups the sizes into products |
 | `src/retailers/algolia.ts` | Shared by the JD and END. adapters: the paged search, the truncation check and the learn-once config |
 | `src/retailers/category.ts`, `src/retailers/request.ts` | Shared by the adapters: the mapping from JD Group's product kinds to our categories, and a fetch with a timeout that waits once on a 429 |
 | `src/retailers/blocklist.ts` | Names to skip (team kits, caps…), matched as whole words and plurals |
