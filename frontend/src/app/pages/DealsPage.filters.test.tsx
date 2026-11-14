@@ -86,9 +86,11 @@ const toolbar = () => screen.getByRole("search", { name: "Filter deals" });
 test("the toolbar is a search landmark with every control named, and axe is clean", async () => {
   const { container } = await setup();
 
-  expect(within(toolbar()).getByRole("searchbox", { name: "Search deals" })).toBeInTheDocument();
+  // Who you shop for and search sit in the header, beside the logo.
+  const header = screen.getByRole("banner");
+  expect(within(header).getByRole("searchbox", { name: "Search deals" })).toBeInTheDocument();
+  expect(within(header).getByRole("group", { name: "Shop" })).toBeInTheDocument();
   expect(within(toolbar()).getByRole("group", { name: "Minimum discount" })).toBeInTheDocument();
-  expect(within(toolbar()).getByRole("group", { name: "Shop" })).toBeInTheDocument();
   expect(within(toolbar()).getByRole("group", { name: "Category" })).toBeInTheDocument();
   expect(within(toolbar()).getByRole("button", { name: "Brands" })).toBeInTheDocument();
   expect(within(toolbar()).getByRole("button", { name: "Sizes" })).toBeInTheDocument();

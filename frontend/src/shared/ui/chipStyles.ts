@@ -7,7 +7,7 @@ export const chip = cva(
     variants: {
       tone: {
         neutral: "border-border bg-surface-sunken text-text",
-        selected: "border-accent bg-accent text-accent-fg",
+        selected: "border-text bg-text text-surface",
         muted: "border-transparent bg-surface-sunken text-text-muted",
       },
       interactive: { true: "cursor-pointer hover:border-border-strong", false: "" },

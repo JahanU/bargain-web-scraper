@@ -13,11 +13,15 @@ import {
   ActiveFilterChips,
   FilterBar,
   type FilterState,
+  GenderControl,
+  SearchField,
   activeChips,
   explainEmpty,
   useDealsRequest,
   useFilters,
 } from "@/features/filters";
+
+import { Header } from "../layout/Header";
 
 const WAKING_AFTER_MS = 3000;
 
@@ -37,67 +41,81 @@ export function DealsPage() {
 
   return (
     <>
-      <h1 className="sr-only">Deals from JD Sports UK</h1>
-      <FilterBar
-        values={values}
-        onChange={change}
-        onClearAll={clearAll}
-        facets={result?.facets}
-        resultCount={query.isPlaceholderData ? undefined : result?.total}
-        busy={!result}
-      />
-      <div className="page-container py-3">
-        <ActiveFilterChips
+      <Header>
+        <GenderControl
+          value={values.gender}
+          onChange={(gender) => change({ gender })}
+          className="w-full sm:w-auto"
+        />
+        <SearchField
+          value={values.search}
+          onChange={(search) => change({ search })}
+          className="w-full sm:w-auto sm:flex-1 lg:max-w-md"
+        />
+      </Header>
+      <main id="main" tabIndex={-1} className="flex-1">
+        <h1 className="sr-only">Deals from JD Sports UK</h1>
+        <FilterBar
           values={values}
           onChange={change}
           onClearAll={clearAll}
-          stores={result?.facets?.stores}
+          facets={result?.facets}
+          resultCount={query.isPlaceholderData ? undefined : result?.total}
+          busy={!result}
         />
-        {result && query.isError && (
-          <StaleBanner
-            updatedAt={query.dataUpdatedAt}
-            onRetry={retry}
-            retrying={query.isFetching}
+        <div className="page-container py-3">
+          <ActiveFilterChips
+            values={values}
+            onChange={change}
+            onClearAll={clearAll}
+            stores={result?.facets?.stores}
           />
-        )}
-        {result && !awaiting ? (
-          <>
-            <ResultsSummary
-              total={result.total}
-              updatedAt={query.isPlaceholderData ? undefined : query.dataUpdatedAt}
+          {result && query.isError && (
+            <StaleBanner
+              updatedAt={query.dataUpdatedAt}
+              onRetry={retry}
+              retrying={query.isFetching}
             />
-            {result.deals.length > 0 ? (
-              <DealGrid
-                deals={result.deals}
+          )}
+          {result && !awaiting ? (
+            <>
+              <ResultsSummary
                 total={result.total}
-                serverStart={result.trackingSince}
-                // Not after a failure: the grid asks on every render, and the banner has Retry.
-                hasMore={query.hasNextPage && !query.isPlaceholderData && !query.isError}
-                loadingMore={query.isFetchingNextPage}
-                // A refresh already under way finishes first; the grid asks again after it.
-                onLoadMore={() => void query.fetchNextPage({ cancelRefetch: false })}
+                updatedAt={query.isPlaceholderData ? undefined : query.dataUpdatedAt}
               />
-            ) : (
-              <NoDeals
-                // The request, not the URL: while a search settles they differ, and these are its deals.
-                values={request}
-                facets={result.facets}
-                onChange={change}
-                onClearAll={clearAll}
-              />
-            )}
-          </>
-        ) : query.isError ? (
-          <ErrorState error={query.error} onRetry={retry} retrying={query.isFetching} />
-        ) : (
-          <div aria-busy="true">
-            <output className="mb-3 block min-h-4 text-xs text-text-muted">
-              {waking ? "Waking the server, this can take a minute." : "Loading deals…"}
-            </output>
-            <DealGridSkeleton />
-          </div>
-        )}
-      </div>
+              {result.deals.length > 0 ? (
+                <DealGrid
+                  deals={result.deals}
+                  total={result.total}
+                  serverStart={result.trackingSince}
+                  // Not after a failure: the grid asks on every render, and the banner has Retry.
+                  hasMore={query.hasNextPage && !query.isPlaceholderData && !query.isError}
+                  loadingMore={query.isFetchingNextPage}
+                  // A refresh already under way finishes first; the grid asks again after it.
+                  onLoadMore={() => void query.fetchNextPage({ cancelRefetch: false })}
+                />
+              ) : (
+                <NoDeals
+                  // The request, not the URL: while a search settles they differ, and these are its deals.
+                  values={request}
+                  facets={result.facets}
+                  onChange={change}
+                  onClearAll={clearAll}
+                />
+              )}
+            </>
+          ) : query.isError ? (
+            <ErrorState error={query.error} onRetry={retry} retrying={query.isFetching} />
+          ) : (
+            <div aria-busy="true">
+              <output className="mb-3 block min-h-4 text-xs text-text-muted">
+                {waking ? "Waking the server, this can take a minute." : "Loading deals…"}
+              </output>
+              <DealGridSkeleton />
+            </div>
+          )}
+        </div>
+      </main>
     </>
   );
 }

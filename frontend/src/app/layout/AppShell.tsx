@@ -1,6 +1,5 @@
 import type { ReactNode } from "react";
 import { Footer } from "./Footer";
-import { Header } from "./Header";
 
 export function AppShell({ children }: { children: ReactNode }) {
   return (
@@ -11,10 +10,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       >
         Skip to deals
       </a>
-      <Header />
-      <main id="main" tabIndex={-1} className="flex-1">
-        {children}
-      </main>
+      {children}
       <Footer />
     </div>
   );

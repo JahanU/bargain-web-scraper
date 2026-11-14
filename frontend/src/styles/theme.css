@@ -23,9 +23,7 @@
   --radius-sm: 4px;
   --radius-md: 6px;
   --radius-lg: 8px;
-
-  /* The sticky header's height, which is also where the toolbar under it sticks. */
-  --spacing-header: 3rem;
+  --radius-full: 9999px;
 
   --font-sans: "Archivo", "Archivo Fallback", ui-sans-serif, system-ui, sans-serif;
 }
