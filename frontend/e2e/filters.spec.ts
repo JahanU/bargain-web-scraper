@@ -11,12 +11,7 @@ test("desktop: search, discount and sizes filter the grid, and a reload restores
 
   await page.getByRole("searchbox", { name: "Search deals" }).fill("nike");
   await page.getByRole("radio", { name: "50%" }).check();
-  await page.getByRole("button", { name: "Sizes" }).click();
-  await page
-    .getByRole("dialog", { name: "Filter by size" })
-    .getByRole("button", { name: /^M, / })
-    .click();
-  await page.keyboard.press("Escape");
+  await page.getByRole("button", { name: /^M, / }).click();
 
   await expect(page).toHaveURL(/\?search=nike&discount=50&sizes=M$/);
   await expect(page.getByText("12 deals")).toBeVisible();
@@ -49,24 +44,17 @@ test("desktop: category and brands narrow the list through the API, by keyboard,
   await page.getByRole("radio", { name: "Shoes" }).check();
   await expect(page.getByText("21 deals")).toBeVisible();
 
-  const brands = page.getByRole("button", { name: /^Brands/ });
-  await brands.click();
-  const popup = page.getByRole("dialog", { name: "Filter by brand" });
-  const vans = popup.getByRole("button", { name: "Vans, 8 deals" });
+  const sidebar = page.getByRole("search", { name: "Filter deals" });
+  const vans = sidebar.getByRole("button", { name: "Vans, 8 deals" });
   await vans.focus();
   await page.keyboard.press("Space");
   await expect(vans).toHaveAttribute("aria-pressed", "true");
   await expect(vans).toBeFocused();
-  await popup.getByRole("button", { name: "adidas, 4 deals" }).click();
+  await sidebar.getByRole("button", { name: "adidas, 4 deals" }).click();
 
   await expect(page).toHaveURL(/\?category=Shoes&brands=Vans,adidas$/);
   await expect(page.getByText("12 deals")).toBeVisible();
   expect(requests.at(-1)).toBe("?gender=Male&category=Shoes&brand=Vans&brand=adidas&limit=60");
-
-  await page.keyboard.press("Escape");
-  await expect(popup).toBeHidden();
-  await expect(brands).toBeFocused();
-  await expect(brands).toHaveText(/· 2/);
 
   await page.reload();
 
@@ -85,18 +73,15 @@ test("desktop: category and brands narrow the list through the API, by keyboard,
 test.describe("phone", () => {
   test.use({ viewport: devices["iPhone 13"].viewport, hasTouch: true });
 
-  test("category sits in the bar and brands in the sheet; both narrow the list", async ({
-    page,
-  }) => {
+  test("category and brands sit in the drawer; both narrow the list", async ({ page }) => {
     await page.goto("/");
     await expect(page.getByText("81 deals")).toBeVisible();
-    await expect(page.getByRole("button", { name: /^Brands/ })).toBeHidden(); // in the sheet
-
-    await page.getByRole("radio", { name: "Shoes" }).check();
-    await expect(page.getByText("21 deals")).toBeVisible();
+    await expect(page.getByRole("radio", { name: "Shoes" })).toBeHidden(); // in the drawer
 
     await page.getByRole("button", { name: "Filters" }).click();
     const sheet = page.getByRole("dialog", { name: "Filters" });
+    await sheet.getByRole("radio", { name: "Shoes" }).check();
+    await expect(sheet.getByRole("button", { name: "Show 21 deals" })).toBeVisible();
     await sheet.getByRole("button", { name: "Vans, 8 deals" }).click();
 
     await expect(page).toHaveURL(/\?category=Shoes&brands=Vans$/);
@@ -172,25 +157,23 @@ for (const { device, viewport } of [
 
     await page.getByRole("searchbox", { name: "Search deals" }).fill("nike");
     if (device === "desktop") {
-      await page.getByRole("button", { name: /^Brands/ }).click();
       await page.getByRole("button", { name: /^Nike, / }).click();
-      await page.keyboard.press("Escape");
-      await page.getByRole("button", { name: /^Sizes/ }).click();
       await page.getByRole("button", { name: /^M, / }).click();
-      await page.keyboard.press("Escape");
     } else {
       await page.getByRole("button", { name: "Filters" }).click();
       const sheet = page.getByRole("dialog", { name: "Filters" });
       await sheet.getByRole("button", { name: /^Nike, / }).click();
       await sheet.getByRole("button", { name: /^M, / }).click();
       await sheet.getByRole("button", { name: `Show ${nikeInM.length} deals` }).click();
+      await expect(sheet).toBeHidden(); // its button also reads "N deals"
     }
 
     await expect(page).toHaveURL(/\?search=nike&brands=Nike&sizes=M$/);
     await expect(page.getByText(`${nikeInM.length} deals`, { exact: true })).toBeVisible();
     const cards = page.locator("main [aria-posinset]");
     await expect(cards.first()).toHaveAttribute("aria-setsize", String(nikeInM.length));
-    expect(cursors).toEqual([null]); // one page so far
+    // Polled: the debounced search can land after the count already reads right.
+    await expect.poll(() => cursors).toEqual([null]); // one page so far
 
     // Each scroll reaches the end of what is loaded; the last deal arrives with the second page.
     await expect(async () => {
