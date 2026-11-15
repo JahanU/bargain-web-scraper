@@ -1,7 +1,6 @@
 import type { Gender } from '@/deals';
 import { createLogger, duration } from '@/log';
-import { isBlockedName } from '@/retailers/blocklist';
-import { canonicalBrand } from '@/retailers/brands';
+import { brandName } from '@/retailers/brands';
 import { categoryIn } from '@/retailers/category';
 import { request } from '@/retailers/request';
 import type { Listing, Product, Retailer } from '@/retailers/types';
@@ -25,6 +24,9 @@ const SALES: [handle: string, gender: Gender][] = [
 
 // The audience in a product type such as "size > Men's > Footwear". Kids' products are left out.
 const AUDIENCES: Record<string, Gender> = { "Men's": 'Male', Womens: 'Female' };
+
+// Labels sold only at Size. They filled the top of its sale and crowded the brand filter, so they are left out.
+const OWN_LABELS = new Set(['Home Grown', 'Alte Systems', 'ALTE', 'VISIT']);
 
 // Shopify's per-request maximum.
 const PRODUCTS_PER_PAGE = 250;
@@ -115,7 +117,7 @@ export function createSizeRetailer({ delayMs = REQUEST_DELAY_MS } = {}): Retaile
                         await Bun.sleep(delayMs);
                     }
                     const { nodes, pageInfo } = await salePage(handle, cursor);
-                    const wanted = nodes.filter((node) => !isBlockedName(nameWithoutBrand(node)));
+                    const wanted = nodes.filter((node) => !OWN_LABELS.has(node.vendor));
                     const parsed = wanted
                         .map((node) => parseNode(node, gender))
                         .filter((product) => product !== undefined);
@@ -140,11 +142,6 @@ export function createSizeRetailer({ delayMs = REQUEST_DELAY_MS } = {}): Retaile
     };
 }
 
-/** Size starts every title with the brand, and a brand such as "Home Grown" is not a blocked word. */
-function nameWithoutBrand({ title, vendor }: Node): string {
-    return title.startsWith(vendor) ? title.slice(vendor.length) : title;
-}
-
 /** The audience a product type names. One with no path ("Footwear") takes the gender of its sale. */
 function genderOf(productType: string, sale: Gender): Gender | undefined {
     const [shop, audience] = productType.split(' > ');
@@ -158,9 +155,9 @@ const pence = (pounds: string) => Math.round(Number(pounds) * 100);
 
 /** Maps one product, or nothing if it has no brand, category or audience we can tell. */
 function parseNode(node: Node, sale: Gender): Product | undefined {
-    // Size is kept whole: the brand list exists for JD's filler labels. A brand on it takes our
-    // spelling, so it is one entry across stores; any other keeps Size's.
-    const brand = canonicalBrand(node.vendor) ?? node.vendor.trim();
+    // The brand list exists for JD's filler labels, so Size's other brands are kept. A brand on it
+    // takes our spelling, so it is one entry across stores; any other keeps Size's.
+    const brand = brandName(node.vendor);
     const category = categoryIn([node.productType]);
     const gender = genderOf(node.productType, sale);
     if (!brand || !category || !gender) {

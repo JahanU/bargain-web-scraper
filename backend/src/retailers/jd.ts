@@ -1,7 +1,6 @@
 import { UNISEX } from '@/deals';
 import { createLogger } from '@/log';
 import { type SearchConfig, searchAll, withLearnedConfig } from '@/retailers/algolia';
-import { isBlockedName } from '@/retailers/blocklist';
 import { BRAND_SPELLINGS, canonicalBrand } from '@/retailers/brands';
 import { categoryIn } from '@/retailers/category';
 import { request } from '@/retailers/request';
@@ -81,7 +80,7 @@ export function createJDRetailer(): Retailer {
         const categories = await Promise.all(CATEGORIES.map((category) => readCategory(current, category)));
         // A unisex product is in both categories: keep one copy.
         const hits = new Map(categories.flatMap((category) => category.hits).map((hit) => [hit.objectID, hit]));
-        const listed = [...hits.values()].filter((hit) => !isBlockedName(hit.name));
+        const listed = [...hits.values()];
         const products = listed.map(parseHit).filter((product) => product !== undefined);
         if (products.length < listed.length) {
             log.warn('⚠ skipped hits with no usable brand or category', { skipped: listed.length - products.length });

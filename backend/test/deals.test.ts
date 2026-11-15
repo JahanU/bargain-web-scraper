@@ -114,6 +114,13 @@ describe('DealStore', () => {
     });
 
     describe('deals()', () => {
+        it('serves a brand under one spelling across stores', () => {
+            const store = new DealStore();
+            store.accept('end', complete([product('1', { brand: 'Amiri' }), product('2', { brand: 'AMIRI' })]));
+            store.accept('size', complete([product('3', { brand: 'Amiri' })]));
+            expect(store.deals(0).map((deal) => deal.brand)).toEqual(['AMIRI', 'AMIRI', 'AMIRI']);
+        });
+
         it('applies the discount floor and uses the frontend shape', () => {
             const store = new DealStore();
             store.accept(

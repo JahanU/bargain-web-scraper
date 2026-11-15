@@ -1,3 +1,4 @@
+import { withOneSpellingPerBrand } from '@/retailers/brands';
 import type { Listing, Product } from '@/retailers/types';
 
 export const GENDERS = ['Male', 'Female', 'Unisex'] as const;
@@ -90,10 +91,11 @@ export class DealStore {
 
     /** Deals at or above the discount floor, in no particular order: the snapshot sorts them. */
     deals(minDiscount: number): Deal[] {
-        return [...this.byRetailer.values()]
+        const deals = [...this.byRetailer.values()]
             .flatMap((products) => [...products.values()])
             .filter((product) => product.discount >= minDiscount)
             .map(toDeal);
+        return withOneSpellingPerBrand(deals);
     }
 
     private statusFor(retailer: string, complete: boolean, inStock: number, held: number): AcceptStatus {

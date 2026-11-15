@@ -63,7 +63,7 @@ describe('END. listing', () => {
         expect((await end.fetchListing()).complete).toBe(true);
         expect(calls.searches).toHaveLength(1);
         expect(calls.searches[0]).toMatchObject({
-            filters: 'market_pricing_gbp.price_ratio <= 0.705',
+            filters: 'inventory_available:true AND market_pricing_gbp.price_ratio <= 0.705',
             distinct: false,
             hitsPerPage: 1000,
             page: 0,
@@ -76,7 +76,7 @@ describe('END. listing', () => {
     it('follows the configured discount floor', async () => {
         const { end, calls } = fakeEnd({ minDiscount: 50 });
         await end.fetchListing();
-        expect(calls.searches[0]?.filters).toBe('market_pricing_gbp.price_ratio <= 0.505');
+        expect(calls.searches[0]?.filters).toBe('inventory_available:true AND market_pricing_gbp.price_ratio <= 0.505');
     });
 
     it('reads every page, and learns the search config only once', async () => {
@@ -170,11 +170,8 @@ describe('END. products', () => {
         expect(product?.brand).toBe('Comme des Garçons Homme');
     });
 
-    it('applies the blocklist to the name, not the brand', async () => {
-        const products = await productsFor([
-            hit({ id: 1, title: 'Stone Island Logo Cap', vendor: 'Stone Island' }),
-            hit({ id: 2, title: 'Home Grown Check Shirt', vendor: 'Home Grown' }),
-        ]);
-        expect(products.map((product) => product.name)).toEqual(['Home Grown Check Shirt']);
+    it('skips a record with no brand instead of failing the run', async () => {
+        const products = await productsFor([hit({ id: 1, vendor: null }), hit({ id: 2 })]);
+        expect(products.map((product) => product.externalId)).toEqual(['2']);
     });
 });

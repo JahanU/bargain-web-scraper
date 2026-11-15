@@ -168,7 +168,7 @@ for (const { device, viewport } of [
         cursors.push(url.searchParams.get("cursor"));
     });
     await page.goto("/");
-    await expect(page.getByText(`${catalogue.length} deals`)).toBeVisible();
+    await expect(page.getByText(`${catalogue.length} deals`, { exact: true })).toBeVisible();
 
     await page.getByRole("searchbox", { name: "Search deals" }).fill("nike");
     if (device === "desktop") {
@@ -187,7 +187,7 @@ for (const { device, viewport } of [
     }
 
     await expect(page).toHaveURL(/\?search=nike&brands=Nike&sizes=M$/);
-    await expect(page.getByText(`${nikeInM.length} deals`)).toBeVisible();
+    await expect(page.getByText(`${nikeInM.length} deals`, { exact: true })).toBeVisible();
     const cards = page.locator("main [aria-posinset]");
     await expect(cards.first()).toHaveAttribute("aria-setsize", String(nikeInM.length));
     expect(cursors).toEqual([null]); // one page so far
