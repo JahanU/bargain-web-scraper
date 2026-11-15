@@ -7,15 +7,25 @@ import { SEARCH_MAX_LENGTH } from "../model/registry";
 type SearchFieldProps = {
   value: string;
   onChange: (value: string) => void;
+  /** What is searched, e.g. "deals": the accessible name. */
+  label?: string;
+  placeholder?: string;
   className?: string;
   ref?: Ref<HTMLInputElement>;
 };
 
-export function SearchField({ value, onChange, className, ref }: SearchFieldProps) {
+export function SearchField({
+  value,
+  onChange,
+  label = "Search deals",
+  placeholder = "Search deals, brands…",
+  className,
+  ref,
+}: SearchFieldProps) {
   return (
     <div className={cn("relative flex items-center", className)}>
       <label className="flex w-full items-center">
-        <VisuallyHidden>Search deals</VisuallyHidden>
+        <VisuallyHidden>{label}</VisuallyHidden>
         <Search
           size={16}
           aria-hidden
@@ -30,7 +40,7 @@ export function SearchField({ value, onChange, className, ref }: SearchFieldProp
           enterKeyHint="search"
           autoComplete="off"
           spellCheck={false}
-          placeholder="Search deals, brands…"
+          placeholder={placeholder}
           className="h-11 w-full rounded-sm border border-border bg-surface-sunken pr-10 pl-9 text-base placeholder:text-text-muted hover:border-border-strong sm:h-10 sm:text-sm [&::-webkit-search-cancel-button]:appearance-none"
         />
       </label>

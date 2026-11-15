@@ -59,6 +59,7 @@ export function FilterPanel({ values, onChange, facets, inBar }: FilterPanelProp
       )}
       <Section title="Brands" count={values.brands.length}>
         <ChipFacetOptions
+          list
           noun="brand"
           selected={values.brands}
           onChange={(brands) => onChange({ brands })}
