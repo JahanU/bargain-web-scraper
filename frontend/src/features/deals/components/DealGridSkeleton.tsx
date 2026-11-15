@@ -5,7 +5,7 @@ export function DealGridSkeleton() {
   return (
     <ul
       aria-hidden
-      className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-6 lg:grid-cols-4 xl:grid-cols-5"
+      className="grid grid-cols-2 gap-3 sm:gap-6 @[560px]:grid-cols-3 @[820px]:grid-cols-4 @[1100px]:grid-cols-5"
     >
       {Array.from({ length: 10 }, (_, index) => (
         <li key={index} className="space-y-2">

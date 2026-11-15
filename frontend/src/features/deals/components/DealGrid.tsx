@@ -1,5 +1,5 @@
 import { useWindowVirtualizer } from "@tanstack/react-virtual";
-import { useCallback, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useCallback, useLayoutEffect, useRef, useState } from "react";
 import type { Facets } from "../api/dealSchema";
 import type { Deal } from "../model/Deal";
 import { PAGE_SIZE } from "../model/request";
@@ -14,12 +14,9 @@ const RESTORE_LIMIT = 10 * PAGE_SIZE; // a reload fetches at most this far to fi
 // pixels would point at other deals anyway), so DealGrid restores by deal: see savedTopDeal.
 history.scrollRestoration = "manual";
 
-// Tailwind's sm, lg and xl breakpoints (see GRID_SIZES in DealImage), widest first.
-const COLUMNS_AT = [
-  ["(min-width: 80rem)", 5],
-  ["(min-width: 64rem)", 4],
-  ["(min-width: 40rem)", 3],
-] as const;
+// Columns by the grid's own width (not the window's): the filter sidebar takes some of it.
+// DealGridSkeleton's container queries use the same widths.
+const columnsFor = (width: number) => (width >= 1100 ? 5 : width >= 820 ? 4 : width >= 560 ? 3 : 2);
 
 type DealGridProps = {
   /** The pages loaded so far. */
@@ -51,8 +48,8 @@ export function DealGrid({
   loadingMore,
   onLoadMore,
 }: DealGridProps) {
-  const columns = useSyncExternalStore(subscribeToColumns, currentColumns);
   const listRef = useRef<HTMLDivElement>(null);
+  const [columns, setColumns] = useState(2);
   const [scrollMargin, setScrollMargin] = useState(0);
   // The deal in the top visible row. Pixels mean nothing once rows change, so this is what a
   // reload or a column change puts back. It starts as the one saved before a reload, with how
@@ -75,11 +72,14 @@ export function DealGrid({
   // swap) can change height, and any such change resizes the document, so watch that.
   useLayoutEffect(() => {
     const list = listRef.current!;
-    const measure = () =>
+    const measure = () => {
       setScrollMargin(Math.round(list.getBoundingClientRect().top + window.scrollY));
+      setColumns(columnsFor(list.clientWidth));
+    };
     measure();
     const observer = new ResizeObserver(measure);
     observer.observe(document.documentElement);
+    observer.observe(list); // the sidebar opening or closing changes its width only
     const save = () => {
       try {
         sessionStorage.setItem(TOP_DEAL_KEY, JSON.stringify({ id: top.id, loaded: top.loaded }));
@@ -221,26 +221,4 @@ function savedTopDeal(): { id: string | undefined; loaded: number } {
     // storage blocked, or not what save() wrote: start at the top
   }
   return { id: undefined, loaded: 0 };
-}
-
-// Created once and shared by subscribe and the snapshot, which runs on every render.
-let columnQueries: { query: MediaQueryList; columns: number }[] | undefined;
-function columnMediaQueries() {
-  columnQueries ??= COLUMNS_AT.map(([media, columns]) => ({
-    query: window.matchMedia(media),
-    columns,
-  }));
-  return columnQueries;
-}
-
-function subscribeToColumns(onChange: () => void) {
-  const queries = columnMediaQueries();
-  for (const { query } of queries) query.addEventListener("change", onChange);
-  return () => {
-    for (const { query } of queries) query.removeEventListener("change", onChange);
-  };
-}
-
-function currentColumns(): number {
-  return columnMediaQueries().find(({ query }) => query.matches)?.columns ?? 2;
 }

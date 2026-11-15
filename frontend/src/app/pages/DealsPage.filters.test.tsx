@@ -7,6 +7,7 @@ import { axe } from "vitest-axe";
 import { queryDeals } from "@/mocks/api";
 import { server } from "@/mocks/server";
 import { makeDeal } from "@/test/makeDeal";
+import { setWide } from "@/test/matchMedia";
 import { renderWithClient } from "@/test/render";
 import { DealsPage } from "./DealsPage";
 
@@ -81,22 +82,24 @@ async function setup(searchParams = "") {
   return { onUrlUpdate, url, container };
 }
 
-const toolbar = () => screen.getByRole("search", { name: "Filter deals" });
+/** Where the filters are: the bar and the sidebar. */
+const toolbar = () => screen.getByRole("main");
 
-test("the toolbar is a search landmark with every control named, and axe is clean", async () => {
+test("the bar is a search landmark, the sidebar a form, and every control is named; axe is clean", async () => {
   const { container } = await setup();
 
-  expect(within(toolbar()).getByRole("searchbox", { name: "Search deals" })).toBeInTheDocument();
-  expect(within(toolbar()).getByRole("group", { name: "Minimum discount" })).toBeInTheDocument();
-  expect(within(toolbar()).getByRole("group", { name: "Shop" })).toBeInTheDocument();
-  expect(within(toolbar()).getByRole("group", { name: "Category" })).toBeInTheDocument();
-  expect(within(toolbar()).getByRole("button", { name: "Brands" })).toBeInTheDocument();
-  expect(within(toolbar()).getByRole("button", { name: "Sizes" })).toBeInTheDocument();
+  const bar = within(screen.getByRole("search", { name: "Filter deals" }));
+  expect(bar.getByRole("searchbox", { name: "Search deals" })).toBeInTheDocument();
+  expect(bar.getByRole("group", { name: "Shop" })).toBeInTheDocument();
+  expect(bar.getByRole("group", { name: "Category" })).toBeInTheDocument();
+  expect(bar.getByRole("button", { name: "Filters" })).toHaveAttribute("aria-expanded", "true");
+  const sidebar = within(screen.getByRole("form", { name: "More filters" }));
+  expect(sidebar.getByRole("group", { name: "Minimum discount" })).toBeInTheDocument();
+  expect(sidebar.getByRole("button", { name: "Brands" })).toBeInTheDocument();
+  expect(sidebar.getByRole("button", { name: "Sizes" })).toBeInTheDocument();
   // One store is no choice, so there is no Stores control.
-  expect(within(toolbar()).queryByRole("button", { name: /^Stores/ })).not.toBeInTheDocument();
-  expect(within(toolbar()).getByRole("combobox", { name: "Sort by" })).toHaveValue(
-    "discount-high-to-low",
-  );
+  expect(sidebar.queryByRole("button", { name: /^Stores/ })).not.toBeInTheDocument();
+  expect(sidebar.getByRole("combobox", { name: "Sort by" })).toHaveValue("discount-high-to-low");
   expect(await axe(container)).toHaveNoViolations();
 });
 
@@ -185,11 +188,10 @@ test("sort writes its id, and the default is left out", async () => {
   expect(url()).toBe("");
 });
 
-test("sizes: grouped toggles with counts in a popover, written in canonical order", async () => {
+test("sizes: grouped toggles with counts, written in canonical order", async () => {
   const { url } = await setup();
 
-  await userEvent.click(within(toolbar()).getByRole("button", { name: "Sizes" }));
-  const popup = await screen.findByRole("dialog", { name: "Filter by size" });
+  const popup = toolbar();
   const clothing = within(popup).getByRole("group", { name: "Clothing sizes" });
   expect(within(popup).getByRole("group", { name: "Footwear sizes" })).toBeInTheDocument();
   expect(within(clothing).getByRole("button", { name: "M, 2 deals" })).toHaveAttribute(
@@ -208,8 +210,7 @@ test("sizes: grouped toggles with counts in a popover, written in canonical orde
 test("a selected size the other filters have emptied still shows, at 0, so it can be turned off", async () => {
   const { url } = await setup("?sizes=XS&brands=Nike");
 
-  await userEvent.click(within(toolbar()).getByRole("button", { name: /^Sizes/ }));
-  const popup = await screen.findByRole("dialog", { name: "Filter by size" });
+  const popup = toolbar();
   const chips = within(within(popup).getByRole("group", { name: "Clothing sizes" }));
 
   expect(chips.getAllByRole("button").map((chip) => chip.getAttribute("aria-label"))).toEqual([
@@ -240,6 +241,7 @@ test("active filters show as chips; removing one or clearing all rewrites the UR
 });
 
 test("phones: the Filters button counts sheet filters and opens a complete filter form", async () => {
+  setWide(false);
   const { url } = await setup("?search=nike&discount=50&sizes=M");
   const button = screen.getByRole("button", { name: "Filters (2)" });
 
@@ -247,10 +249,9 @@ test("phones: the Filters button counts sheet filters and opens a complete filte
 
   const sheet = await screen.findByRole("dialog", { name: "Filters" });
   expect(within(sheet).getByRole("button", { name: "Nike, 1 deal" })).toBeInTheDocument();
-  expect(within(sheet).queryByRole("heading", { name: "Stores" })).not.toBeInTheDocument();
+  expect(within(sheet).queryByRole("button", { name: "Stores" })).not.toBeInTheDocument();
   expect(within(sheet).getByRole("group", { name: "Minimum discount" })).toBeInTheDocument();
   expect(within(sheet).getByRole("group", { name: "Clothing sizes" })).toBeInTheDocument();
-  expect(within(sheet).getByRole("combobox", { name: "Sort by" })).toBeInTheDocument();
 
   await userEvent.click(within(sheet).getByRole("button", { name: "S, 1 deal" }));
   expect(url()).toBe("?search=nike&discount=50&sizes=S,M");
@@ -286,10 +287,13 @@ test("category is a radio group: choosing Shoes asks the API for them and writes
   expect(within(group).getByRole("radio", { name: "Clothes" })).toHaveFocus();
 });
 
-async function openBrands() {
-  await userEvent.click(within(toolbar()).getByRole("button", { name: /^Brands/ }));
-  return within(await screen.findByRole("dialog", { name: "Filter by brand" }));
-}
+/** What the sidebar's Brands section shows or hides. */
+const openBrands = () =>
+  within(
+    document.getElementById(
+      within(toolbar()).getByRole("button", { name: "Brands" }).getAttribute("aria-controls")!,
+    )!,
+  );
 
 test("brand counts are the backend's facet, not counted from the loaded deals", async () => {
   serve(undefined, {
@@ -300,16 +304,18 @@ test("brand counts are the backend's facet, not counted from the loaded deals", 
   });
   await setup();
 
-  const popup = await openBrands();
+  const popup = openBrands();
 
   expect(
-    (await popup.findAllByRole("button")).map((chip) => chip.getAttribute("aria-label")),
+    (await popup.findAllByRole("button", { name: /deals?$/ })).map((chip) =>
+      chip.getAttribute("aria-label"),
+    ),
   ).toEqual(["Nike, 41 deals", "adidas, 1 deal"]);
 });
 
 test("brands: toggling one by keyboard keeps focus, announces pressed, and updates URL and request", async () => {
   const { url } = await setup();
-  const popup = await openBrands();
+  const popup = openBrands();
   const nike = await popup.findByRole("button", { name: "Nike, 2 deals" });
   expect(nike).toHaveAttribute("aria-pressed", "false");
 
@@ -332,14 +338,12 @@ test("brands: toggling one by keyboard keeps focus, announces pressed, and updat
   expect(url()).toBe("?brands=Nike,adidas");
   expect(await screen.findByText("3 deals")).toBeInTheDocument();
   expect(requests.at(-1)).toBe("?gender=Male&brand=Nike&brand=adidas&limit=60");
-  // The page behind the open popover is hidden from assistive tech.
-  expect(screen.getByRole("button", { name: /^Brands ?· 2$/, hidden: true })).toBeInTheDocument();
 });
 
 test("a changed request keeps the last result and its count on screen until its own lands", async () => {
   await setup();
   const release = holdResponses();
-  const popup = await openBrands();
+  const popup = openBrands();
 
   await userEvent.click(await popup.findByRole("button", { name: "PUMA, 1 deal" }));
 
@@ -408,7 +412,7 @@ test("more than ten brands: the top ten plus the selected, and Show all keeps fo
   }));
   serve(undefined, { brands: counts });
   await setup("?brands=Brand+12,Gone");
-  const popup = await openBrands();
+  const popup = openBrands();
   const chips = () => popup.getAllByRole("button", { pressed: undefined, name: /, \d+ deals?$/ });
   const showAll = await popup.findByRole("button", { name: "Show all 13 brands" });
 
@@ -431,7 +435,7 @@ test("more than ten brands: the top ten plus the selected, and Show all keeps fo
 
 test("ten brands or fewer: no Show all button", async () => {
   await setup();
-  const popup = await openBrands();
+  const popup = openBrands();
 
   await popup.findByRole("button", { name: "Nike, 2 deals" });
   expect(popup.queryByRole("button", { name: /^Show / })).not.toBeInTheDocument();
@@ -466,12 +470,11 @@ test("a search with other filters always offers Clear search, and each offer is 
   expect(await screen.findByText("2 deals")).toBeInTheDocument();
 });
 
-test("two stores: a Stores popover with the backend's counts filters by store id and names its chip", async () => {
+test("two stores: a Stores section with the backend's counts filters by store id and names its chip", async () => {
   serve(TWO_STORES);
   const { url, container } = await setup();
 
-  await userEvent.click(within(toolbar()).getByRole("button", { name: "Stores" }));
-  const popup = within(await screen.findByRole("dialog", { name: "Filter by store" }));
+  const popup = within(within(toolbar()).getByRole("group", { name: "Stores" }));
   expect(popup.getAllByRole("button").map((chip) => chip.getAttribute("aria-label"))).toEqual([
     "JD Sports, 3 deals",
     "Foot Locker, 1 deal",
@@ -488,13 +491,12 @@ test("two stores: a Stores popover with the backend's counts filters by store id
   expect(footLocker).toHaveFocus();
   expect(await axe(container)).toHaveNoViolations();
 
-  await userEvent.keyboard("{Escape}");
-  expect(screen.getByRole("button", { name: /^Stores ?· 1$/ })).toBeInTheDocument();
   await userEvent.click(screen.getByRole("button", { name: "Remove Foot Locker" }));
   expect(url()).toBe("");
 });
 
 test("two stores: the phone sheet has a Stores section, and a store with no deals says so", async () => {
+  setWide(false);
   serve(TWO_STORES);
   const { url } = await setup("?stores=fl&brands=Nike");
 
@@ -505,7 +507,7 @@ test("two stores: the phone sheet has a Stores section, and a store with no deal
 
   await userEvent.click(screen.getByRole("button", { name: "Filters (2)" }));
   const sheet = await screen.findByRole("dialog", { name: "Filters" });
-  expect(within(sheet).getByRole("heading", { name: "Stores" })).toBeInTheDocument();
+  expect(within(sheet).getByRole("button", { name: "Stores" })).toBeInTheDocument();
   expect(
     within(sheet).getByRole("button", { name: "Foot Locker, 0 deals", pressed: true }),
   ).toBeInTheDocument();

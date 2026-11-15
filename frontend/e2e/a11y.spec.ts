@@ -14,11 +14,10 @@ for (const colorScheme of ["light", "dark"] as const) {
   });
 }
 
-test("no axe violations with the Brands popover open", async ({ page }) => {
+test("no axe violations with every brand shown in the sidebar", async ({ page }) => {
   await page.setViewportSize(devices["Desktop Chrome"].viewport);
   await page.goto("/?brands=Nike");
-  await page.getByRole("button", { name: /^Brands/ }).click();
-  const popup = page.getByRole("dialog", { name: "Filter by brand" });
+  const popup = page.getByRole("form", { name: "More filters" });
   await expect(popup.getByRole("button", { name: "Nike, 22 deals" })).toBeVisible();
   await popup.getByRole("button", { name: "Show all 12 brands" }).click();
 
@@ -27,15 +26,14 @@ test("no axe violations with the Brands popover open", async ({ page }) => {
   expect(results.violations).toEqual([]);
 });
 
-test("no axe violations with the Stores popover open", async ({ page }) => {
+test("no axe violations with the Stores section in the sidebar", async ({ page }) => {
   await page.setViewportSize(devices["Desktop Chrome"].viewport);
   await serveDeals(page, fixture, [
     { store: "jd", name: "JD Sports" },
     { store: "footlocker", name: "Foot Locker" },
   ]);
   await page.goto("/?stores=jd");
-  await page.getByRole("button", { name: /^Stores/ }).click();
-  const popup = page.getByRole("dialog", { name: "Filter by store" });
+  const popup = page.getByRole("form", { name: "More filters" });
   await expect(popup.getByRole("button", { name: "JD Sports, 81 deals" })).toHaveAttribute(
     "aria-pressed",
     "true",

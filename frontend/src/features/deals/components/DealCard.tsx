@@ -45,8 +45,10 @@ export function DealCard({ deal, store, serverStart, priority }: DealCardProps) 
           </Badge>
         )}
       </div>
-      <div className="mt-3 space-y-1.5">
-        <h2 className="line-clamp-2 min-h-10 text-sm leading-5 font-medium">{deal.name}</h2>
+      {/* The price shows first (it is what a bargain hunter scans for); the name stays first in
+          the DOM so the link is still named by its product. */}
+      <div className="mt-3 flex flex-col gap-1.5">
+        <h2 className="line-clamp-2 text-sm leading-5 font-medium">{deal.name}</h2>
         <PriceBlock now={deal.nowPrice} was={deal.wasPrice} discount={deal.discount} />
         <SizeChips sizes={deal.sizes} />
         <p className="text-xs text-text-muted">

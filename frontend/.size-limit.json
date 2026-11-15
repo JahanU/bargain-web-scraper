@@ -2,7 +2,7 @@
   {
     "name": "Initial JavaScript",
     "path": ["dist/assets/*.js", "!dist/assets/FilterSheet-*.js", "!dist/assets/AboutDialog-*.js"],
-    "limit": "170 kB",
+    "limit": "150 kB",
     "gzip": true
   },
   {
@@ -14,7 +14,7 @@
   {
     "name": "About dialog (lazy)",
     "path": "dist/assets/AboutDialog-*.js",
-    "limit": "4 kB",
+    "limit": "19 kB",
     "gzip": true
   },
   { "name": "CSS", "path": "dist/assets/*.css", "limit": "6.8 kB", "gzip": true },

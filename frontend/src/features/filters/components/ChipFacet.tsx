@@ -1,6 +1,5 @@
-import { ChevronDown } from "lucide-react";
 import { useState } from "react";
-import { Button, Popover, ToggleGroup } from "@/shared/ui";
+import { ToggleGroup } from "@/shared/ui";
 import { facetCount } from "./toolbarLabel";
 
 const TOP_OPTIONS = 10;
@@ -73,26 +72,5 @@ export function ChipFacetOptions({ noun, selected, onChange, options }: ChipFace
         </button>
       )}
     </div>
-  );
-}
-
-/** On wide screens the options sit in a popover behind a "Brands" or "Stores" button. */
-export function ChipFacetPopover(props: ChipFacetProps) {
-  const count = props.selected.length;
-  return (
-    <Popover
-      title={`Filter by ${props.noun}`}
-      trigger={
-        <Button tone="secondary">
-          {plural(props.noun)}
-          {count > 0 && <span className="text-accent"> · {count}</span>}
-          <ChevronDown size={16} aria-hidden />
-        </Button>
-      }
-    >
-      <div className="w-[min(22rem,calc(100vw-3rem))]">
-        <ChipFacetOptions {...props} />
-      </div>
-    </Popover>
   );
 }

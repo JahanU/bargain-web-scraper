@@ -14,7 +14,7 @@ async function columns(page: import("@playwright/test").Page) {
 
 for (const { width, cols } of [
   { width: 390, cols: 2 },
-  { width: 1280, cols: 5 },
+  { width: 1280, cols: 4 }, // beside the filter sidebar
 ]) {
   test(`${width} px: ${cols} columns, no horizontal scroll, screenshot attached`, async ({
     page,
@@ -35,8 +35,31 @@ for (const { width, cols } of [
   });
 }
 
-for (const width of [320, 375, 640, 768, 1280]) {
-  test(`${width} px: the toolbar and an active brand never overflow sideways`, async ({ page }) => {
+test("1280 px: Filters hides the sidebar and the grid takes its column", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.goto("/");
+  await expect(page.getByText("81 deals")).toBeVisible();
+  const sidebar = page.getByRole("form", { name: "More filters" });
+  const filters = page.getByRole("button", { name: "Filters" });
+  await expect(filters).toHaveAttribute("aria-expanded", "true");
+
+  await filters.click();
+
+  await expect(filters).toHaveAttribute("aria-expanded", "false");
+  await expect.poll(() => columns(page)).toBe(5);
+  // Inert while hidden: its controls can't be reached or read.
+  await expect(page.locator("aside")).toHaveAttribute("inert", "");
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(1280);
+
+  await filters.click();
+  await expect.poll(() => columns(page)).toBe(4);
+  await expect(sidebar.getByRole("radio", { name: "30%" })).toBeChecked();
+});
+
+for (const width of [320, 375, 640, 768, 1024, 1280]) {
+  test(`${width} px: the controls and an active brand never overflow sideways`, async ({
+    page,
+  }) => {
     await page.setViewportSize({ width, height: 900 });
     await page.goto("/?brands=Nike,Under+Armour&category=Clothes&discount=40");
     await expect(page.getByText(/\d+ deals$/)).toBeVisible();
@@ -44,17 +67,16 @@ for (const width of [320, 375, 640, 768, 1280]) {
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(
       width,
     );
-    const bar = await page.getByRole("search", { name: "Filter deals" }).boundingBox();
     const controls = await page
-      .getByRole("search", { name: "Filter deals" })
-      .locator("fieldset, input[type=search], select, button")
+      // The sticky bar and sidebar; the active-filter chips scroll sideways by design.
+      .locator("main .sticky :is(fieldset, input[type=search], select, button)")
       .evaluateAll((nodes) =>
         nodes
           .map((node) => node.getBoundingClientRect())
           .filter((box) => box.width > 0)
           .map((box) => box.right),
       );
-    expect(Math.max(...controls)).toBeLessThanOrEqual((bar?.x ?? 0) + (bar?.width ?? 0) + 0.5);
+    expect(Math.max(...controls)).toBeLessThanOrEqual(width);
   });
 }
 
@@ -150,8 +172,8 @@ test("a column change keeps the deal that was at the top in view", async ({ page
   await expect(page.locator(`main [aria-posinset="${before}"]`)).toBeInViewport();
 });
 
-for (const width of [640, 768, 1280]) {
-  test(`${width} px: Tab moves through the toolbar in the order it is laid out`, async ({
+for (const width of [1024, 1280]) {
+  test(`${width} px: Tab moves through the sidebar in the order it is laid out`, async ({
     page,
   }) => {
     await page.setViewportSize({ width, height: 900 });
@@ -159,7 +181,7 @@ for (const width of [640, 768, 1280]) {
     await expect(page.getByText("81 deals")).toBeVisible();
 
     const positions = await page
-      .getByRole("search", { name: "Filter deals" })
+      .getByRole("form", { name: "More filters" })
       .locator("fieldset, input[type=search], select, button")
       .evaluateAll((nodes) =>
         nodes

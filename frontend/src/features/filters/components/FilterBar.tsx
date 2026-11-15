@@ -1,20 +1,25 @@
-import { SlidersHorizontal } from "lucide-react";
-import { Suspense, lazy, useRef, useState } from "react";
+import { Search, SlidersHorizontal } from "lucide-react";
+import { type ReactNode, Suspense, lazy, useRef, useState, useSyncExternalStore } from "react";
 import type { Facets } from "@/features/deals";
-import { Button } from "@/shared/ui";
+import { cn } from "@/shared/lib/cn";
+import { Button, IconButton } from "@/shared/ui";
 import { activeChips, type FilterState } from "../model/registry";
 import { CategoryControl } from "./CategoryControl";
-import { ChipFacetPopover } from "./ChipFacet";
-import { DiscountControl } from "./DiscountControl";
-import { brandOptions, storeOptions } from "./facetOptions";
+import { FilterPanel } from "./FilterPanel";
 import { GenderControl } from "./GenderControl";
 import { SearchField } from "./SearchField";
-import { SizePopover } from "./SizeFacet";
-import { SortSelect } from "./SortSelect";
-import { toolbarLabel } from "./toolbarLabel";
 
 const loadSheet = () => import("./FilterSheet");
 const FilterSheet = lazy(loadSheet);
+
+// Tailwind's lg: from here the filters are a sidebar; below it, a bottom sheet.
+const WIDE = "(min-width: 64rem)";
+const subscribeToWide = (onChange: () => void) => {
+  const query = window.matchMedia(WIDE);
+  query.addEventListener("change", onChange);
+  return () => query.removeEventListener("change", onChange);
+};
+const isWide = () => window.matchMedia(WIDE).matches;
 
 export type FilterBarProps = {
   values: FilterState;
@@ -29,89 +34,108 @@ export type FilterBarProps = {
 };
 
 /**
- * Sticky toolbar. Wide screens: gender, category, search and sort in a row, then discount, stores
- * (when there is more than one), brands and sizes; below lg search and sort wrap to a row of their own. Phones: gender, category, search, then a
- * Filters button (opening a sheet with everything else) next to sort.
+ * The filters and the page they filter. A slim sticky bar holds the Filters button. On wide
+ * screens it shows or hides a sidebar of every filter (sort included) beside `children` (the
+ * deals); on small ones it opens the same filters in a bottom sheet, and on phones the button is
+ * docked at the bottom of the screen, in reach of a thumb. Search sits in the bar too.
  */
-export function FilterBar(props: FilterBarProps) {
-  const { values, onChange, facets, busy } = props;
+export function FilterBar({ children, ...props }: FilterBarProps & { children: ReactNode }) {
+  const { values, onChange, busy } = props;
+  const wide = useSyncExternalStore(subscribeToWide, isWide);
+  const [panelOpen, setPanelOpen] = useState(true);
   const [sheetOpen, setSheetOpen] = useState(false);
-  const stores = storeOptions(facets);
+
   const filtersButton = useRef<HTMLButtonElement>(null);
-  // Search sits outside the sheet, so it isn't counted on the button.
-  const sheetFilters = activeChips(values).filter((chip) => chip.filter !== "search").length;
+  const searchInput = useRef<HTMLInputElement>(null);
+  // Search has its own field in the bar, so it isn't counted on the button.
+  const active = activeChips(values).filter((chip) => chip.filter !== "search").length;
 
   return (
-    <div className="sticky top-12 z-20 -mx-4 -mt-4 mb-3 border-b border-border bg-surface-raised px-4 py-2 sm:top-[52px] sm:-mx-6 sm:px-6">
-      <form
-        // oxlint-disable-next-line jsx-a11y/prefer-tag-over-role -- <search> needs Safari 17; the floor is 16.4
-        role="search"
-        aria-label="Filter deals"
-        aria-busy={busy || undefined}
-        onSubmit={(event) => event.preventDefault()}
-      >
-        <div className="flex flex-wrap items-center gap-2 lg:gap-x-4">
-          <GenderControl
-            value={values.gender}
-            onChange={(gender) => onChange({ gender })}
-            className="w-full sm:w-auto"
-          />
-          <CategoryControl
-            value={values.category}
-            onChange={(category) => onChange({ category })}
-            className="w-full sm:w-auto"
-          />
-          <SearchField
-            value={values.search}
-            onChange={(search) => onChange({ search })}
-            className="w-full sm:w-auto sm:min-w-48 sm:flex-1 lg:w-80 lg:flex-none"
-          />
-          <Button
-            ref={filtersButton}
-            className="flex-1 sm:hidden"
-            onPointerDown={() => void loadSheet()}
-            onClick={() => setSheetOpen(true)}
-          >
-            <SlidersHorizontal size={16} aria-hidden />
-            Filters{sheetFilters > 0 && ` (${sheetFilters})`}
-          </Button>
-          <SortSelect
-            value={values.sort}
-            onChange={(sort) => onChange({ sort })}
-            className="flex-1 sm:ml-auto sm:flex-none"
-          />
-          <div className="hidden w-full flex-wrap items-center gap-2 sm:flex">
-            <span className={toolbarLabel} aria-hidden>
-              Discount ≥
-            </span>
-            <DiscountControl
-              value={values.discount}
-              onChange={(discount) => onChange({ discount })}
-              stops={facets?.discounts}
-              name="discount-toolbar"
-            />
-            {stores && (
-              <ChipFacetPopover
-                noun="store"
-                selected={values.stores}
-                onChange={(next) => onChange({ stores: next })}
-                options={stores}
-              />
-            )}
-            <ChipFacetPopover
-              noun="brand"
-              selected={values.brands}
-              onChange={(brands) => onChange({ brands })}
-              options={brandOptions(facets)}
-            />
-            <SizePopover
-              selected={values.sizes}
-              onChange={(sizes) => onChange({ sizes })}
-              counts={facets?.sizes}
+    <>
+      {/* Phones: only search is left up here, and it scrolls away with the header. */}
+      <div className="sticky top-0 z-20 border-b border-border bg-surface-raised max-sm:static">
+        {/* xl: Filters is as wide as the sidebar under it, so the next control starts where the deals do. */}
+        <form
+          // oxlint-disable-next-line jsx-a11y/prefer-tag-over-role -- <search> needs Safari 17; the floor is 16.4
+          role="search"
+          aria-label="Filter deals"
+          aria-busy={busy || undefined}
+          onSubmit={(event) => event.preventDefault()}
+          className="page-container flex items-center gap-2 py-2"
+        >
+          {/* The footer's bottom padding keeps the last line clear of the docked bar. */}
+          <div className="contents max-sm:fixed max-sm:inset-x-0 max-sm:bottom-0 max-sm:z-20 max-sm:flex max-sm:gap-2 max-sm:border-t max-sm:border-border max-sm:bg-surface-raised max-sm:px-4 max-sm:pt-2 max-sm:pb-[max(0.5rem,env(safe-area-inset-bottom))]">
+            <Button
+              ref={filtersButton}
+              aria-expanded={wide ? panelOpen : undefined}
+              // Wide: a toggle, filled only while the sidebar is open. Narrow: it opens the sheet,
+              // so it is always the filled, primary action.
+              className="flex-1 max-lg:border-text max-lg:bg-text max-lg:text-surface sm:w-40 sm:flex-none xl:mr-6 xl:w-72 lg:aria-expanded:border-text lg:aria-expanded:bg-text lg:aria-expanded:text-surface"
+              onPointerDown={() => void loadSheet()}
+              onClick={() => (wide ? setPanelOpen(!panelOpen) : setSheetOpen(true))}
+            >
+              <SlidersHorizontal size={16} aria-hidden />
+              Filters{active > 0 && ` (${active})`}
+            </Button>
+            {/* Search has scrolled away with the header: this brings it back. */}
+            <IconButton
+              label="Search"
+              tone="secondary"
+              icon={<Search size={16} aria-hidden />}
+              className="sm:hidden"
+              onClick={() => {
+                // Focused inside the tap, or iOS keeps the keyboard down.
+                searchInput.current?.focus({ preventScroll: true });
+                window.scrollTo({ top: 0, behavior: "smooth" });
+              }}
             />
           </div>
-        </div>
-      </form>
+          {/* Wide screens have room for these beside Filters; smaller ones keep them in the sheet. */}
+          {wide && (
+            <>
+              <GenderControl value={values.gender} onChange={(gender) => onChange({ gender })} />
+              <CategoryControl
+                value={values.category}
+                onChange={(category) => onChange({ category })}
+              />
+            </>
+          )}
+          <SearchField
+            ref={searchInput}
+            value={values.search}
+            onChange={(search) => onChange({ search })}
+            className="max-sm:w-full sm:ml-auto sm:w-72 xl:w-96"
+          />
+        </form>
+      </div>
+      <div
+        className={cn(
+          "page-container grid transition-[grid-template-columns] duration-slow ease-out",
+          panelOpen ? "lg:grid-cols-[20rem_minmax(0,1fr)]" : "lg:grid-cols-[0rem_minmax(0,1fr)]",
+        )}
+      >
+        {/* Only where it shows: a phone shouldn't build a sidebar it hides. */}
+        {wide && (
+          // Clipped, not hidden: `overflow: hidden` would stop the form inside from sticking.
+          <aside
+            inert={!panelOpen}
+            className={cn(
+              "overflow-x-clip transition-opacity duration-slow",
+              !panelOpen && "opacity-0",
+            )}
+          >
+            <form
+              aria-label="More filters"
+              onSubmit={(event) => event.preventDefault()}
+              // Its own width, so nothing reflows while the column opens and closes.
+              className="sticky top-14 max-h-[calc(100dvh-3.5rem)] w-80 overflow-y-auto pr-8 pb-8"
+            >
+              <FilterPanel {...props} inBar />
+            </form>
+          </aside>
+        )}
+        <div className="@container min-w-0 py-3">{children}</div>
+      </div>
       {sheetOpen && (
         <Suspense fallback={null}>
           <FilterSheet
@@ -123,6 +147,6 @@ export function FilterBar(props: FilterBarProps) {
           />
         </Suspense>
       )}
-    </div>
+    </>
   );
 }

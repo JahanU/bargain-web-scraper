@@ -2,9 +2,11 @@ import { useState } from "react";
 import { cn } from "@/shared/lib/cn";
 import type { DealImage as Image } from "../model/image";
 
-// Matches the grid: 2 columns on phones, 3 from 640 px, 4 from 1024 px, 5 from 1280 px (max 1440).
+// Matches the grid beside the open filter sidebar (320 px, from 1024 px): 2 columns on phones, 3
+// from 640 px, 4 from 1280 px (container max 1440). With the sidebar hidden the cards are a
+// little wider than this says.
 export const GRID_SIZES =
-  "(min-width: 1280px) min(calc((100vw - 144px) / 5), 260px), (min-width: 1024px) calc((100vw - 120px) / 4), (min-width: 640px) calc((100vw - 96px) / 3), calc((100vw - 44px) / 2)";
+  "(min-width: 1280px) min(calc((100vw - 440px) / 4), 250px), (min-width: 1024px) calc((100vw - 416px) / 3), (min-width: 640px) calc((100vw - 96px) / 3), calc((100vw - 44px) / 2)";
 
 // Rows leave and re-enter the DOM as the grid scrolls; an image seen once must not fade in again.
 const loadedSrcs = new Set<string>();

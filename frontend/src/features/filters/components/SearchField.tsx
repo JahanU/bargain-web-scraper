@@ -1,11 +1,17 @@
 import { Search, X } from "lucide-react";
+import type { Ref } from "react";
 import { cn } from "@/shared/lib/cn";
 import { IconButton, VisuallyHidden } from "@/shared/ui";
 import { SEARCH_MAX_LENGTH } from "../model/registry";
 
-type SearchFieldProps = { value: string; onChange: (value: string) => void; className?: string };
+type SearchFieldProps = {
+  value: string;
+  onChange: (value: string) => void;
+  className?: string;
+  ref?: Ref<HTMLInputElement>;
+};
 
-export function SearchField({ value, onChange, className }: SearchFieldProps) {
+export function SearchField({ value, onChange, className, ref }: SearchFieldProps) {
   return (
     <div className={cn("relative flex items-center", className)}>
       <label className="flex w-full items-center">
@@ -16,6 +22,7 @@ export function SearchField({ value, onChange, className }: SearchFieldProps) {
           className="pointer-events-none absolute left-3 text-text-muted"
         />
         <input
+          ref={ref}
           type="search"
           value={value}
           onChange={(event) => onChange(event.target.value)}
