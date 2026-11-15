@@ -38,7 +38,7 @@ export function SegmentedRadio<T extends string | number>({
           />
           <span
             className={cn(
-              "flex h-11 cursor-pointer items-center justify-center px-2 text-sm font-semibold transition-colors duration-fast sm:h-9.5 sm:px-3",
+              "flex h-11 cursor-pointer items-center justify-center px-2 text-sm font-semibold transition-colors duration-fast sm:h-9.5",
               "peer-checked:bg-text peer-checked:text-surface peer-focus-visible:outline-2 peer-focus-visible:-outline-offset-2 peer-focus-visible:outline-focus",
               "hover:bg-surface-sunken peer-checked:hover:bg-text",
               option.faint && "text-text-faint",
