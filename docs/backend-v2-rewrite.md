@@ -4,6 +4,8 @@ A single place to review **what was done, why, and where things ended up**. For 
 
 **Branch:** `feature/backend-v2-refactor` (22 commits, not yet merged into `main`)
 
+> **A record of that rewrite, not of today's API.** The `/v1/deals` route it describes (and `/v1/brands` and `/webscrape/getBestDeals`) has since been removed: `GET /v2/deals` is the only deals endpoint. See [`FRONTEND_API.md`](../FRONTEND_API.md) for the current contract.
+
 ---
 
 ## 1. At a glance

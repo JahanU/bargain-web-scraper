@@ -15,6 +15,16 @@ const ALIASES: Record<string, string> = {
     'Emporio Armani EA7': 'EA7',
     'Calvin Klein Underwear': 'Calvin Klein',
     'Calvin Klein Swim': 'Calvin Klein',
+    'Nike swim': 'Nike',
+    // END. files a brand's running line, and a few brands, under names of its own.
+    'Air Jordan': 'Jordan',
+    ON: 'On Running',
+    'HOKA ONE ONE': 'HOKA',
+    'Nike Running': 'Nike',
+    'adidas Running': 'adidas',
+    'New Balance Running': 'New Balance',
+    'ASICS Running': 'ASICS',
+    "Levi's Collections": "Levi's",
 };
 
 /** Every spelling we recognise, for shops that can filter by brand in their search. */

@@ -80,7 +80,12 @@ describe('GET /v2/deals', () => {
         it.each([
             ['nothing', '', EVERY_ID],
             ['a gender', '?gender=Male', ['1', '10', '2', '6', '9', '3', '5']],
+            ["women's deals", '?gender=Female', ['4', '7']],
+            ['unisex deals', '?gender=Unisex', ['8']],
             ['a category', '?category=Clothes', ['3', '7']],
+            ['a category and a gender', '?category=Shoes&gender=Female', ['4']],
+            ['a brand with spaces in its name', '?brand=The%20North%20Face', ['8']],
+            ['several brands and a gender', '?brand=Nike&brand=adidas&gender=Female', ['4', '7']],
             ['a store', '?store=size', ['10', '6', '7', '5']],
             ['several stores (any of them)', '?store=jd&store=size', EVERY_ID],
             ['a brand', '?brand=Puma', ['9']],
@@ -325,7 +330,11 @@ describe('GET /v2/deals', () => {
 
         it.each([
             ['?gender=Kids', 'gender must be one of Male, Female, Unisex'],
+            ['?gender=', 'gender must be one of Male, Female, Unisex'],
             ['?category=', 'category must be one of Shoes, Clothes, Accessories'],
+            ['?category=Hats', 'category must be one of Shoes, Clothes, Accessories'],
+            ['?category=shoes', 'category must be one of Shoes, Clothes, Accessories'],
+            ['?brand=%20', 'brand must not be empty'],
             ['?store=nike', 'store must be one of jd, size'],
             ['?store=jd&store=', 'store must be one of jd, size'],
             ['?store=JD', 'store must be one of jd, size'],
@@ -369,12 +378,10 @@ describe('GET /v2/deals', () => {
         });
     });
 
-    it('answers like v1: cached and readable cross-origin, 503 + Retry-After while loading', async () => {
+    it('is cached and readable cross-origin, and answers 503 + Retry-After while loading', async () => {
         const response = get();
         expect(response.status).toBe(200);
-        expect(response.headers.get('Cache-Control')).toBe(
-            ready['/v1/deals'].GET(new Request('http://localhost/v1/deals')).headers.get('Cache-Control'),
-        );
+        expect(response.headers.get('Cache-Control')).toBe('public, max-age=60, stale-while-revalidate=300');
         expect(response.headers.get('Access-Control-Allow-Origin')).toBe('*');
 
         const waiting = get('?gender=Male', loading);

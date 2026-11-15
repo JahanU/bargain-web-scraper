@@ -14,7 +14,6 @@ Everything the frontend needs to work with the backend: the query endpoint, the 
 - [ ] Use a **plain `fetch(url)`**: no custom headers and no `cache: 'no-store'`. The browser then handles caching and decompression for you.
 - [ ] Use **`deal.url` as the React key**. It is unique per product.
 - [ ] `sizes` and `imageUrl` can be **missing**. Prices are **numbers in GBP**.
-- [ ] `/v1/deals`, `/v1/brands` and `/webscrape/getBestDeals` are **deprecated**. Do not use them in new code.
 
 ---
 
@@ -31,9 +30,8 @@ Everything the frontend needs to work with the backend: the query endpoint, the 
 |---|---|---|
 | `GET` | **`/v2/deals`** | **One page of deals** matching the query, with the total and the facet counts. |
 | `GET` | `/health` (also `/`) | Backend status (optional: a status banner, debugging) |
-| `GET` | `/v1/deals`, `/v1/brands`, `/webscrape/getBestDeals` | **Deprecated.** See [Deprecated v1 routes](#deprecated-v1-routes). |
 
-Anything else returns `404` with `{ "error": "Not Found" }`.
+Anything else returns `404` with `{ "error": "Not Found" }`. That includes the removed `/v1/deals`, `/v1/brands` and `/webscrape/getBestDeals`.
 
 ---
 
@@ -122,7 +120,7 @@ export interface Deal {
     timestamp: number;
     /** From the sale listing it came from; "Unisex" if it's in both men's and women's sales. */
     gender: 'Male' | 'Female' | 'Unisex';
-    /** The brand as the store spells it, e.g. "Nike", "adidas", "The North Face". Always present. */
+    /** The brand under one spelling across stores, e.g. "Nike", "adidas", "The North Face". Always present. */
     brand: string;
     /** Always present. */
     category: 'Shoes' | 'Clothes' | 'Accessories';
@@ -238,7 +236,7 @@ A bad parameter is a `400` with `{ "error": "<message>" }`. The query is validat
 |---|---|---|
 | `400` | `gender must be one of Male, Female, Unisex` | Unknown or empty `gender` |
 | `400` | `category must be one of Shoes, Clothes, Accessories` | Unknown or empty `category` |
-| `400` | `store must be one of jd` (lists every store id) | A `store` the backend does not scrape, or an empty one |
+| `400` | `store must be one of jd, size, end` (lists every store id) | A `store` the backend does not scrape, or an empty one |
 | `400` | `brand must not be empty` | An empty or whitespace-only `brand` |
 | `400` | `size must not be empty` | An empty or whitespace-only `size` |
 | `400` | `q must be 1 to 64 characters` | `q` is empty, only whitespace, or longer than 64 characters after trimming |
@@ -349,31 +347,10 @@ interface Health {
 
 ---
 
-## Deprecated v1 routes
-
-`/v1/deals`, `/v1/brands` and `/webscrape/getBestDeals` still answer exactly as before, only because the deployed frontend calls them. They will be removed once the frontend built on `/v2/deals` is live. Do not use them in new code.
-
-| Path | What it returns |
-|---|---|
-| `GET /v1/deals` and `GET /webscrape/getBestDeals` | A JSON array of **every** matching `Deal`, sorted by discount (highest first), then price (cheapest first). Optional `gender`, `category` and repeatable `brand`, validated as in v2. No search, sizes, sorting, counts or paging. |
-| `GET /v1/brands` | `[{ "brand": "Nike", "count": 41 }]` for the deals matching `gender` and `category`, most deals first, then by name. Any `brand` parameter is ignored. |
-
-They share the `503`, `Cache-Control` and CORS behaviour described above. The only change to them is that each deal now also carries `store`.
-
-Moving from v1 to v2:
-
-| v1 | v2 |
-|---|---|
-| The response is the array of deals | The deals are in `items` |
-| `array.length` | `total` |
-| `/v1/brands` | `facets.brands` in the same response |
-| Search, sizes, the discount slider and sorting done in the browser | `q`, `size`, `minDiscount` and `sort` parameters |
-| The whole list in one response | Pages of `limit`, continued with `cursor` |
-
 ## Caveats
 
 - **`timestamp` resets on every backend deploy or restart**, and when an item sells out and later comes back. The backend keeps everything in memory, so right after a deploy every deal shows the same "found" time. Prefer a relative label ("found 2h ago"), and use `trackingSince` to tell which deals are new.
 - **`gender` comes from the sale listing URL**, not the product itself, so treat it as a hint.
-- **`brand` and `category` come from the store's own product data.** A product with no brand or no recognisable category is left out (the backend logs how many per scrape).
+- **`brand` and `category` come from the store's own product data.** A product with no brand or no recognisable category is left out (the backend logs how many per scrape). From JD only the brands on the backend's list are served; END. is served whole, and Size whole except its own labels. A store's spelling of a listed brand ("Air Jordan", "Nike Running") is folded into ours, and a brand we don't list that stores spell two ways ("AMIRI", "Amiri") is served under one of them, so every brand is one `facets.brands` row across stores.
 - **Two requests can straddle a scrape** (or one can come from the browser cache), so a facet count and the `total` of a later request can differ briefly around a refresh.
-- **One store (JD Sports UK) today.** A new store appears as a new row in `facets.stores` and a new `store` value on deals. Nothing else in this contract changes.
+- **Three stores today: JD Sports (`jd`), Size (`size`) and END. (`end`).** A new store appears as a new row in `facets.stores` and a new `store` value on deals. Nothing else in this contract changes.

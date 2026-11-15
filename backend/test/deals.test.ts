@@ -2,7 +2,8 @@ import { describe, expect, it } from 'bun:test';
 import { DealStore } from '@/deals';
 import { complete, idsOf, product, range } from './helpers';
 
-const ids = (store: DealStore) => idsOf(store.deals(0));
+/** The ids the store holds, in a fixed order: the store itself promises none. */
+const ids = (store: DealStore) => idsOf(store.deals(0)).sort();
 
 describe('DealStore', () => {
     describe('R1: the deals are the latest accepted listing', () => {
@@ -107,7 +108,8 @@ describe('DealStore', () => {
                     product('2', { gender: 'Female' }),
                 ]),
             );
-            expect(store.deals(0).map((deal) => deal.gender)).toEqual(['Unisex', 'Female']);
+            const genders = Object.fromEntries(store.deals(0).map((deal) => [deal.url.split('/').pop(), deal.gender]));
+            expect(genders).toEqual({ '1': 'Unisex', '2': 'Female' });
         });
     });
 
@@ -119,7 +121,7 @@ describe('DealStore', () => {
             expect(store.deals(0).map((deal) => deal.brand)).toEqual(['AMIRI', 'AMIRI', 'AMIRI']);
         });
 
-        it('applies the discount floor, sorts by discount then price, and uses the frontend shape', () => {
+        it('applies the discount floor and uses the frontend shape', () => {
             const store = new DealStore();
             store.accept(
                 'jd',
@@ -133,8 +135,9 @@ describe('DealStore', () => {
             );
 
             const deals = store.deals(30);
-            expect(idsOf(deals)).toEqual(['best', 'b', 'a']);
-            expect(deals[1]).toEqual({
+            const byId = Object.fromEntries(deals.map((deal) => [deal.url.split('/').pop(), deal]));
+            expect(idsOf(deals).sort()).toEqual(['a', 'b', 'best']);
+            expect(byId.b).toEqual({
                 name: 'Product b',
                 wasPrice: 100,
                 nowPrice: 19.99,
@@ -148,7 +151,7 @@ describe('DealStore', () => {
                 category: 'Shoes',
                 store: 'jd',
             });
-            expect(deals[2]).toMatchObject({ imageUrl: 'https://img/a', sizes: undefined });
+            expect(byId.a).toMatchObject({ imageUrl: 'https://img/a', sizes: undefined });
         });
     });
 });

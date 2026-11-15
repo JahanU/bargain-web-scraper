@@ -25,39 +25,6 @@ export interface Deal {
     store: string;
 }
 
-/** What a request narrows the deals by. An absent field (or no brands) means "any". */
-export interface DealFilter {
-    gender?: Gender;
-    category?: Category;
-    /** A deal matches if its brand is any of these, compared exactly. */
-    brands: string[];
-}
-
-export interface BrandCount {
-    brand: string;
-    count: number;
-}
-
-export function filterDeals(deals: Deal[], { gender, category, brands }: DealFilter): Deal[] {
-    return deals.filter(
-        (deal) =>
-            (gender === undefined || deal.gender === gender) &&
-            (category === undefined || deal.category === category) &&
-            (brands.length === 0 || brands.includes(deal.brand)),
-    );
-}
-
-/** How many of these deals each brand has: most deals first, then by name. */
-export function brandCounts(deals: Deal[]): BrandCount[] {
-    const counts = new Map<string, number>();
-    for (const { brand } of deals) {
-        counts.set(brand, (counts.get(brand) ?? 0) + 1);
-    }
-    return [...counts]
-        .map(([brand, count]) => ({ brand, count }))
-        .sort((a, b) => b.count - a.count || (a.brand < b.brand ? -1 : 1));
-}
-
 /**
  * - ok: the listing replaced the retailer's products.
  * - incomplete / held: what the listing showed was applied (new, refreshed, out of stock), but
@@ -122,12 +89,11 @@ export class DealStore {
         };
     }
 
-    /** Deals at or above the discount floor, best discount first, then cheapest. */
+    /** Deals at or above the discount floor, in no particular order: the snapshot sorts them. */
     deals(minDiscount: number): Deal[] {
         const deals = [...this.byRetailer.values()]
             .flatMap((products) => [...products.values()])
             .filter((product) => product.discount >= minDiscount)
-            .sort((a, b) => b.discount - a.discount || a.nowPricePence - b.nowPricePence)
             .map(toDeal);
         return withOneSpellingPerBrand(deals);
     }

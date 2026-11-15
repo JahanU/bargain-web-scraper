@@ -19,7 +19,7 @@ flowchart TB
     built["📦 Snapshot<br/><small>rebuilt after each scrape<br/>deals + search text + sort orders</small>"]
     client["🖥️ Frontend"]
 
-    accept -- "deals ≥ MIN_DISCOUNT, best first" --> built
+    accept -- "deals ≥ MIN_DISCOUNT" --> built
     client -- "GET /v2/deals?filters&sort&cursor" --> built
     built -- "200 one page + total + facets · 503 + Retry-After" --> client
 ```
@@ -64,7 +64,7 @@ flowchart TD
 |---|---|
 | `src/index.ts` | Entry point: reads config and starts the app |
 | `src/app.ts` | Wires the store, a scrape loop per retailer and the server together |
-| `src/deals.ts` | `DealStore`: applies R1 and R2, and builds the deals list (≥ `MIN_DISCOUNT`, best first) |
+| `src/deals.ts` | `DealStore`: applies R1 and R2, and builds the deals list (≥ `MIN_DISCOUNT`, unsorted: the snapshot holds every sort order) |
 | `src/query.ts` | The snapshot built once per accepted scrape, and the pure query over it: filters, facet counts, sorts (a table) and keyset paging |
 | `src/http.ts` | The boundary: parses and validates each query string (or answers 400), the deals response (JSON with caching headers, or 503 until ready), the routes, and request logging |
 | `src/scraper.ts` | `scrapeRetailer` (one timed, failure-safe scrape) and the loop (R4) |
@@ -73,6 +73,7 @@ flowchart TD
 | `src/retailers/end.ts` | END. adapter: learns END.'s Algolia credentials once, asks for every in-stock size at or below the discount floor, whatever the brand, and groups the sizes into products |
 | `src/retailers/algolia.ts` | Shared by the JD and END. adapters: the paged search, the truncation check and the learn-once config |
 | `src/retailers/category.ts`, `src/retailers/request.ts` | Shared by the adapters: the mapping from JD Group's product kinds to our categories, and a fetch with a timeout that waits once on a 429 |
+| `src/retailers/brands.ts` | The brands we list, the shop spellings folded into them (`ALIASES`), `canonicalBrand`, and `withOneSpellingPerBrand` for the brands we don't list. JD is searched for the listed brands only; Size and END. are kept whole, with a listed brand under our spelling |
 | `src/retailers/types.ts` | `Product`, `Listing` and `Retailer`. A new retailer is one new file plus one entry in `src/index.ts`: its id becomes a `store` value and its name a facet row, with no frontend change |
 | `src/config.ts`, `src/log.ts` | Environment settings (validated at startup) and readable, levelled logging |
 
@@ -97,7 +98,6 @@ The full contract for the frontend (the `Deal` type, the loading state, caching,
 |---|---|---|
 | GET | `/health` (also `/`) | `{ ok, ready, deals, runs }`, where `runs` is the last result per retailer. Use it for the keep-awake ping |
 | GET | `/v2/deals` | One page of deals as `{ items, total, nextCursor, trackingSince, facets }` (cached by browsers for 60s). Filters: `gender`, `category`, and repeatable `store`, `brand` and `size` (AND across parameters, OR within one), `q` (every word in the name, brand or store name) and `minDiscount`. `sort` picks one of four total orders, `limit` (1 to 100, default 60) the page size, and `cursor` continues from a previous `nextCursor`. `facets` (first page only) counts stores, brands, sizes and discount steps, each with every other filter applied but not its own. A bad parameter is a 400, even before the first scrape |
-| GET | `/v1/deals`, `/v1/brands`, `/webscrape/getBestDeals` | Deprecated: the unpaged list and brand counts the deployed frontend still calls. Unchanged, and removed once the `/v2/deals` frontend is live |
 
 ### How a query runs
 

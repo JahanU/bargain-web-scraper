@@ -2,7 +2,6 @@
 // clock, exercised over HTTP the way the frontend uses it.
 import { afterEach, describe, expect, it, mock, spyOn } from 'bun:test';
 import { type AppOptions, startApp } from '@/app';
-import type { Deal } from '@/deals';
 import type { DealPage } from '@/query';
 import type { Retailer } from '@/retailers/types';
 import { FIRST_RETRY_MS } from '@/scraper';
@@ -37,12 +36,20 @@ function start(
     stops.push(app.stop);
 
     const get = (path: string) => fetch(new URL(path, app.server.url));
+    /** Every deal served. Fails by name if they are not being served, or if one page cannot hold them all. */
+    const deals = async () => {
+        const response = await get('/v2/deals?limit=100');
+        expect(response.status).toBe(200);
+        const { items, nextCursor } = (await response.json()) as DealPage;
+        expect(nextCursor).toBeNull();
+        return items;
+    };
     return {
         jd,
         clock,
         get,
-        dealIds: async () => idsOf((await (await get('/v1/deals')).json()) as Deal[]),
-        deals: async () => (await (await get('/v1/deals')).json()) as Deal[],
+        dealIds: async () => idsOf(await deals()),
+        deals,
         health: async () => (await get('/health')).json() as Promise<Record<string, unknown>>,
     };
 }
@@ -54,7 +61,7 @@ describe('after a deploy', () => {
             () => new Promise((resolve) => (release = () => resolve(complete(range(3))))),
         );
 
-        const loading = await get('/webscrape/getBestDeals');
+        const loading = await get('/v2/deals');
         expect(loading.status).toBe(503);
         expect(loading.headers.get('Retry-After')).toBe('10');
 
@@ -67,7 +74,7 @@ describe('after a deploy', () => {
         const { jd, clock, get, dealIds, health } = start(() => Promise.reject(new Error('JD is down')));
 
         await clock.scrapesDone(1);
-        expect((await get('/webscrape/getBestDeals')).status).toBe(503);
+        expect((await get('/v2/deals')).status).toBe(503);
         expect(await health()).toMatchObject({ ready: false, runs: { jd: { status: 'failed' } } });
         expect(clock.delays).toEqual([FIRST_RETRY_MS]);
 
@@ -81,9 +88,9 @@ describe('after a deploy', () => {
         const { clock, get } = start();
         await clock.scrapesDone(1);
 
-        const response = await get('/webscrape/getBestDeals');
+        const response = await get('/v2/deals');
         expect(response.status).toBe(200);
-        expect(await response.json()).toEqual([]);
+        expect(await response.json()).toMatchObject({ items: [], total: 0, nextCursor: null });
     });
 });
 
@@ -259,5 +266,15 @@ describe('HTTP', () => {
         expect(notFound.status).toBe(404);
         // Readable from the browser frontend, rather than surfacing as a CORS network error.
         expect(notFound.headers.get('Access-Control-Allow-Origin')).toBe('*');
+    });
+
+    // Removed in favour of /v2/deals.
+    it.each(['/v1/deals', '/v1/brands', '/webscrape/getBestDeals'])('no longer serves %s', async (path) => {
+        const { clock, get } = start(() => complete(range(2)));
+        await clock.scrapesDone(1);
+
+        const response = await get(path);
+        expect(response.status).toBe(404);
+        expect(await response.json()).toEqual({ error: 'Not Found' });
     });
 });
