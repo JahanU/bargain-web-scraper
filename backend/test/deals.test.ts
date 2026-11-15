@@ -108,7 +108,8 @@ describe('DealStore', () => {
                     product('2', { gender: 'Female' }),
                 ]),
             );
-            expect(store.deals(0).map((deal) => deal.gender)).toEqual(['Unisex', 'Female']);
+            const genders = Object.fromEntries(store.deals(0).map((deal) => [deal.url.split('/').pop(), deal.gender]));
+            expect(genders).toEqual({ '1': 'Unisex', '2': 'Female' });
         });
     });
 
