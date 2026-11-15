@@ -25,6 +25,9 @@ const SALES: [handle: string, gender: Gender][] = [
 // The audience in a product type such as "size > Men's > Footwear". Kids' products are left out.
 const AUDIENCES: Record<string, Gender> = { "Men's": 'Male', Womens: 'Female' };
 
+// Labels sold only at Size. They filled the top of its sale and crowded the brand filter, so they are left out.
+const OWN_LABELS = new Set(['Home Grown', 'Alte Systems', 'ALTE', 'VISIT']);
+
 // Shopify's per-request maximum.
 const PRODUCTS_PER_PAGE = 250;
 
@@ -114,10 +117,11 @@ export function createSizeRetailer({ delayMs = REQUEST_DELAY_MS } = {}): Retaile
                         await Bun.sleep(delayMs);
                     }
                     const { nodes, pageInfo } = await salePage(handle, cursor);
-                    const parsed = nodes
+                    const wanted = nodes.filter((node) => !OWN_LABELS.has(node.vendor));
+                    const parsed = wanted
                         .map((node) => parseNode(node, gender))
                         .filter((product) => product !== undefined);
-                    listed += nodes.length;
+                    listed += wanted.length;
                     products.push(...parsed);
                     cursor = pageInfo.hasNextPage ? pageInfo.endCursor : null;
                     // More pages promised but no cursor to reach them: keep what we have, remove nothing.
@@ -151,8 +155,8 @@ const pence = (pounds: string) => Math.round(Number(pounds) * 100);
 
 /** Maps one product, or nothing if it has no brand, category or audience we can tell. */
 function parseNode(node: Node, sale: Gender): Product | undefined {
-    // Size is kept whole: the brand list exists for JD's filler labels. A brand on it takes our
-    // spelling, so it is one entry across stores; any other keeps Size's.
+    // The brand list exists for JD's filler labels, so Size's other brands are kept. A brand on it
+    // takes our spelling, so it is one entry across stores; any other keeps Size's.
     const brand = brandName(node.vendor);
     const category = categoryIn([node.productType]);
     const gender = genderOf(node.productType, sale);

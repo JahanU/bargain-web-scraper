@@ -62,8 +62,6 @@ describe('Size listing', () => {
         expect(listing.products.map((product) => product.externalId)).toEqual([
             '104660',
             '19735669',
-            '19735837',
-            '19726669',
             '19653807',
             '19602559',
             '19739336',
@@ -91,7 +89,7 @@ describe('Size listing', () => {
                 ? new Response('slow down', { status: 429, headers: { 'Retry-After': '0' } })
                 : page(),
         );
-        expect((await size.fetchListing()).products).toHaveLength(8);
+        expect((await size.fetchListing()).products).toHaveLength(6);
         expect(calls).toHaveLength(4);
     });
 
@@ -124,7 +122,7 @@ describe('Size listing', () => {
         const listing = await size.fetchListing();
 
         expect(listing.complete).toBe(false);
-        expect(listing.products).toHaveLength(6);
+        expect(listing.products).toHaveLength(4);
         expect(calls.map((call) => call.handle)).toEqual(['mens-sale', 'womens-sale']);
     });
 
@@ -166,7 +164,7 @@ describe('Size products', () => {
     it("reads gender and category from Size's product type", async () => {
         const byId = await products();
         expect(byId['19739336']).toMatchObject({ gender: 'Female', category: 'Shoes' });
-        expect(byId['19735837']).toMatchObject({ gender: 'Male', category: 'Clothes', brand: 'Home Grown' });
+        expect(byId['19735669']).toMatchObject({ gender: 'Male', category: 'Shoes', brand: 'New Balance' });
     });
 
     it('takes the gender of the sale when the product type names only a kind', async () => {
@@ -186,10 +184,17 @@ describe('Size products', () => {
         expect(String(warn.mock.calls[0])).toContain('skipped=2');
     });
 
-    it('keeps every brand and every kind of product', async () => {
-        const byId = await products();
-        expect(byId['19726669']).toMatchObject({ category: 'Accessories' }); // a cap
-        expect(byId['19735837']?.brand).toBe('Home Grown'); // not on our list
-        expect(byId['19602559']?.brand).toBe('PUMA'); // on our list: our spelling
+    it("leaves out Size's own labels without a warning, and gives a brand we list our spelling", async () => {
+        const warn = spyOn(console, 'error').mockImplementation(() => {});
+        Bun.env.LOG_LEVEL = 'warn';
+        const listing = await fakeSize((call, page) =>
+            call.cursor === 'page-2' ? Response.json(saved['womens-sale'][0]) : page(),
+        ).size.fetchListing();
+        const brands = listing.products.map((product) => product.brand);
+
+        expect(brands).not.toContain('Home Grown');
+        expect(brands).not.toContain('Alte Systems');
+        expect(brands).toContain('Reebok');
+        expect(warn).not.toHaveBeenCalled();
     });
 });
