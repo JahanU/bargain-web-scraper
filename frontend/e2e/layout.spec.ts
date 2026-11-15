@@ -39,7 +39,7 @@ test("1280 px: Filters hides the sidebar and the grid takes its column", async (
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.goto("/");
   await expect(page.getByText("81 deals")).toBeVisible();
-  const sidebar = page.getByRole("search", { name: "Filter deals" });
+  const sidebar = page.getByRole("form", { name: "More filters" });
   const filters = page.getByRole("button", { name: "Filters" });
   await expect(filters).toHaveAttribute("aria-expanded", "true");
 
@@ -56,7 +56,7 @@ test("1280 px: Filters hides the sidebar and the grid takes its column", async (
   await expect(sidebar.getByRole("radio", { name: "30%" })).toBeChecked();
 });
 
-for (const width of [320, 375, 640, 768, 1280]) {
+for (const width of [320, 375, 640, 768, 1024, 1280]) {
   test(`${width} px: the controls and an active brand never overflow sideways`, async ({
     page,
   }) => {
@@ -181,7 +181,7 @@ for (const width of [1024, 1280]) {
     await expect(page.getByText("81 deals")).toBeVisible();
 
     const positions = await page
-      .getByRole("search", { name: "Filter deals" })
+      .getByRole("form", { name: "More filters" })
       .locator("fieldset, input[type=search], select, button")
       .evaluateAll((nodes) =>
         nodes

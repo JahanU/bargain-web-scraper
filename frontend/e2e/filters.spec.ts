@@ -44,7 +44,7 @@ test("desktop: category and brands narrow the list through the API, by keyboard,
   await page.getByRole("radio", { name: "Shoes" }).check();
   await expect(page.getByText("21 deals")).toBeVisible();
 
-  const sidebar = page.getByRole("search", { name: "Filter deals" });
+  const sidebar = page.getByRole("form", { name: "More filters" });
   const vans = sidebar.getByRole("button", { name: "Vans, 8 deals" });
   await vans.focus();
   await page.keyboard.press("Space");

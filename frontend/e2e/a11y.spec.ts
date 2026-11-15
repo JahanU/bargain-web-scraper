@@ -17,7 +17,7 @@ for (const colorScheme of ["light", "dark"] as const) {
 test("no axe violations with every brand shown in the sidebar", async ({ page }) => {
   await page.setViewportSize(devices["Desktop Chrome"].viewport);
   await page.goto("/?brands=Nike");
-  const popup = page.getByRole("search", { name: "Filter deals" });
+  const popup = page.getByRole("form", { name: "More filters" });
   await expect(popup.getByRole("button", { name: "Nike, 22 deals" })).toBeVisible();
   await popup.getByRole("button", { name: "Show all 12 brands" }).click();
 
@@ -33,7 +33,7 @@ test("no axe violations with the Stores section in the sidebar", async ({ page }
     { store: "footlocker", name: "Foot Locker" },
   ]);
   await page.goto("/?stores=jd");
-  const popup = page.getByRole("search", { name: "Filter deals" });
+  const popup = page.getByRole("form", { name: "More filters" });
   await expect(popup.getByRole("button", { name: "JD Sports, 81 deals" })).toHaveAttribute(
     "aria-pressed",
     "true",
