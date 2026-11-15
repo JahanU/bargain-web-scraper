@@ -159,10 +159,6 @@ describe('JD products', () => {
         expect(warn).toHaveBeenCalledTimes(1);
         expect(String(warn.mock.calls[0])).toContain('skipped=4');
     });
-
-    it('drops blocked names', async () => {
-        expect(await productsFor([hit({ name: 'Nike England Football Shirt' })])).toEqual([]);
-    });
 });
 
 describe('JD fetching', () => {

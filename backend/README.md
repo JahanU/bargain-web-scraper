@@ -9,7 +9,7 @@ flowchart TB
     subgraph loop["🔁 Scrape loop · one per retailer"]
         direction LR
         fetch["Fetch the sale listing<br/><small>JD, END.: Algolia · Size: Shopify</small>"]
-        parse["Parse products<br/><small>pence · sizes · gender · brand · category · blocklist</small>"]
+        parse["Parse products<br/><small>pence · sizes · gender · brand · category</small>"]
         accept["DealStore.accept()<br/><small>rules R1 + R2</small>"]
         wait["Sleep 5 min<br/><small>after a failure: 15s → 30s → …</small>"]
         fetch --> parse --> accept --> wait
@@ -73,7 +73,6 @@ flowchart TD
 | `src/retailers/end.ts` | END. adapter: learns END.'s Algolia credentials once, asks for every in-stock size at or below the discount floor, whatever the brand, and groups the sizes into products |
 | `src/retailers/algolia.ts` | Shared by the JD and END. adapters: the paged search, the truncation check and the learn-once config |
 | `src/retailers/category.ts`, `src/retailers/request.ts` | Shared by the adapters: the mapping from JD Group's product kinds to our categories, and a fetch with a timeout that waits once on a 429 |
-| `src/retailers/blocklist.ts` | Names to skip (team kits, caps…), matched as whole words and plurals |
 | `src/retailers/types.ts` | `Product`, `Listing` and `Retailer`. A new retailer is one new file plus one entry in `src/index.ts`: its id becomes a `store` value and its name a facet row, with no frontend change |
 | `src/config.ts`, `src/log.ts` | Environment settings (validated at startup) and readable, levelled logging |
 

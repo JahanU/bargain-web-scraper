@@ -1,7 +1,6 @@
 import type { Gender } from '@/deals';
 import { createLogger, duration } from '@/log';
-import { isBlockedName } from '@/retailers/blocklist';
-import { canonicalBrand } from '@/retailers/brands';
+import { brandName } from '@/retailers/brands';
 import { categoryIn } from '@/retailers/category';
 import { request } from '@/retailers/request';
 import type { Listing, Product, Retailer } from '@/retailers/types';
@@ -115,11 +114,10 @@ export function createSizeRetailer({ delayMs = REQUEST_DELAY_MS } = {}): Retaile
                         await Bun.sleep(delayMs);
                     }
                     const { nodes, pageInfo } = await salePage(handle, cursor);
-                    const wanted = nodes.filter((node) => !isBlockedName(nameWithoutBrand(node)));
-                    const parsed = wanted
+                    const parsed = nodes
                         .map((node) => parseNode(node, gender))
                         .filter((product) => product !== undefined);
-                    listed += wanted.length;
+                    listed += nodes.length;
                     products.push(...parsed);
                     cursor = pageInfo.hasNextPage ? pageInfo.endCursor : null;
                     // More pages promised but no cursor to reach them: keep what we have, remove nothing.
@@ -140,11 +138,6 @@ export function createSizeRetailer({ delayMs = REQUEST_DELAY_MS } = {}): Retaile
     };
 }
 
-/** Size starts every title with the brand, and a brand such as "Home Grown" is not a blocked word. */
-function nameWithoutBrand({ title, vendor }: Node): string {
-    return title.startsWith(vendor) ? title.slice(vendor.length) : title;
-}
-
 /** The audience a product type names. One with no path ("Footwear") takes the gender of its sale. */
 function genderOf(productType: string, sale: Gender): Gender | undefined {
     const [shop, audience] = productType.split(' > ');
@@ -160,7 +153,7 @@ const pence = (pounds: string) => Math.round(Number(pounds) * 100);
 function parseNode(node: Node, sale: Gender): Product | undefined {
     // Size is kept whole: the brand list exists for JD's filler labels. A brand on it takes our
     // spelling, so it is one entry across stores; any other keeps Size's.
-    const brand = canonicalBrand(node.vendor) ?? node.vendor.trim();
+    const brand = brandName(node.vendor);
     const category = categoryIn([node.productType]);
     const gender = genderOf(node.productType, sale);
     if (!brand || !category || !gender) {

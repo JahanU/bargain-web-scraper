@@ -63,6 +63,7 @@ describe('Size listing', () => {
             '104660',
             '19735669',
             '19735837',
+            '19726669',
             '19653807',
             '19602559',
             '19739336',
@@ -90,7 +91,7 @@ describe('Size listing', () => {
                 ? new Response('slow down', { status: 429, headers: { 'Retry-After': '0' } })
                 : page(),
         );
-        expect((await size.fetchListing()).products).toHaveLength(7);
+        expect((await size.fetchListing()).products).toHaveLength(8);
         expect(calls).toHaveLength(4);
     });
 
@@ -123,7 +124,7 @@ describe('Size listing', () => {
         const listing = await size.fetchListing();
 
         expect(listing.complete).toBe(false);
-        expect(listing.products).toHaveLength(5);
+        expect(listing.products).toHaveLength(6);
         expect(calls.map((call) => call.handle)).toEqual(['mens-sale', 'womens-sale']);
     });
 
@@ -185,10 +186,10 @@ describe('Size products', () => {
         expect(String(warn.mock.calls[0])).toContain('skipped=2');
     });
 
-    it('keeps every brand, and applies the blocklist to the name, not the brand', async () => {
+    it('keeps every brand and every kind of product', async () => {
         const byId = await products();
-        expect(byId['19726669']).toBeUndefined(); // "... Hitch Cap"
-        expect(byId['19735837']?.brand).toBe('Home Grown'); // not on our list, and "home" is a blocked word
+        expect(byId['19726669']).toMatchObject({ category: 'Accessories' }); // a cap
+        expect(byId['19735837']?.brand).toBe('Home Grown'); // not on our list
         expect(byId['19602559']?.brand).toBe('PUMA'); // on our list: our spelling
     });
 });

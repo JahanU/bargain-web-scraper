@@ -1,8 +1,7 @@
 import { type Category, type Gender, UNISEX } from '@/deals';
 import { createLogger } from '@/log';
 import { type SearchConfig, searchAll, withLearnedConfig } from '@/retailers/algolia';
-import { isBlockedName } from '@/retailers/blocklist';
-import { canonicalBrand } from '@/retailers/brands';
+import { brandName } from '@/retailers/brands';
 import { request } from '@/retailers/request';
 import type { Listing, Product, Retailer } from '@/retailers/types';
 
@@ -50,7 +49,7 @@ interface Hit {
     id: number;
     handle: string;
     title: string;
-    vendor: string;
+    vendor: string | null;
     variant_title: string | null;
     product_image: string | null;
     named_tags?: { cat_high?: string | string[]; gender?: string | string[] };
@@ -77,17 +76,15 @@ export function createEndRetailer({ minDiscount }: { minDiscount: number }): Ret
 
     async function readSale(config: SearchConfig): Promise<Listing> {
         const query = {
-            filters: `market_pricing_gbp.price_ratio <= ${maxPriceRatio}`,
+            // END.'s search key already limits it to sizes in stock. Asking too means a new key can't change that.
+            filters: `inventory_available:true AND market_pricing_gbp.price_ratio <= ${maxPriceRatio}`,
             // One record per size, not one per product: the sizes are the records.
             distinct: false,
             attributesToRetrieve: ATTRIBUTES,
         };
         const { hits, complete } = await searchAll<Hit>(config, query, log, 'sale');
 
-        const sizesOf = Map.groupBy(
-            hits.filter((hit) => !isBlockedName(nameWithoutBrand(hit))),
-            (hit) => hit.id,
-        );
+        const sizesOf = Map.groupBy(hits, (hit) => hit.id);
         const products = [...sizesOf.values()].map(parseProduct).filter((product) => product !== undefined);
         if (products.length < sizesOf.size) {
             log.warn('⚠ skipped products with no usable brand, category, gender or price', {
@@ -98,11 +95,6 @@ export function createEndRetailer({ minDiscount }: { minDiscount: number }): Ret
     }
 
     return { id: 'end', name: 'END.', fetchListing: withLearnedConfig(learnConfig, readSale) };
-}
-
-/** END. starts every title with the brand, and a brand such as "Home Grown" is not a blocked word. */
-function nameWithoutBrand({ title, vendor }: Hit): string {
-    return title.startsWith(vendor) ? title.slice(vendor.length) : title;
 }
 
 const listOf = (value: string | string[] | undefined) => [value ?? []].flat();
@@ -125,7 +117,7 @@ function parseProduct(sizes: Hit[]): Product | undefined {
     const [first] = sizes;
     // END. is kept whole: its brands are the point of it. One we list takes our spelling, so it is
     // one entry across stores; any other keeps END.'s.
-    const brand = first && (canonicalBrand(first.vendor) ?? first.vendor.trim());
+    const brand = brandName(first?.vendor);
     const category = CATEGORIES[listOf(first?.named_tags?.cat_high)[0] ?? ''];
     const gender = genderOf(listOf(first?.named_tags?.gender));
     const prices = sizes.flatMap((size) => size.market_pricing_gbp ?? []);
