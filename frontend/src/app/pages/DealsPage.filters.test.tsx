@@ -7,6 +7,7 @@ import { axe } from "vitest-axe";
 import { queryDeals } from "@/mocks/api";
 import { server } from "@/mocks/server";
 import { makeDeal } from "@/test/makeDeal";
+import { setWide } from "@/test/matchMedia";
 import { renderWithClient } from "@/test/render";
 import { DealsPage } from "./DealsPage";
 
@@ -81,21 +82,24 @@ async function setup(searchParams = "") {
   return { onUrlUpdate, url, container };
 }
 
-const toolbar = () => screen.getByRole("search", { name: "Filter deals" });
+/** Where the filters are: the bar and the sidebar. */
+const toolbar = () => screen.getByRole("main");
 
-test("the toolbar is a search landmark with every control named, and axe is clean", async () => {
+test("the bar is a search landmark, the sidebar a form, and every control is named; axe is clean", async () => {
   const { container } = await setup();
 
-  // Search and sort sit in the bar above the deals.
-  expect(screen.getByRole("searchbox", { name: "Search deals" })).toBeInTheDocument();
-  expect(within(toolbar()).getByRole("group", { name: "Shop" })).toBeInTheDocument();
-  expect(within(toolbar()).getByRole("group", { name: "Minimum discount" })).toBeInTheDocument();
-  expect(within(toolbar()).getByRole("group", { name: "Category" })).toBeInTheDocument();
-  expect(within(toolbar()).getByRole("button", { name: "Brands" })).toBeInTheDocument();
-  expect(within(toolbar()).getByRole("button", { name: "Sizes" })).toBeInTheDocument();
+  const bar = within(screen.getByRole("search", { name: "Filter deals" }));
+  expect(bar.getByRole("searchbox", { name: "Search deals" })).toBeInTheDocument();
+  expect(bar.getByRole("group", { name: "Shop" })).toBeInTheDocument();
+  expect(bar.getByRole("group", { name: "Category" })).toBeInTheDocument();
+  expect(bar.getByRole("button", { name: "Filters" })).toHaveAttribute("aria-expanded", "true");
+  const sidebar = within(screen.getByRole("form", { name: "More filters" }));
+  expect(sidebar.getByRole("group", { name: "Minimum discount" })).toBeInTheDocument();
+  expect(sidebar.getByRole("button", { name: "Brands" })).toBeInTheDocument();
+  expect(sidebar.getByRole("button", { name: "Sizes" })).toBeInTheDocument();
   // One store is no choice, so there is no Stores control.
-  expect(within(toolbar()).queryByRole("button", { name: /^Stores/ })).not.toBeInTheDocument();
-  expect(screen.getByRole("combobox", { name: "Sort by" })).toHaveValue("discount-high-to-low");
+  expect(sidebar.queryByRole("button", { name: /^Stores/ })).not.toBeInTheDocument();
+  expect(sidebar.getByRole("combobox", { name: "Sort by" })).toHaveValue("discount-high-to-low");
   expect(await axe(container)).toHaveNoViolations();
 });
 
@@ -237,6 +241,7 @@ test("active filters show as chips; removing one or clearing all rewrites the UR
 });
 
 test("phones: the Filters button counts sheet filters and opens a complete filter form", async () => {
+  setWide(false);
   const { url } = await setup("?search=nike&discount=50&sizes=M");
   const button = screen.getByRole("button", { name: "Filters (2)" });
 
@@ -491,6 +496,7 @@ test("two stores: a Stores section with the backend's counts filters by store id
 });
 
 test("two stores: the phone sheet has a Stores section, and a store with no deals says so", async () => {
+  setWide(false);
   serve(TWO_STORES);
   const { url } = await setup("?stores=fl&brands=Nike");
 
