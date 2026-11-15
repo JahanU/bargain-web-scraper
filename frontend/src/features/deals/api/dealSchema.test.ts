@@ -7,6 +7,7 @@ const FACETS = {
   stores: [{ store: "jd", name: "JD Sports", count: 2 }],
   brands: [{ brand: "Nike", count: 2 }],
   sizes: [{ size: "M", count: 2 }],
+  shoeSizes: [{ size: "8.5", count: 1 }],
   discounts: [{ minDiscount: 30, count: 2 }],
 };
 const page = (items: unknown[], overrides: Record<string, unknown> = {}) => ({

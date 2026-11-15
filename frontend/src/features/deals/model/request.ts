@@ -21,7 +21,10 @@ export type DealsRequest = {
   category: CategoryScope;
   stores: readonly string[];
   brands: readonly string[];
+  /** Clothing size keys. */
   sizes: readonly string[];
+  /** Footwear size keys (UK). */
+  shoeSizes: readonly string[];
   search: string;
   discount: number;
   sort: SortId;
@@ -37,7 +40,9 @@ export function dealsQuery(request: DealsRequest): string {
   if (request.category !== "All") params.set("category", request.category);
   for (const store of [...request.stores].sort()) params.append("store", store);
   for (const brand of [...request.brands].sort()) params.append("brand", brand);
-  for (const size of [...request.sizes].sort()) params.append("size", size);
+  // One `size` parameter for both kinds: the backend matches either.
+  for (const size of [...new Set([...request.sizes, ...request.shoeSizes])].sort())
+    params.append("size", size);
   const q = request.search.trim();
   if (q) params.set("q", q); // a blank q is a 400
   if (request.discount !== DEFAULT_DISCOUNT) params.set("minDiscount", String(request.discount));

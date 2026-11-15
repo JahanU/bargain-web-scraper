@@ -22,7 +22,7 @@ export type Deal = {
   wasPrice: number;
   discount: number;
   image: DealImage | undefined;
-  /** Canonical order: clothing XS→XXXL, then other clothing A→Z, then footwear ascending. */
+  /** What the card prints, in the backend's order. */
   sizes: readonly string[];
   /** When the backend first saw it (ms). Resets on backend restarts. */
   foundAt: number;

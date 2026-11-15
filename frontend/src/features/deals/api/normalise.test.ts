@@ -10,7 +10,7 @@ test("turns a wire deal into the UI's Deal", () => {
       brand: "The North Face",
       category: "Clothes",
       url: "https://www.jdsports.co.uk/product/black-tnf/19599668/",
-      sizes: ["XL", "S", "9", "S"],
+      sizes: ["S/M", "XL", "7 1/4"],
       timestamp: 123,
     }),
   );
@@ -20,7 +20,7 @@ test("turns a wire deal into the UI's Deal", () => {
     brand: "The North Face",
     category: "Clothes",
     store: "jd",
-    sizes: ["S", "XL", "9"],
+    sizes: ["S/M", "XL", "7 1/4"],
     foundAt: 123,
   });
   expect(deal.image?.srcSet).toContain("w=240");
@@ -42,7 +42,13 @@ const page = (items: WirePage["items"], overrides: Partial<WirePage> = {}): Wire
 
 test("pages become one list in order; total, tracking time and facets are the first page's", () => {
   const [a, b, c] = [makeDeal(), makeDeal(), makeDeal()];
-  const facets = { stores: [], brands: [{ brand: "Nike", count: 3 }], sizes: [], discounts: [] };
+  const facets = {
+    stores: [],
+    brands: [{ brand: "Nike", count: 3 }],
+    sizes: [],
+    shoeSizes: [],
+    discounts: [],
+  };
 
   const result = normalisePages({
     pages: [page([a, b], { facets, nextCursor: "x" }), page([c], { total: 99, trackingSince: 5 })],

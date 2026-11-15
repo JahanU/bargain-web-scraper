@@ -1,5 +1,5 @@
 import { DEFAULT_DISCOUNT, type Facets } from "@/features/deals";
-import type { FilterState, FilterValues } from "./registry";
+import { type FilterState, type FilterValues, shoeSizeLabel } from "./registry";
 
 export type Suggestion = { label: string; next: Partial<FilterValues> };
 export type EmptyExplanation = { title: string; hint?: string; suggestions: Suggestion[] };
@@ -12,6 +12,7 @@ const some = (rows: readonly { count: number }[]) => rows.some((row) => row.coun
  */
 export function explainEmpty(values: FilterState, facets: Facets | undefined): EmptyExplanation {
   const term = values.search.trim();
+  const sizes = [...values.sizes, ...values.shoeSizes.map(shoeSizeLabel)];
   const suggestions: Suggestion[] = [];
 
   // The highest discount that would show something, keeping everything else.
@@ -23,8 +24,9 @@ export function explainEmpty(values: FilterState, facets: Facets | undefined): E
       label: `Show ${lower.count} ${lower.count === 1 ? "deal" : "deals"} at ${lower.minDiscount}% or more`,
       next: { discount: lower.minDiscount },
     });
-  if (values.sizes.length > 0 && facets && some(facets.sizes))
-    suggestions.push({ label: "Show deals in any size", next: { sizes: [] } });
+  // Both kinds are one backend filter, so one suggestion clears both.
+  if (sizes.length > 0 && facets && some([...facets.sizes, ...facets.shoeSizes]))
+    suggestions.push({ label: "Show deals in any size", next: { sizes: [], shoeSizes: [] } });
   if (values.brands.length > 0 && facets && some(facets.brands))
     suggestions.push({ label: "Show deals from any brand", next: { brands: [] } });
   if (values.stores.length > 0 && facets && some(facets.stores))
@@ -34,7 +36,7 @@ export function explainEmpty(values: FilterState, facets: Facets | undefined): E
 
   const onlySearch =
     term !== "" &&
-    values.sizes.length === 0 &&
+    sizes.length === 0 &&
     values.brands.length === 0 &&
     values.stores.length === 0 &&
     values.discount === DEFAULT_DISCOUNT;
@@ -50,7 +52,7 @@ export function explainEmpty(values: FilterState, facets: Facets | undefined): E
   const parts = [
     ...(term ? [`for “${term}”`] : []),
     `at ${values.discount}% or more`,
-    ...(values.sizes.length > 0 ? [`in size ${values.sizes.join(" or ")}`] : []),
+    ...(sizes.length > 0 ? [`in size ${sizes.join(" or ")}`] : []),
     ...(values.brands.length > 0 ? [`from ${values.brands.join(" or ")}`] : []),
     ...(values.stores.length > 0 ? [`at ${values.stores.map(storeName).join(" or ")}`] : []),
   ];

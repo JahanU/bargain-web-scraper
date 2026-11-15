@@ -7,6 +7,7 @@ const parsers = {
   search: filterRegistry.search.parser,
   discount: filterRegistry.discount.parser,
   sizes: filterRegistry.sizes.parser,
+  shoeSizes: filterRegistry.shoeSizes.parser,
   brands: filterRegistry.brands.parser,
   stores: filterRegistry.stores.parser,
   sort: sortParser,
@@ -17,6 +18,7 @@ const DEFAULTS = {
   search: "",
   discount: 30,
   sizes: [] as string[],
+  shoeSizes: [] as string[],
   brands: [] as string[],
   stores: [] as string[],
   sort: "discount-high-to-low" as const,
@@ -27,6 +29,7 @@ test("a link shared before the rewrite parses as it did", () => {
     search: "nike",
     discount: 30,
     sizes: ["M", "L"],
+    shoeSizes: [],
     brands: [],
     stores: [],
     sort: "price-low-to-high",
@@ -44,16 +47,18 @@ test("defaults are left out of the URL", () => {
 test.each([
   ["?search=nike", { search: "nike" }],
   ["?discount=50", { discount: 50 }],
-  ["?sizes=S,M,8", { sizes: ["S", "M", "8"] }],
+  ["?sizes=M,S,UK+8", { sizes: ["M", "S", "UK 8"] }],
+  ["?shoeSizes=8,8.5", { shoeSizes: ["8", "8.5"] }],
   ["?brands=New+Balance,Nike", { brands: ["New Balance", "Nike"] }],
   ["?stores=footlocker,jd", { stores: ["footlocker", "jd"] }],
   ["?sort=price-high-to-low", { sort: "price-high-to-low" }],
   [
-    "?search=air+max&discount=70&sizes=XL,9&sort=discount-low-to-high",
+    "?search=air+max&discount=70&sizes=XL&shoeSizes=9&sort=discount-low-to-high",
     {
       search: "air max",
       discount: 70,
-      sizes: ["XL", "9"],
+      sizes: ["XL"],
+      shoeSizes: ["9"],
       sort: "discount-low-to-high",
     },
   ],
@@ -88,8 +93,9 @@ test("sizes: trimmed, deduplicated, empty segments dropped", () => {
   expect(load("?sizes=,,").sizes).toEqual([]);
 });
 
-test("sizes are written in canonical order, so a selection always makes the same link", () => {
-  expect(serialize({ sizes: ["9", "L", "S"] })).toBe("?sizes=S,L,9");
+test("sizes are written in sorted order, so a selection always makes the same link", () => {
+  expect(serialize({ sizes: ["S", "L", "M"] })).toBe("?sizes=L,M,S");
+  expect(serialize({ shoeSizes: ["9", "8.5"] })).toBe("?shoeSizes=8.5,9");
 });
 
 test("brands: deduplicated, and written in sorted order whatever order they were picked in", () => {
@@ -113,6 +119,7 @@ test("one chip per non-default value, each knowing the value without it", () => 
       search: "nike",
       discount: 50,
       sizes: ["M", "L"],
+      shoeSizes: ["8"],
       brands: ["Nike"],
       stores: ["jd"],
     }),
@@ -121,10 +128,11 @@ test("one chip per non-default value, each knowing the value without it", () => 
     { filter: "discount", label: "≥50%", next: 30 },
     { filter: "sizes", label: "M", next: ["L"] },
     { filter: "sizes", label: "L", next: ["M"] },
+    { filter: "shoeSizes", label: "Shoe UK 8", next: [] },
     { filter: "brands", label: "Nike", next: [] },
     { filter: "stores", label: "jd", next: [] },
   ]);
-  expect(activeChips({ search: "  ", discount: 30, sizes: [], brands: [], stores: [] })).toEqual(
-    [],
-  );
+  expect(
+    activeChips({ search: "  ", discount: 30, sizes: [], shoeSizes: [], brands: [], stores: [] }),
+  ).toEqual([]);
 });

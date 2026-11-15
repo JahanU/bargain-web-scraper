@@ -71,6 +71,15 @@ export function queryDeals<T extends Row>(
       Object.entries(tests).every(([name, test]) => name === except || test(deal)),
     );
 
+  // The real backend splits by key, not category; here every fixture size is a single canonical
+  // key, so shoes are exactly the deals with footwear sizes.
+  const sizeRows = (shoes: boolean) =>
+    tally(
+      matching("size")
+        .filter((deal) => (deal.category === "Shoes") === shoes)
+        .flatMap((deal) => deal.sizes ?? []),
+    ).map(([size, count]) => ({ size, count }));
+
   const sorted = matching().sort(compare);
   const cursor = params.get("cursor");
   const after =
@@ -93,9 +102,8 @@ export function queryDeals<T extends Row>(
           brands: tally(matching("brand").map((deal) => deal.brand))
             .map(([brand, count]) => ({ brand, count }))
             .sort((a, b) => b.count - a.count || a.brand.localeCompare(b.brand)),
-          sizes: tally(matching("size").flatMap((deal) => deal.sizes ?? [])).map(
-            ([size, count]) => ({ size, count }),
-          ),
+          sizes: sizeRows(false),
+          shoeSizes: sizeRows(true),
           discounts: Array.from({ length: 8 }, (_, index) => DISCOUNT_FLOOR + index * 10).map(
             (minDiscount) => ({
               minDiscount,

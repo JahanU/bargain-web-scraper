@@ -18,4 +18,3 @@ export {
   SORTS,
   type SortId,
 } from "./model/request";
-export { compareSizes, type SizeGroup, sizeGroup } from "./model/sizes";

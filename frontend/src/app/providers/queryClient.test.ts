@@ -11,6 +11,7 @@ const MEN = {
   stores: [],
   brands: [],
   sizes: [],
+  shoeSizes: [],
   search: "",
   discount: 30,
   sort: "discount-high-to-low",

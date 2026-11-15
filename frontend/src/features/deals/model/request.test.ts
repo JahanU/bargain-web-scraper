@@ -7,6 +7,7 @@ const request = (overrides: Partial<DealsRequest> = {}): DealsRequest => ({
   stores: [],
   brands: [],
   sizes: [],
+  shoeSizes: [],
   search: "",
   discount: 30,
   sort: "discount-high-to-low",
@@ -25,7 +26,7 @@ test("every part of the request has its parameter, in one fixed order", () => {
         category: "Shoes",
         stores: ["jd"],
         brands: ["Nike"],
-        sizes: ["9"],
+        shoeSizes: ["9"],
         search: "air max",
         discount: 50,
         sort: "price-low-to-high",
@@ -37,13 +38,19 @@ test("every part of the request has its parameter, in one fixed order", () => {
 });
 
 test("repeated values are sorted, so a selection made in any order is one request", () => {
-  const one = request({ brands: ["adidas", "New Balance", "Nike"], sizes: ["M", "9"] });
-  const other = request({ brands: ["Nike", "adidas", "New Balance"], sizes: ["9", "M"] });
+  const one = request({ brands: ["adidas", "New Balance", "Nike"], sizes: ["M", "L"] });
+  const other = request({ brands: ["Nike", "adidas", "New Balance"], sizes: ["L", "M"] });
 
   expect(dealsQuery(one)).toBe(
-    "gender=Male&brand=New+Balance&brand=Nike&brand=adidas&size=9&size=M&limit=60",
+    "gender=Male&brand=New+Balance&brand=Nike&brand=adidas&size=L&size=M&limit=60",
   );
   expect(dealsQuery(other)).toBe(dealsQuery(one));
+});
+
+test("clothing and footwear sizes go in the one size parameter", () => {
+  expect(dealsQuery(request({ sizes: ["M"], shoeSizes: ["8.5", "8"] }))).toBe(
+    "gender=Male&size=8&size=8.5&size=M&limit=60",
+  );
 });
 
 test("search is trimmed, and a blank one is never sent", () => {
@@ -59,6 +66,7 @@ test("unfiltered means no store, brand, size, search or discount; scope and sort
     { stores: ["jd"] },
     { brands: ["Nike"] },
     { sizes: ["M"] },
+    { shoeSizes: ["8"] },
     { search: "nike" },
     { discount: 40 },
   ]) {
