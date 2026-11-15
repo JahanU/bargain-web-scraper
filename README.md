@@ -4,7 +4,7 @@
 👕 https://bargain-scraper.netlify.app/
 
 ## Overview 🤔
-- Finds heavily discounted clothing on JD Sports UK every few minutes and shows it in a fast, accessible React web app that works on phones and desktops
+- Finds heavily discounted clothing on JD Sports, Size and END. every few minutes and shows it in a fast, accessible React web app that works on phones and desktops
 - Tracks stock: sold-out items disappear from the site on the next scrape and come back if restocked
 - ```Bun, TypeScript, React 19, Vite+, Tailwind CSS 4, TanStack Query, nuqs```
 
@@ -12,13 +12,13 @@
 
 ```mermaid
 flowchart LR
-    jd["🛒 JD Sports<br/><small>Algolia search</small>"]
+    jd["🛒 JD Sports · Size · END.<br/><small>Algolia search · Shopify Storefront API</small>"]
     loop["⏱️ Scrape loop<br/><small>every 5 min</small>"]
     store["🧠 Deal store<br/><small>in memory</small>"]
     response["📦 Snapshot + query<br/><small>one page per request · compressed by Render</small>"]
     app["🖥️ React app<br/><small>Netlify</small>"]
 
-    loop -- fetch sale listing --> jd
+    loop -- fetch sale listings --> jd
     loop -- accepted listing --> store
     store -- "deals ≥ 30% off" --> response
     app -- "GET /v2/deals?filters" --> response
@@ -105,7 +105,7 @@ See [docs/frontend-rewrite-spec.md](docs/frontend-rewrite-spec.md) for the origi
 
 ### Backend
 - Bun with its built-in HTTP server, and no runtime dependencies so far
-- Reads JD's product search (Algolia) directly: one request per category instead of scraping HTML
+- Reads each shop's own product search directly (Algolia for JD and END., Shopify's Storefront API for Size) instead of scraping HTML
 - Sold-out detection, with a safety check so a failed fetch never wipes the list
 - One query endpoint filters, searches, sorts, counts and pages, so the browser never downloads the whole catalogue
 - A read-only snapshot is rebuilt after each scrape and served from memory with browser caching; Render compresses responses (Brotli)

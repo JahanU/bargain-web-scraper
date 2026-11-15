@@ -1,8 +1,7 @@
 // End-to-end scenarios: the real server and scrape loop, with fake retailers and a test-driven
 // clock, exercised over HTTP the way the frontend uses it.
-import { afterEach, describe, expect, it } from 'bun:test';
+import { afterEach, describe, expect, it, mock, spyOn } from 'bun:test';
 import { type AppOptions, startApp } from '@/app';
-import type { Deal } from '@/deals';
 import type { DealPage } from '@/query';
 import type { Retailer } from '@/retailers/types';
 import { FIRST_RETRY_MS } from '@/scraper';
@@ -13,6 +12,8 @@ const stops: (() => Promise<void>)[] = [];
 
 afterEach(async () => {
     await Promise.all(stops.splice(0).map((stop) => stop()));
+    mock.restore();
+    Bun.env.LOG_LEVEL = 'silent';
 });
 
 /**
@@ -21,25 +22,34 @@ afterEach(async () => {
  */
 function start(
     firstResponse?: FakeRetailer['next'],
-    options: { retailers?: Retailer[]; loop?: AppOptions['loop'] } = {},
+    options: { retailers?: Retailer[]; loop?: AppOptions['loop']; intervalMs?: number } = {},
 ) {
     const jd = fakeRetailer('jd', firstResponse);
     const clock = manualSleep();
     const app = startApp({
         port: 0,
         minDiscount: 30,
-        scrapeIntervalMs: INTERVAL_MS,
+        scrapeIntervalMs: options.intervalMs ?? INTERVAL_MS,
         retailers: options.retailers ?? [jd.retailer],
         loop: options.loop ?? { sleep: clock.sleep },
     });
     stops.push(app.stop);
 
     const get = (path: string) => fetch(new URL(path, app.server.url));
+    /** Every deal served. Fails by name if they are not being served, or if one page cannot hold them all. */
+    const deals = async () => {
+        const response = await get('/v2/deals?limit=100');
+        expect(response.status).toBe(200);
+        const { items, nextCursor } = (await response.json()) as DealPage;
+        expect(nextCursor).toBeNull();
+        return items;
+    };
     return {
         jd,
         clock,
         get,
-        dealIds: async () => idsOf((await (await get('/v1/deals')).json()) as Deal[]),
+        dealIds: async () => idsOf(await deals()),
+        deals,
         health: async () => (await get('/health')).json() as Promise<Record<string, unknown>>,
     };
 }
@@ -51,7 +61,7 @@ describe('after a deploy', () => {
             () => new Promise((resolve) => (release = () => resolve(complete(range(3))))),
         );
 
-        const loading = await get('/webscrape/getBestDeals');
+        const loading = await get('/v2/deals');
         expect(loading.status).toBe(503);
         expect(loading.headers.get('Retry-After')).toBe('10');
 
@@ -64,7 +74,7 @@ describe('after a deploy', () => {
         const { jd, clock, get, dealIds, health } = start(() => Promise.reject(new Error('JD is down')));
 
         await clock.scrapesDone(1);
-        expect((await get('/webscrape/getBestDeals')).status).toBe(503);
+        expect((await get('/v2/deals')).status).toBe(503);
         expect(await health()).toMatchObject({ ready: false, runs: { jd: { status: 'failed' } } });
         expect(clock.delays).toEqual([FIRST_RETRY_MS]);
 
@@ -78,9 +88,9 @@ describe('after a deploy', () => {
         const { clock, get } = start();
         await clock.scrapesDone(1);
 
-        const response = await get('/webscrape/getBestDeals');
+        const response = await get('/v2/deals');
         expect(response.status).toBe(200);
-        expect(await response.json()).toEqual([]);
+        expect(await response.json()).toMatchObject({ items: [], total: 0, nextCursor: null });
     });
 });
 
@@ -217,6 +227,30 @@ describe('several retailers', () => {
         expect(healthy.calls).toBe(1);
         expect(await dealIds()).toEqual(['0', '1']);
     });
+
+    it('keeps updating JD while Size fails, keeps the Size deals it had, and logs the failure', async () => {
+        const jd = fakeRetailer('jd', () => complete([product('jd-old')]));
+        const size = fakeRetailer('size', () => complete([product('size-kept')]));
+        const { deals, health } = start(undefined, {
+            retailers: [jd.retailer, size.retailer],
+            loop: { firstRetryMs: 10 }, // real timers: every scrape and retry is 10ms apart
+            intervalMs: 10,
+        });
+        await Bun.sleep(50);
+
+        const logged = spyOn(console, 'error').mockImplementation(() => {});
+        Bun.env.LOG_LEVEL = 'error';
+        size.next = () => Promise.reject(new Error('Size is down'));
+        jd.next = () => complete([product('jd-new')]);
+        await Bun.sleep(100);
+
+        const served = (await deals()).map((deal) => `${deal.store}:${deal.url.split('/').pop()}`);
+        expect(served.sort()).toEqual(['jd:jd-new', 'size:size-kept']);
+        expect(await health()).toMatchObject({
+            runs: { jd: { status: 'ok' }, size: { status: 'failed', error: 'Error: Size is down' } },
+        });
+        expect(logged.mock.calls.flat().join('\n')).toContain('size scrape failed');
+    });
 });
 
 describe('HTTP', () => {
@@ -232,5 +266,15 @@ describe('HTTP', () => {
         expect(notFound.status).toBe(404);
         // Readable from the browser frontend, rather than surfacing as a CORS network error.
         expect(notFound.headers.get('Access-Control-Allow-Origin')).toBe('*');
+    });
+
+    // Removed in favour of /v2/deals.
+    it.each(['/v1/deals', '/v1/brands', '/webscrape/getBestDeals'])('no longer serves %s', async (path) => {
+        const { clock, get } = start(() => complete(range(2)));
+        await clock.scrapesDone(1);
+
+        const response = await get(path);
+        expect(response.status).toBe(404);
+        expect(await response.json()).toEqual({ error: 'Not Found' });
     });
 });
