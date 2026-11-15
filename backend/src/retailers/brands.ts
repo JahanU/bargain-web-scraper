@@ -20,8 +20,8 @@ const ALIASES: Record<string, string> = {
 /** Every spelling we recognise, for shops that can filter by brand in their search. */
 export const BRAND_SPELLINGS = [...BRANDS, ...Object.keys(ALIASES)];
 
-// "LEVI'S", "Levis" and "Levi's" are one key.
-const key = (spelling: string) => spelling.toLowerCase().replace(/[^a-z0-9]/g, '');
+// "LEVI'S", "Levis" and "Levi's" are one key. Letters of any alphabet are kept, so "Samsøe" is not "Samse".
+const key = (spelling: string) => spelling.toLowerCase().replace(/[^\p{L}\p{N}]/gu, '');
 
 const BY_KEY = new Map<string, string>();
 for (const brand of BRANDS) {
@@ -38,29 +38,30 @@ export function canonicalBrand(spelling: string): string | undefined {
 
 /**
  * A shop's brand for a shop we keep whole: our name if we list the brand, else the shop's own
- * spelling. Nothing if the shop gave no brand.
+ * spelling. Nothing if the shop gave no brand. The value comes from a shop's index, so it is checked.
  */
-export function brandName(spelling: string | null | undefined): string | undefined {
-    const given = spelling?.trim();
+export function brandName(spelling: unknown): string | undefined {
+    const given = typeof spelling === 'string' ? spelling.trim() : '';
     return given ? (canonicalBrand(given) ?? given) : undefined;
 }
 
 /**
  * Shops spell some brands we don't list two ways ("AMIRI", "Amiri"), and the brand filter matches
- * exactly. Every item takes the spelling most items use, so a brand is one entry.
+ * exactly. Every item takes the first of its brand's spellings in sort order, so a brand is one
+ * entry. The choice ignores how many items use each spelling: that changes with stock every scrape,
+ * and a brand's name must not, or a saved link to it would stop matching.
  */
 export function withOneSpellingPerBrand<T extends { brand: string }>(items: T[]): T[] {
-    const spellings = new Map<string, Map<string, number>>();
+    const chosen = new Map<string, string>();
     for (const { brand } of items) {
-        const counts = spellings.get(key(brand)) ?? new Map<string, number>();
-        spellings.set(key(brand), counts.set(brand, (counts.get(brand) ?? 0) + 1));
+        const other = chosen.get(key(brand));
+        if (other === undefined || brand < other) {
+            chosen.set(key(brand), brand);
+        }
     }
-    // Most used first, then by name, so the choice doesn't flip between two equally common spellings.
-    const preferred = new Map(
-        [...spellings].map(([brand, counts]) => [
-            brand,
-            [...counts].sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : 1))[0]?.[0],
-        ]),
-    );
-    return items.map((item) => ({ ...item, brand: preferred.get(key(item.brand)) ?? item.brand }));
+    return items.map((item) => {
+        // A name with no letters or digits has an empty key: left alone, or every such brand would merge.
+        const brand = (key(item.brand) && chosen.get(key(item.brand))) || item.brand;
+        return brand === item.brand ? item : { ...item, brand };
+    });
 }
