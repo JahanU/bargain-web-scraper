@@ -35,3 +35,32 @@ for (const [alias, brand] of Object.entries(ALIASES)) {
 export function canonicalBrand(spelling: string): string | undefined {
     return BY_KEY.get(key(spelling));
 }
+
+/**
+ * A shop's brand for a shop we keep whole: our name if we list the brand, else the shop's own
+ * spelling. Nothing if the shop gave no brand.
+ */
+export function brandName(spelling: string | null | undefined): string | undefined {
+    const given = spelling?.trim();
+    return given ? (canonicalBrand(given) ?? given) : undefined;
+}
+
+/**
+ * Shops spell some brands we don't list two ways ("AMIRI", "Amiri"), and the brand filter matches
+ * exactly. Every item takes the spelling most items use, so a brand is one entry.
+ */
+export function withOneSpellingPerBrand<T extends { brand: string }>(items: T[]): T[] {
+    const spellings = new Map<string, Map<string, number>>();
+    for (const { brand } of items) {
+        const counts = spellings.get(key(brand)) ?? new Map<string, number>();
+        spellings.set(key(brand), counts.set(brand, (counts.get(brand) ?? 0) + 1));
+    }
+    // Most used first, then by name, so the choice doesn't flip between two equally common spellings.
+    const preferred = new Map(
+        [...spellings].map(([brand, counts]) => [
+            brand,
+            [...counts].sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : 1))[0]?.[0],
+        ]),
+    );
+    return items.map((item) => ({ ...item, brand: preferred.get(key(item.brand)) ?? item.brand }));
+}
