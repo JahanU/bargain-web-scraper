@@ -1,5 +1,5 @@
 {
   "permissions": {
-    "deny": ["Read(./docs/*rewrite*)", "Read(./notes.txt)"]
+    "deny": ["Read(./docs/*rewrite*)", "Read(./docs/notes.txt)"]
   }
 }
