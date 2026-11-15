@@ -55,7 +55,14 @@ export function FilterBar({ children, ...props }: FilterBarProps & { children: R
       {/* Phones: only search is left up here, and it scrolls away with the header. */}
       <div className="sticky top-0 z-20 border-b border-border bg-surface-raised max-sm:static">
         {/* xl: Filters is as wide as the sidebar under it, so the next control starts where the deals do. */}
-        <div className="page-container flex items-center gap-2 py-2">
+        <form
+          // oxlint-disable-next-line jsx-a11y/prefer-tag-over-role -- <search> needs Safari 17; the floor is 16.4
+          role="search"
+          aria-label="Filter deals"
+          aria-busy={busy || undefined}
+          onSubmit={(event) => event.preventDefault()}
+          className="page-container flex items-center gap-2 py-2"
+        >
           {/* The footer's bottom padding keeps the last line clear of the docked bar. */}
           <div className="contents max-sm:fixed max-sm:inset-x-0 max-sm:bottom-0 max-sm:z-20 max-sm:flex max-sm:gap-2 max-sm:border-t max-sm:border-border max-sm:bg-surface-raised max-sm:px-4 max-sm:pt-2 max-sm:pb-[max(0.5rem,env(safe-area-inset-bottom))]">
             <Button
@@ -99,7 +106,7 @@ export function FilterBar({ children, ...props }: FilterBarProps & { children: R
             onChange={(search) => onChange({ search })}
             className="max-sm:w-full sm:ml-auto sm:w-72 xl:w-96"
           />
-        </div>
+        </form>
       </div>
       <div
         className={cn(
@@ -107,26 +114,26 @@ export function FilterBar({ children, ...props }: FilterBarProps & { children: R
           panelOpen ? "lg:grid-cols-[20rem_minmax(0,1fr)]" : "lg:grid-cols-[0rem_minmax(0,1fr)]",
         )}
       >
-        {/* Clipped, not hidden: `overflow: hidden` would stop the form inside from sticking. */}
-        <aside
-          inert={!panelOpen}
-          className={cn(
-            "overflow-x-clip transition-opacity duration-slow max-lg:hidden",
-            !panelOpen && "opacity-0",
-          )}
-        >
-          <form
-            // oxlint-disable-next-line jsx-a11y/prefer-tag-over-role -- <search> needs Safari 17; the floor is 16.4
-            role="search"
-            aria-label="Filter deals"
-            aria-busy={busy || undefined}
-            onSubmit={(event) => event.preventDefault()}
-            // Its own width, so nothing reflows while the column opens and closes.
-            className="sticky top-14 max-h-[calc(100dvh-3.5rem)] w-80 overflow-y-auto pr-8 pb-8"
+        {/* Only where it shows: a phone shouldn't build a sidebar it hides. */}
+        {wide && (
+          // Clipped, not hidden: `overflow: hidden` would stop the form inside from sticking.
+          <aside
+            inert={!panelOpen}
+            className={cn(
+              "overflow-x-clip transition-opacity duration-slow",
+              !panelOpen && "opacity-0",
+            )}
           >
-            <FilterPanel {...props} inBar={wide} />
-          </form>
-        </aside>
+            <form
+              aria-label="More filters"
+              onSubmit={(event) => event.preventDefault()}
+              // Its own width, so nothing reflows while the column opens and closes.
+              className="sticky top-14 max-h-[calc(100dvh-3.5rem)] w-80 overflow-y-auto pr-8 pb-8"
+            >
+              <FilterPanel {...props} inBar />
+            </form>
+          </aside>
+        )}
         <div className="@container min-w-0 py-3">{children}</div>
       </div>
       {sheetOpen && (

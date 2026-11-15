@@ -88,30 +88,28 @@ function Section({ title, count = 0, children }: SectionProps) {
   return (
     <div className="border-b border-border">
       {/* Not a heading: the deals' names are the page's outline. */}
-      <div>
-        <button
-          type="button"
-          aria-expanded={open}
-          aria-controls={id}
-          onClick={() => setOpen(!open)}
-          className="flex h-12 w-full items-center gap-2 text-xs font-semibold tracking-widest uppercase"
-        >
-          {title}
-          {count > 0 && (
-            <span aria-hidden className="text-text-muted">
-              {count}
-            </span>
+      <button
+        type="button"
+        aria-expanded={open}
+        aria-controls={id}
+        onClick={() => setOpen(!open)}
+        className="flex h-12 w-full items-center gap-2 text-xs font-semibold tracking-widest uppercase"
+      >
+        {title}
+        {count > 0 && (
+          <span aria-hidden className="text-text-muted">
+            {count}
+          </span>
+        )}
+        <ChevronDown
+          size={16}
+          aria-hidden
+          className={cn(
+            "ml-auto text-text-muted transition-transform duration-base",
+            open && "rotate-180",
           )}
-          <ChevronDown
-            size={16}
-            aria-hidden
-            className={cn(
-              "ml-auto text-text-muted transition-transform duration-base",
-              open && "rotate-180",
-            )}
-          />
-        </button>
-      </div>
+        />
+      </button>
       {/* A grid row going from 0fr to 1fr animates to the content's own height. */}
       <div
         id={id}
