@@ -33,8 +33,8 @@ export type SortId = keyof typeof SORTS;
 export const SORT_IDS = Object.keys(SORTS) as SortId[];
 export const DEFAULT_SORT: SortId = 'discount-high-to-low';
 
-/** A deal's position in one sort: its two field values in that sort's order, then its url. */
-export type SortKey = [number, number, string];
+/** What places a deal in every sort. A cursor holds the position of a page's last deal. */
+export type Position = Pick<Deal, SortField | 'url'>;
 
 /** A validated `/v2/deals` query. An absent field or an empty list means "any". */
 export interface DealQuery {
@@ -50,7 +50,7 @@ export interface DealQuery {
     sort: SortId;
     limit: number;
     /** The last deal of the previous page: this page starts strictly after it. */
-    after?: SortKey;
+    after?: Position;
 }
 
 // The dimensions whose values are counted, each ignoring its own filter.
@@ -93,14 +93,14 @@ export interface DealPage {
     facets?: Facets;
 }
 
-function sortKey(deal: Deal, sort: SortId): SortKey {
-    const [[first], [second]] = SORTS[sort];
-    return [deal[first], deal[second], deal.url];
-}
-
-function compareKeys(sort: SortId, a: SortKey, b: SortKey): number {
-    const [[, first], [, second]] = SORTS[sort];
-    return (a[0] - b[0]) * first || (a[1] - b[1]) * second || (a[2] < b[2] ? -1 : Number(a[2] > b[2]));
+/** Negative when `a` comes before `b` in the sort. */
+function compare(sort: SortId, a: Position, b: Position): number {
+    const [[first, firstWay], [second, secondWay]] = SORTS[sort];
+    return (
+        (a[first] - b[first]) * firstWay ||
+        (a[second] - b[second]) * secondWay ||
+        (a.url < b.url ? -1 : Number(a.url > b.url))
+    );
 }
 
 export function buildSnapshot(deals: Deal[], stores: Store[], minDiscount: number): Snapshot {
@@ -122,8 +122,12 @@ export function buildSnapshot(deals: Deal[], stores: Store[], minDiscount: numbe
             },
         }),
     );
-    const inOrder = (sort: SortId) =>
-        rows.toSorted((a, b) => compareKeys(sort, sortKey(a.deal, sort), sortKey(b.deal, sort)));
+    // Each order starts from the one before it, which is already partly in order: half the sorting of four separate sorts.
+    let previous = rows;
+    const inOrder = (sort: SortId) => {
+        previous = previous.toSorted((a, b) => compare(sort, a.deal, b.deal));
+        return previous;
+    };
 
     return {
         deals,
@@ -156,22 +160,19 @@ function ranked(counts: Map<string, number>): [string, number][] {
     return [...counts].sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : 1));
 }
 
-function encodeCursor(key: SortKey): string {
-    return Buffer.from(JSON.stringify(key)).toString('base64url');
+function encodeCursor({ discount, nowPrice, url }: Position): string {
+    return Buffer.from(JSON.stringify([discount, nowPrice, url])).toString('base64url');
 }
 
-/** The sort key a cursor holds, or undefined if it is not one of ours. */
-export function decodeCursor(cursor: string): SortKey | undefined {
+/** The position a cursor holds, or undefined if it is not one of ours. */
+export function decodeCursor(cursor: string): Position | undefined {
     try {
         const key: unknown = JSON.parse(Buffer.from(cursor, 'base64url').toString());
-        if (
-            Array.isArray(key) &&
-            key.length === 3 &&
-            typeof key[0] === 'number' &&
-            typeof key[1] === 'number' &&
-            typeof key[2] === 'string'
-        ) {
-            return key as SortKey;
+        if (Array.isArray(key) && key.length === 3) {
+            const [discount, nowPrice, url] = key;
+            if (typeof discount === 'number' && typeof nowPrice === 'number' && typeof url === 'string') {
+                return { discount, nowPrice, url };
+            }
         }
     } catch {
         // Not JSON: not a cursor.
@@ -224,7 +225,7 @@ export function queryDeals(snapshot: Snapshot, query: DealQuery): DealPage {
         }
 
         total++;
-        if (!after || compareKeys(sort, sortKey(row.deal, sort), after) > 0) {
+        if (!after || compare(sort, row.deal, after) > 0) {
             remaining++;
             if (items.length < limit) {
                 items.push(row.deal);
@@ -237,7 +238,7 @@ export function queryDeals(snapshot: Snapshot, query: DealQuery): DealPage {
     return {
         items,
         total,
-        nextCursor: last && remaining > limit ? encodeCursor(sortKey(last, sort)) : null,
+        nextCursor: last && remaining > limit ? encodeCursor(last) : null,
         trackingSince: snapshot.trackingSince,
         facets: counts && {
             stores: snapshot.stores.map(({ id, name }) => ({ store: id, name, count: count('store', id) })),

@@ -19,7 +19,7 @@ flowchart TB
     built["📦 Snapshot<br/><small>rebuilt after each scrape<br/>deals + search text + sort orders</small>"]
     client["🖥️ Frontend"]
 
-    accept -- "deals ≥ MIN_DISCOUNT, best first" --> built
+    accept -- "deals ≥ MIN_DISCOUNT" --> built
     client -- "GET /v2/deals?filters&sort&cursor" --> built
     built -- "200 one page + total + facets · 503 + Retry-After" --> client
 ```
@@ -64,7 +64,7 @@ flowchart TD
 |---|---|
 | `src/index.ts` | Entry point: reads config and starts the app |
 | `src/app.ts` | Wires the store, a scrape loop per retailer and the server together |
-| `src/deals.ts` | `DealStore`: applies R1 and R2, and builds the deals list (≥ `MIN_DISCOUNT`, best first) |
+| `src/deals.ts` | `DealStore`: applies R1 and R2, and builds the deals list (≥ `MIN_DISCOUNT`, unsorted: the snapshot holds every sort order) |
 | `src/query.ts` | The snapshot built once per accepted scrape, and the pure query over it: filters, facet counts, sorts (a table) and keyset paging |
 | `src/http.ts` | The boundary: parses and validates each query string (or answers 400), the deals response (JSON with caching headers, or 503 until ready), the routes, and request logging |
 | `src/scraper.ts` | `scrapeRetailer` (one timed, failure-safe scrape) and the loop (R4) |
