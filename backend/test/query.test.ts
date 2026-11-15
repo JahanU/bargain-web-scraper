@@ -1,6 +1,6 @@
 // GET /v2/deals: filtering, search, sorting, counting and paging, exercised through the route.
 import { describe, expect, it } from 'bun:test';
-import type { Deal } from '@/deals';
+import type { Deal, ListedDeal } from '@/deals';
 import { RETRY_AFTER_SECONDS, routes } from '@/http';
 import { buildSnapshot, type DealPage, SORT_IDS } from '@/query';
 import { idsOf } from './helpers';
@@ -10,7 +10,7 @@ const STORES = [
     { id: 'size', name: 'Size?' },
 ];
 
-const make = (id: string, name: string, overrides: Partial<Deal>): Deal => ({
+const make = (id: string, name: string, overrides: Partial<ListedDeal>): ListedDeal => ({
     name,
     wasPrice: 100,
     nowPrice: 40,
@@ -21,6 +21,7 @@ const make = (id: string, name: string, overrides: Partial<Deal>): Deal => ({
     brand: 'Nike',
     category: 'Shoes',
     store: 'jd',
+    sizeKeys: overrides.sizes ?? [],
     ...overrides,
 });
 
@@ -50,9 +51,11 @@ const DEALS = [
     make('6', 'New Balance 550', { store: 'size', brand: 'New Balance', sizes: ['8'] }),
     make('4', 'Nike Air Force 1', { gender: 'Female', discount: 60, nowPrice: 45, sizes: ['5', '6'] }),
 ];
+/** A deal as it is served: the size keys stay behind. */
+const onTheWire = ({ sizeKeys, ...deal }: ListedDeal): Deal => deal;
 const EVERY_ID = ['4', '1', '10', '2', '6', '9', '8', '3', '7', '5'];
 
-const serving = (deals: Deal[] | undefined, minDiscount = 30) =>
+const serving = (deals: ListedDeal[] | undefined, minDiscount = 30) =>
     routes(
         STORES,
         () => deals && buildSnapshot(deals, STORES, minDiscount),
@@ -94,6 +97,7 @@ describe('GET /v2/deals', () => {
             ['a brand in the wrong case', '?brand=nike', []],
             ['a size', '?size=M', ['3']],
             ['several sizes (any of them)', '?size=8&size=11', ['1', '10', '6', '9']],
+            ['a clothing size or a shoe size (either)', '?size=M&size=11', ['9', '3']],
             ['a size no deal has', '?size=99', []],
             ['a minimum discount', '?minDiscount=50', ['4', '1', '10', '2', '6', '9']],
             ['a minimum discount below the floor', '?minDiscount=0', EVERY_ID],
@@ -111,7 +115,7 @@ describe('GET /v2/deals', () => {
         });
 
         it('says which store each deal is from', async () => {
-            expect((await page('?brand=Puma')).items).toEqual([DEALS[1] as Deal]);
+            expect((await page('?brand=Puma')).items).toEqual([onTheWire(DEALS[1] as ListedDeal)]);
             expect((await page('?store=size')).items.map((deal) => deal.store)).toEqual(Array(4).fill('size'));
         });
     });
@@ -173,14 +177,16 @@ describe('GET /v2/deals', () => {
                     { brand: 'The North Face', count: 1 },
                 ],
                 sizes: [
-                    { size: '9', count: 5 },
-                    { size: '8', count: 3 },
-                    { size: '10', count: 1 },
-                    { size: '11', count: 1 },
+                    { size: 'M', count: 1 },
+                    { size: 'L', count: 1 },
+                ],
+                shoeSizes: [
                     { size: '5', count: 1 },
                     { size: '6', count: 1 },
-                    { size: 'L', count: 1 },
-                    { size: 'M', count: 1 },
+                    { size: '8', count: 3 },
+                    { size: '9', count: 5 },
+                    { size: '10', count: 1 },
+                    { size: '11', count: 1 },
                 ],
                 discounts: [
                     { minDiscount: 30, count: 10 },
@@ -205,10 +211,19 @@ describe('GET /v2/deals', () => {
         it('does not let a selection shrink its own facet, only the others', async () => {
             const { facets } = await page('?brand=Puma');
             expect(facets?.brands).toEqual((await page()).facets?.brands);
-            expect(facets?.sizes).toEqual([
-                { size: '11', count: 1 },
+            expect(facets?.sizes).toEqual([]);
+            expect(facets?.shoeSizes).toEqual([
                 { size: '9', count: 1 },
+                { size: '11', count: 1 },
             ]);
+        });
+
+        it('finds a deal sold in a range by any size the range covers, and prints the range', async () => {
+            const socks = make('socks', 'Stance Socks', { sizes: ['6.5-8'], sizeKeys: ['6.5', '7', '7.5', '8'] });
+            const { items, facets } = await page('?size=7', serving([socks]));
+            expect(items).toEqual([onTheWire(socks)]);
+            expect(facets?.shoeSizes.map(({ size }) => size)).toEqual(['6.5', '7', '7.5', '8']);
+            expect((await page('?size=6.5-8', serving([socks]))).total).toBe(0);
         });
 
         // Each row says what choosing it would give: the total of the same request with that
@@ -231,11 +246,11 @@ describe('GET /v2/deals', () => {
 
         it('gives each size row the total of the same request with only that size', async () => {
             const { facets } = await page(without('size', '9'));
-            expect(facets?.sizes).toEqual([
+            expect(facets?.shoeSizes).toEqual([
                 { size: '8', count: 1 },
                 { size: '9', count: 1 },
             ]);
-            for (const { size, count } of facets?.sizes ?? []) {
+            for (const { size, count } of facets?.shoeSizes ?? []) {
                 expect(await total(without('size', size))).toBe(count);
             }
         });

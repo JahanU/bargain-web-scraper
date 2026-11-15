@@ -1,8 +1,13 @@
-import { describe, expect, it } from 'bun:test';
+import { afterEach, describe, expect, it, mock, spyOn } from 'bun:test';
 import { DealStore } from '@/deals';
 import type { Retailer } from '@/retailers/types';
 import { runScrapeLoop, scrapeRetailer } from '@/scraper';
-import { complete, manualSleep, range } from './helpers';
+import { complete, manualSleep, product, range } from './helpers';
+
+afterEach(() => {
+    mock.restore();
+    Bun.env.LOG_LEVEL = 'silent';
+});
 
 describe('scrapeRetailer', () => {
     it('feeds a successful listing to the store and reports the result', async () => {
@@ -29,6 +34,23 @@ describe('scrapeRetailer', () => {
 
         expect(await scrapeRetailer(broken, store)).toMatchObject({ status: 'failed', error: 'Error: bad config' });
         expect(store.deals(0)).toHaveLength(2);
+    });
+
+    it('warns about size labels it did not recognise, most common first, and keeps them out of the run', async () => {
+        const logged = spyOn(console, 'error').mockImplementation(() => {});
+        Bun.env.LOG_LEVEL = 'warn';
+        const caps = ['a', 'b'].map((id) => product(id, { category: 'Accessories', sizes: ['N', '7 1/4'] }));
+        const listing = complete([product('c', { category: 'Accessories', sizes: ['7 1/4', 'M'] }), ...caps]);
+
+        const run = await scrapeRetailer(
+            { id: 'end', name: 'END.', fetchListing: async () => listing },
+            new DealStore(),
+        );
+
+        const lines = logged.mock.calls.flat().join('\n');
+        expect(lines).toContain('end: 2 size labels not recognised');
+        expect(lines).toContain('7 1/4×3, N×2');
+        expect(run).not.toHaveProperty('unrecognisedSizes');
     });
 
     it('times the fetch', async () => {

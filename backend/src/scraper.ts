@@ -36,7 +36,12 @@ export async function scrapeRetailer(retailer: Retailer, store: DealStore): Prom
     }
 
     const ms = Date.now() - started;
-    const result = store.accept(retailer.id, listing);
+    const { unrecognisedSizes, ...result } = store.accept(retailer.id, listing);
+    const unknown = Object.entries(unrecognisedSizes).sort((a, b) => b[1] - a[1]);
+    if (unknown.length > 0) {
+        const labels = unknown.map(([label, products]) => `${label}×${products}`).join(', ');
+        log.warn(`⚠ ${retailer.id}: ${unknown.length} size labels not recognised`, { labels });
+    }
     const summary = { ...result, took: duration(ms) };
     if (result.status === 'ok') {
         log.info(`✓ ${retailer.id} scraped`, summary);
