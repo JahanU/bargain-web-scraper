@@ -13,8 +13,6 @@ import {
   ActiveFilterChips,
   FilterBar,
   type FilterState,
-  GenderControl,
-  SearchField,
   activeChips,
   explainEmpty,
   useDealsRequest,
@@ -41,18 +39,7 @@ export function DealsPage() {
 
   return (
     <>
-      <Header>
-        <GenderControl
-          value={values.gender}
-          onChange={(gender) => change({ gender })}
-          className="w-full sm:w-auto"
-        />
-        <SearchField
-          value={values.search}
-          onChange={(search) => change({ search })}
-          className="w-full sm:w-auto sm:flex-1 lg:max-w-md"
-        />
-      </Header>
+      <Header />
       <main id="main" tabIndex={-1} className="flex-1">
         <h1 className="sr-only">Deals from JD Sports, Size and END.</h1>
         <FilterBar
@@ -62,8 +49,7 @@ export function DealsPage() {
           facets={result?.facets}
           resultCount={query.isPlaceholderData ? undefined : result?.total}
           busy={!result}
-        />
-        <div className="page-container py-3">
+        >
           <ActiveFilterChips
             values={values}
             onChange={change}
@@ -115,7 +101,7 @@ export function DealsPage() {
               <DealGridSkeleton />
             </div>
           )}
-        </div>
+        </FilterBar>
       </main>
     </>
   );

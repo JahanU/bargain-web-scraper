@@ -1,7 +1,5 @@
 export { ActiveFilterChips } from "./components/ActiveFilterChips";
 export { FilterBar } from "./components/FilterBar";
-export { GenderControl } from "./components/GenderControl";
-export { SearchField } from "./components/SearchField";
 export { useDealsRequest } from "./hooks/useDealsRequest";
 export { useFilters } from "./hooks/useFilters";
 export { type EmptyExplanation, explainEmpty } from "./model/explainEmpty";

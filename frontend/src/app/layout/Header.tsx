@@ -1,26 +1,18 @@
 import { ExternalLink } from "lucide-react";
-import type { ReactNode } from "react";
 import { AboutButton } from "@/features/about";
 import { ThemeToggle } from "@/features/theme";
 import { Brand } from "./Brand";
 
 const REPO_URL = "https://github.com/JahanU/bargain-web-scraper";
 
-/**
- * Not sticky: it scrolls away and leaves the screen to the toolbar and the deals. `children` are
- * the page's own controls (who you shop for, search): beside the logo from lg, on a row of their
- * own below it.
- */
-export function Header({ children }: { children?: ReactNode }) {
+/** Not sticky: it scrolls away and leaves the screen to the toolbar and the deals. */
+export function Header() {
   return (
     <header className="border-b border-border bg-surface-raised">
-      <div className="page-container flex flex-wrap items-center gap-x-6 gap-y-1 py-1 max-lg:pb-2">
+      <div className="page-container flex h-12 items-center justify-between">
         <Brand />
-        <div className="order-last flex w-full flex-wrap items-center gap-2 lg:order-none lg:w-auto lg:flex-1">
-          {children}
-        </div>
         {/* Pulled out by the buttons' own padding, so the glyphs end on the container edge. */}
-        <div className="-mr-2 ml-auto flex items-center">
+        <div className="-mr-2 flex items-center">
           <ThemeToggle />
           <AboutButton />
           <a
