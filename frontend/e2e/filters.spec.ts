@@ -28,6 +28,41 @@ test("desktop: search, discount and sizes filter the grid, and a reload restores
   ]);
 });
 
+test("desktop: a clothing size and a shoe size together show deals in either, and an old sizes link still works", async ({
+  page,
+}) => {
+  await page.setViewportSize(devices["Desktop Chrome"].viewport);
+  const inEither = fixture.filter((deal) =>
+    deal.sizes?.some((size) => size === "M" || size === "8"),
+  );
+  await page.goto("/");
+  await expect(page.getByText("81 deals")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Clothing size" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Footwear size" })).toBeVisible();
+
+  await page
+    .getByRole("group", { name: "Clothing sizes" })
+    .getByRole("button", { name: /^M, / })
+    .click();
+  await page
+    .getByRole("group", { name: "Footwear sizes (UK)" })
+    .getByRole("button", { name: /^8, / })
+    .click();
+
+  await expect(page).toHaveURL(/\?sizes=M&shoeSizes=8$/);
+  await expect(page.getByText(`${inEither.length} deals`)).toBeVisible();
+  await expect(page.getByRole("list", { name: "Active filters" }).getByRole("button")).toHaveText([
+    "M",
+    "Shoe UK 8",
+  ]);
+
+  await page.goto("/?sizes=M,L");
+
+  const clothing = page.getByRole("group", { name: "Clothing sizes" });
+  await expect(clothing.getByRole("button", { name: /^M, /, pressed: true })).toBeVisible();
+  await expect(clothing.getByRole("button", { name: /^L, /, pressed: true })).toBeVisible();
+});
+
 test("desktop: category and brands narrow the list through the API, by keyboard, and survive a reload", async ({
   page,
 }) => {
