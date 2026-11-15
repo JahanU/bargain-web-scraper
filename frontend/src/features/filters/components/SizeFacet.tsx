@@ -1,6 +1,5 @@
-import { ChevronDown } from "lucide-react";
 import { type Facets, type SizeGroup, compareSizes, sizeGroup } from "@/features/deals";
-import { Button, Popover, ToggleGroup } from "@/shared/ui";
+import { ToggleGroup } from "@/shared/ui";
 import { facetCount, toolbarLabel } from "./toolbarLabel";
 
 const GROUPS: { group: SizeGroup; title: string }[] = [
@@ -66,26 +65,5 @@ export function SizeOptions({ selected, onChange, counts = [] }: SizeFacetProps)
         ),
       )}
     </div>
-  );
-}
-
-/** On wide screens the options sit in a popover behind a "Sizes" button. */
-export function SizePopover(props: SizeFacetProps) {
-  const count = props.selected.length;
-  return (
-    <Popover
-      title="Filter by size"
-      trigger={
-        <Button tone="secondary">
-          Sizes
-          {count > 0 && <span className="text-accent"> · {count}</span>}
-          <ChevronDown size={16} aria-hidden />
-        </Button>
-      }
-    >
-      <div className="w-[min(22rem,calc(100vw-3rem))]">
-        <SizeOptions {...props} />
-      </div>
-    </Popover>
   );
 }
