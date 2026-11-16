@@ -1,5 +1,8 @@
 {
   "permissions": {
     "deny": ["Read(./docs/*rewrite*)", "Read(./docs/notes.txt)"]
+  },
+  "env": {
+    "CLAUDE_CODE_EXPERIMENTAL_CODE_MODE": "1"
   }
 }
