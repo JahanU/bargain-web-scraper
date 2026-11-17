@@ -66,7 +66,7 @@ describe('normaliseSizes', () => {
         ['US 9', { category: 'Shoes', gender: 'Female' }, '7', ['7']],
         ['UK 7- UK 7.5', shoes, 'UK 7-7.5', ['7', '7.5']],
         ['EU 35-36', shoes, 'UK 2.5-3.5', ['2.5', '3', '3.5']],
-        ['EU 41-43', mens, 'UK 7-9', ['7', '7.5', '8', '8.5', '9']],
+        ['EU 41-43', accessory, 'UK 7-9', ['7', '7.5', '8', '8.5', '9']],
 
         ['UK 8', womens, 'UK 8', ['UK 8']],
         ['IT 50', mens, 'IT 50', ['IT 50']],
@@ -84,7 +84,6 @@ describe('normaliseSizes', () => {
         ['41', shoes, '7', ['7']],
         ['6.5-8', accessory, 'UK 6.5-8', ['6.5', '7', '7.5', '8']],
         ['6-9UK', accessory, 'UK 6-9', ['6', '6.5', '7', '7.5', '8', '8.5', '9']],
-        ['6-9UK', mens, 'UK 6-9', ['6', '6.5', '7', '7.5', '8', '8.5', '9']],
         ['EU 43.5', shoes, '9', ['9']],
         ['6XL', mens, 'XXXXXXL', ['XXXXXXL']],
 
@@ -114,6 +113,9 @@ describe('normaliseSizes', () => {
         ['EU 51', shoes],
         ['5-14', accessory],
         ['39-42', mens],
+        ['EU 41-43', mens],
+        ['UK 8-10', womens],
+        ['6-9UK', mens],
         ['8-10', womens],
         ['36-40', accessory],
         ['10 12', womens],
@@ -135,6 +137,7 @@ describe('normaliseSizes', () => {
     it("orders the labels by size, or leaves the retailer's order when it cannot place one", () => {
         expect(normaliseSizes(['XL', 'One Size', 'S', 'M/L'], mens).labels).toEqual(['S', 'M/L', 'XL', 'One Size']);
         expect(normaliseSizes(['40', '42', '44'], mens).labels).toEqual(['40', '42', 'IT 44']);
+        expect(normaliseSizes(['Large', 'Small', 'N', 'Medium'], accessory).labels).toEqual(['S', 'M', 'N', 'L']);
         expect(normaliseSizes(['10', '8.5', '8', '055'], shoes).labels).toEqual(['5.5', '8', '8.5', '10']);
     });
 });
@@ -193,6 +196,7 @@ describe('over every label the stores send', () => {
                 ...['0', '1', '2', '3', '4', '5', '5.5', '6', '6.5', '7', '7.5', '8', '8.5', '9', '9.5', '10', '10.5'],
                 ...['11', '11.5', '12', '20', '39', '41', '42', '44', '46', '48', '50', '54', '56', '58', '60'],
                 ...['7 1/2', '7 1/4', '7 1/8', '7 3/8', '7 5/8', '12.5K - 1', '6-', '39-42'],
+                ...['EU 38-40', 'EU 41-43', 'EU 44-46'],
                 ...['18cm', '19cm', '60cm', '85cm', '90cm', '100cm', '22"', '34"', '36"', '40"', '0.59L', '0.89L'],
                 ...['H', 'J', 'N', 'P', 'R', 'U', 'Bras', 'Socks'],
                 ...['Left S', 'Left M', 'Left M/L', 'Left L', 'Left XL', 'Left 2XL'],

@@ -209,7 +209,7 @@ Every store's labels are rewritten to one spelling per size, so END.'s `UK 9`, `
 
 - `shoeSizes` rows are UK shoe sizes written as a bare number (`8`, `8.5`). EU and US shoe labels are converted with one fixed table.
 - `sizes` rows are never a bare number: letters (`XS`, `M`), then women's UK (`UK 8`), waist in inches (`W30`), `IT 48`, `EU 36`, `FR 38`, `US 4`. Accessories are in this list.
-- A deal sold in a range prints the range as one label (`S/M`, `UK 6.5-8`, `W30 L32`) and matches every size the range covers, so `size=7` finds socks labelled `UK 6.5-8`. Sock shoe-size ranges count as footwear.
+- A deal sold in a range prints the range as one label (`S/M`, `UK 6.5-8`, `W30 L32`) and matches every size the range covers, so `size=7` finds socks labelled `UK 6.5-8`. A shoe-size range on an accessory (socks) counts as footwear; a range on clothing is left as written and has no filter row.
 - `One Size`, and a label the backend does not recognise (`7 1/4`), are on the card but in neither list.
 
 Send a row from either list as `size=<row.size>`. Both lists are one filter, so each row's count is the total with that row as the only `size`.

@@ -22,8 +22,9 @@ type FilterPanelProps = Pick<FilterBarProps, "values" | "onChange" | "facets"> &
 export function FilterPanel({ values, onChange, facets, inBar }: FilterPanelProps) {
   const stores = storeOptions(facets);
   // A kind with nothing to choose and nothing chosen (footwear sizes when browsing clothes) has no section.
+  // Until the sizes arrive it stays, so the sidebar does not jump on every load.
   const hasSizes = (rows: readonly unknown[] | undefined, selected: readonly string[]) =>
-    selected.length > 0 || (rows !== undefined && rows.length > 0);
+    selected.length > 0 || rows === undefined || rows.length > 0;
   return (
     <>
       <Section title="Sort by">

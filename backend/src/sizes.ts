@@ -5,8 +5,8 @@ export interface Sizes {
     /**
      * What the card prints, one per retailer label: a canonical label (`M`, `8.5`, `UK 8`, `W30`,
      * `IT 48`), a range as one label (`S/M`, `6.5-8`, `W30 L32`), `One Size`, or an unrecognised
-     * label as the retailer wrote it, trimmed. In key order (`One Size` last), or in the retailer's
-     * order when any label is unrecognised.
+     * label as the retailer wrote it, trimmed. In key order with `One Size` last; an
+     * unrecognised label keeps the place the retailer gave it.
      */
     labels: string[];
     /** What the filter matches and the facets count: ranges expanded. Canonical order. */
@@ -188,8 +188,9 @@ function parse(label: string, { category, gender }: Context): Parsed | undefined
         const system = (prefixed[1] ?? '').toUpperCase().replace('EUR', 'EU');
         const from = Number(prefixed[2]);
         const isRange = prefixed[3] !== undefined;
-        // A range is a sock's shoe-size range wherever it is filed.
-        if ((category === 'Shoes' || isRange) && (system === 'UK' || system === 'EU' || system === 'US')) {
+        // On an accessory a range is a sock's shoe sizes. On clothing it could be a dress in two sizes, so it is left alone.
+        const shoeSizes = category === 'Shoes' || (isRange && category === 'Accessories');
+        if (shoeSizes && (system === 'UK' || system === 'EU' || system === 'US')) {
             return footwear(system, from, Number(prefixed[3] ?? from), gender);
         }
         if (category === 'Clothes' && !isRange && Number.isInteger(from)) {
@@ -215,10 +216,8 @@ function parse(label: string, { category, gender }: Context): Parsed | undefined
         return footwear(from >= 35 ? 'EU' : 'UK', from, Number(bare[2] ?? from), gender);
     }
     if (isRange) {
-        // A sock's shoe sizes only where it says UK or is an accessory: "8-10" on clothing is a dress, "36-40" a belt.
-        return bare[3] || (category === 'Accessories' && from < 35)
-            ? footwear('UK', from, Number(bare[2]), gender)
-            : undefined;
+        // A sock's shoe sizes only on an accessory, and only as UK: "8-10" on clothing is a dress, "36-40" a belt.
+        return category === 'Accessories' ? footwear('UK', from, Number(bare[2]), gender) : undefined;
     }
     if (category !== 'Clothes' || bare[3] || !Number.isInteger(from)) {
         return undefined;
@@ -288,11 +287,13 @@ export function normaliseSizes(labels: readonly string[], product: Context): Siz
             keys.add(key);
         }
     }
-    // With a label we cannot place, the retailer's own order is the only one that keeps its sizes together.
+    const entries = [...firstKeys];
+    const keyed = entries.filter(([, key]) => key).sort(([, a], [, b]) => compareKeys(a ?? '', b ?? ''));
+    // A label we cannot place stays where the retailer put it, and the sizes around it are put in order.
     const inOrder =
         unrecognised.size > 0
-            ? [...firstKeys]
-            : [...firstKeys].sort(([, a], [, b]) => (a && b ? compareKeys(a, b) : Number(!a) - Number(!b)));
+            ? entries.map((entry) => (entry[1] ? (keyed.shift() ?? entry) : entry))
+            : [...keyed, ...entries.filter(([, key]) => !key)];
     return {
         labels: inOrder.map(([label]) => label),
         keys: [...keys].sort(compareKeys),
