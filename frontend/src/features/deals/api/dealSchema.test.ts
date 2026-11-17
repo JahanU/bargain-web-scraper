@@ -7,6 +7,7 @@ const FACETS = {
   stores: [{ store: "jd", name: "JD Sports", count: 2 }],
   brands: [{ brand: "Nike", count: 2 }],
   sizes: [{ size: "M", count: 2 }],
+  shoeSizes: [{ size: "8.5", count: 1 }],
   discounts: [{ minDiscount: 30, count: 2 }],
 };
 const page = (items: unknown[], overrides: Record<string, unknown> = {}) => ({
@@ -25,6 +26,11 @@ test("a valid first page passes through unchanged", () => {
     facets: FACETS,
   });
   expect(parsePage(body)).toEqual(body);
+});
+
+test("facets from a backend that predates shoeSizes parse, with no footwear sizes", () => {
+  const { shoeSizes: _, ...old } = FACETS;
+  expect(parsePage(page([makeDeal()], { facets: old })).facets?.shoeSizes).toEqual([]);
 });
 
 test("a later page has no facets, and an empty page is fine", () => {

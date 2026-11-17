@@ -96,7 +96,8 @@ test("the bar is a search landmark, the sidebar a form, and every control is nam
   const sidebar = within(screen.getByRole("form", { name: "More filters" }));
   expect(sidebar.getByRole("group", { name: "Minimum discount" })).toBeInTheDocument();
   expect(sidebar.getByRole("button", { name: "Brands" })).toBeInTheDocument();
-  expect(sidebar.getByRole("button", { name: "Sizes" })).toBeInTheDocument();
+  expect(sidebar.getByRole("button", { name: "Clothing size" })).toBeInTheDocument();
+  expect(sidebar.getByRole("button", { name: "Footwear size" })).toBeInTheDocument();
   // One store is no choice, so there is no Stores control.
   expect(sidebar.queryByRole("button", { name: /^Stores/ })).not.toBeInTheDocument();
   expect(sidebar.getByRole("combobox", { name: "Sort by" })).toHaveValue("discount-high-to-low");
@@ -188,12 +189,12 @@ test("sort writes its id, and the default is left out", async () => {
   expect(url()).toBe("");
 });
 
-test("sizes: grouped toggles with counts, written in canonical order", async () => {
+test("sizes: clothing and footwear toggles with counts, each with its own place in the link", async () => {
   const { url } = await setup();
 
   const popup = toolbar();
   const clothing = within(popup).getByRole("group", { name: "Clothing sizes" });
-  expect(within(popup).getByRole("group", { name: "Footwear sizes" })).toBeInTheDocument();
+  const footwear = within(popup).getByRole("group", { name: "Footwear sizes (UK)" });
   expect(within(clothing).getByRole("button", { name: "M, 2 deals" })).toHaveAttribute(
     "aria-pressed",
     "false",
@@ -202,9 +203,29 @@ test("sizes: grouped toggles with counts, written in canonical order", async () 
   await userEvent.click(within(clothing).getByRole("button", { name: "L, 2 deals" }));
   await userEvent.click(within(clothing).getByRole("button", { name: "S, 1 deal" }));
 
-  expect(url()).toBe("?sizes=S,L");
+  expect(url()).toBe("?sizes=L,S");
   expect(await screen.findByText("3 deals")).toBeInTheDocument();
   expect(requests.at(-1)).toBe("?gender=Male&size=L&size=S&limit=60");
+
+  // A shoe size adds to the clothing sizes: a deal in either shows.
+  await userEvent.click(within(footwear).getByRole("button", { name: "8, 1 deal" }));
+
+  expect(url()).toBe("?sizes=L,S&shoeSizes=8");
+  expect(await screen.findByText("4 deals")).toBeInTheDocument();
+  expect(requests.at(-1)).toBe("?gender=Male&size=8&size=L&size=S&limit=60");
+  expect(
+    within(screen.getByRole("list", { name: "Active filters" })).getByRole("button", {
+      name: "Remove Shoe UK 8",
+    }),
+  ).toBeInTheDocument();
+});
+
+test("a kind of size with nothing to choose has no section", async () => {
+  await setup("?brands=Nike");
+
+  const popup = toolbar();
+  expect(within(popup).getByRole("button", { name: "Clothing size" })).toBeInTheDocument();
+  expect(within(popup).queryByRole("button", { name: "Footwear size" })).not.toBeInTheDocument();
 });
 
 test("a selected size the other filters have emptied still shows, at 0, so it can be turned off", async () => {
@@ -214,10 +235,10 @@ test("a selected size the other filters have emptied still shows, at 0, so it ca
   const chips = within(within(popup).getByRole("group", { name: "Clothing sizes" }));
 
   expect(chips.getAllByRole("button").map((chip) => chip.getAttribute("aria-label"))).toEqual([
-    "XS, 0 deals",
     "S, 1 deal",
     "M, 2 deals",
     "L, 1 deal",
+    "XS, 0 deals",
   ]);
   await userEvent.click(chips.getByRole("button", { name: "XS, 0 deals", pressed: true }));
   expect(url()).toBe("?brands=Nike");
@@ -254,7 +275,7 @@ test("phones: the Filters button counts sheet filters and opens a complete filte
   expect(within(sheet).getByRole("group", { name: "Clothing sizes" })).toBeInTheDocument();
 
   await userEvent.click(within(sheet).getByRole("button", { name: "S, 1 deal" }));
-  expect(url()).toBe("?search=nike&discount=50&sizes=S,M");
+  expect(url()).toBe("?search=nike&discount=50&sizes=M,S");
 
   await userEvent.click(await within(sheet).findByRole("button", { name: "Show 1 deal" }));
   expect(screen.queryByRole("dialog", { name: "Filters" })).not.toBeInTheDocument();

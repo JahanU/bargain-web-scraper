@@ -7,6 +7,7 @@ const values = (overrides: Partial<FilterState>): FilterState => ({
   search: "",
   discount: 30,
   sizes: [],
+  shoeSizes: [],
   brands: [],
   stores: [],
   sort: "discount-high-to-low",
@@ -21,6 +22,7 @@ const facets = (overrides: Partial<Facets> = {}): Facets => ({
   ],
   brands: [],
   sizes: [],
+  shoeSizes: [],
   discounts: [30, 40, 50, 60, 70].map((minDiscount) => ({ minDiscount, count: 0 })),
   ...overrides,
 });
@@ -48,7 +50,7 @@ test("each filter whose own facet has deals is offered; discount goes to the nea
     title: "No deals at 70% or more in size M from Fila at Foot Locker",
     suggestions: [
       { label: "Show 1 deal at 50% or more", next: { discount: 50 } },
-      { label: "Show deals in any size", next: { sizes: [] } },
+      { label: "Show deals in any size", next: { sizes: [], shoeSizes: [] } },
       { label: "Show deals from any brand", next: { brands: [] } },
       { label: "Show deals at any store", next: { stores: [] } },
     ],
@@ -84,9 +86,21 @@ test("search with other filters is named first and still offered last", () => {
   ).toEqual({
     title: "No deals for “puma” at 30% or more in size M or L",
     suggestions: [
-      { label: "Show deals in any size", next: { sizes: [] } },
+      { label: "Show deals in any size", next: { sizes: [], shoeSizes: [] } },
       { label: "Clear search", next: { search: "" } },
     ],
+  });
+});
+
+test("a footwear size is named as a shoe size, and one suggestion drops both kinds", () => {
+  expect(
+    explainEmpty(
+      values({ discount: 70, sizes: ["M"], shoeSizes: ["8"] }),
+      facets({ shoeSizes: [{ size: "9", count: 2 }] }),
+    ),
+  ).toEqual({
+    title: "No deals at 70% or more in size M or Shoe UK 8",
+    suggestions: [{ label: "Show deals in any size", next: { sizes: [], shoeSizes: [] } }],
   });
 });
 

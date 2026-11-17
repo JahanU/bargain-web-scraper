@@ -28,22 +28,6 @@ const ATTRIBUTES = [
 // END.'s `cat_high` tag. "Lifestyle" (homeware, books) has no category of ours and is left out.
 const CATEGORIES: Record<string, Category> = { Footwear: 'Shoes', Apparel: 'Clothes', Accessories: 'Accessories' };
 
-// END. spells sizes out. JD and Size use the short forms, and the size filter matches exactly.
-const SIZE_NAMES: Record<string, string> = {
-    'XX-Small': 'XXS',
-    'X-Small': 'XS',
-    XSmall: 'XS',
-    Small: 'S',
-    Medium: 'M',
-    Large: 'L',
-    'X-Large': 'XL',
-    XLarge: 'XL',
-    'XX-Large': 'XXL',
-    XXLarge: 'XXL',
-    'XXX-Large': 'XXXL',
-    OneSize: 'One Size',
-};
-
 /** One size of one product. The search key itself only returns sizes that are in stock. */
 interface Hit {
     id: number;
@@ -107,11 +91,6 @@ function genderOf(genders: string[]): Gender | undefined {
     return women ? 'Female' : undefined;
 }
 
-/** "UK 9.5" → "9.5", "Medium" → "M". Anything else is kept as END. writes it. */
-function sizeLabel(title: string): string {
-    return SIZE_NAMES[title] ?? title.replace(/^UK /, '');
-}
-
 /** Maps the in-stock sizes of one product to a product, or nothing if a field we need is missing. */
 function parseProduct(sizes: Hit[]): Product | undefined {
     const [first] = sizes;
@@ -134,7 +113,7 @@ function parseProduct(sizes: Hit[]): Product | undefined {
         gender,
         brand,
         category,
-        sizes: [...new Set(sizes.flatMap((size) => (size.variant_title ? sizeLabel(size.variant_title) : [])))],
+        sizes: [...new Set(sizes.flatMap((size) => size.variant_title ?? []))],
         wasPricePence,
         nowPricePence,
         discount: wasPricePence > nowPricePence ? Math.round((1 - nowPricePence / wasPricePence) * 100) : 0,

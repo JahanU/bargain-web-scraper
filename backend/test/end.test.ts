@@ -109,7 +109,7 @@ describe('END. listing', () => {
 describe('END. products', () => {
     const productsFor = async (hits: ReturnType<typeof hit>[]) => (await fakeEnd({ hits }).end.fetchListing()).products;
 
-    it('groups the sizes of a product into one product, in our size labels', async () => {
+    it('groups the sizes of a product into one product, with the size labels as END. wrote them', async () => {
         const sizes = ['UK 8', 'UK 9.5', 'UK 11', 'UK 9.5'].map((variant_title, i) =>
             hit({ variant_title, objectID: String(i) }),
         );
@@ -124,22 +124,13 @@ describe('END. products', () => {
                 // END. writes "Adidas"; ours is the one name every store's deals share.
                 brand: 'adidas',
                 category: 'Shoes',
-                sizes: ['8', '9.5', '11'],
+                sizes: ['UK 8', 'UK 9.5', 'UK 11'],
                 wasPricePence: 9500,
                 nowPricePence: 5700,
                 discount: 40,
                 inStock: true,
             },
         ]);
-    });
-
-    it.each([
-        ['Medium', 'M'],
-        ['XXLarge', 'XXL'],
-        ['OneSize', 'One Size'],
-        ['34"', '34"'],
-    ])('writes the size %s as %s', async (variant_title, expected) => {
-        expect((await productsFor([hit({ variant_title })]))[0]?.sizes).toEqual([expected]);
     });
 
     it.each([

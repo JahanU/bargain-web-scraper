@@ -1,5 +1,6 @@
 import { withOneSpellingPerBrand } from '@/retailers/brands';
 import type { Listing, Product } from '@/retailers/types';
+import { normaliseSizes } from '@/sizes';
 
 export const GENDERS = ['Male', 'Female', 'Unisex'] as const;
 export type Gender = (typeof GENDERS)[number];
@@ -15,6 +16,7 @@ export interface Deal {
     discount: number;
     url: string;
     imageUrl?: string;
+    /** What the card prints, see `Sizes.labels`. The key is absent when there are none. */
     sizes?: string[];
     /** When this process first saw the product (ms since epoch). */
     timestamp: number;
@@ -23,6 +25,11 @@ export interface Deal {
     category: Category;
     /** The id of the retailer selling it, e.g. "jd". */
     store: string;
+}
+
+/** A deal plus the size rows it counts towards. `sizeKeys` never goes on the wire: buildSnapshot takes it off. */
+export interface ListedDeal extends Deal {
+    sizeKeys: readonly string[];
 }
 
 /**
@@ -37,6 +44,8 @@ export interface AcceptResult {
     products: number;
     added: number;
     removed: number;
+    /** Labels in this listing that no size rule recognised, with how many products carry each. */
+    unrecognisedSizes: Record<string, number>;
 }
 
 /**
@@ -49,6 +58,8 @@ const MIN_KEPT_RATIO = 0.5;
 export const UNISEX: Gender = 'Unisex';
 
 interface StoredProduct extends Product {
+    /** The filter keys of its sizes; `sizes` holds the card labels. */
+    sizeKeys: string[];
     firstSeenAt: number;
     /** The id of the retailer it was listed by. */
     store: string;
@@ -75,9 +86,21 @@ export class DealStore {
         for (const id of listed.keys()) {
             next.delete(id);
         }
+        // No prototype: a retailer's label is the key, and "constructor" is a label like any other.
+        const unrecognisedSizes: Record<string, number> = Object.create(null);
         for (const product of inStock) {
             const firstSeenAt = previous.get(product.externalId)?.firstSeenAt ?? now;
-            next.set(product.externalId, { ...product, firstSeenAt, store: retailer });
+            const sizes = normaliseSizes(product.sizes, product);
+            for (const label of sizes.unrecognised) {
+                unrecognisedSizes[label] = (unrecognisedSizes[label] ?? 0) + 1;
+            }
+            next.set(product.externalId, {
+                ...product,
+                sizes: sizes.labels,
+                sizeKeys: sizes.keys,
+                firstSeenAt,
+                store: retailer,
+            });
         }
 
         this.byRetailer.set(retailer, next);
@@ -86,11 +109,12 @@ export class DealStore {
             products: next.size,
             added: [...next.keys()].filter((id) => !previous.has(id)).length,
             removed: [...previous.keys()].filter((id) => !next.has(id)).length,
+            unrecognisedSizes,
         };
     }
 
     /** Deals at or above the discount floor, in no particular order: the snapshot sorts them. */
-    deals(minDiscount: number): Deal[] {
+    deals(minDiscount: number): ListedDeal[] {
         const deals = [...this.byRetailer.values()]
             .flatMap((products) => [...products.values()])
             .filter((product) => product.discount >= minDiscount)
@@ -134,7 +158,7 @@ function dedupe(products: Product[]): Map<string, Product> {
     return byId;
 }
 
-function toDeal(product: StoredProduct): Deal {
+function toDeal(product: StoredProduct): ListedDeal {
     return {
         name: product.name,
         wasPrice: product.wasPricePence / 100,
@@ -143,6 +167,7 @@ function toDeal(product: StoredProduct): Deal {
         url: product.url,
         imageUrl: product.imageUrl ?? undefined,
         sizes: product.sizes.length ? product.sizes : undefined,
+        sizeKeys: product.sizeKeys,
         timestamp: product.firstSeenAt,
         gender: product.gender,
         brand: product.brand,

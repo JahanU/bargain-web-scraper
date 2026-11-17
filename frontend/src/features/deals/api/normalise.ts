@@ -1,6 +1,5 @@
 import type { Deal } from "../model/Deal";
 import { buildImage } from "../model/image";
-import { sortSizes } from "../model/sizes";
 import type { Facets, WireDeal, WirePage } from "./dealSchema";
 
 export function normaliseDeal(wire: WireDeal): Deal {
@@ -14,7 +13,7 @@ export function normaliseDeal(wire: WireDeal): Deal {
     wasPrice: wire.wasPrice,
     discount: wire.discount,
     image: wire.imageUrl ? buildImage(wire.imageUrl) : undefined,
-    sizes: sortSizes(wire.sizes ?? []),
+    sizes: wire.sizes ?? [],
     foundAt: wire.timestamp,
     gender: wire.gender,
     category: wire.category,

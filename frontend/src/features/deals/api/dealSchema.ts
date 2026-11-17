@@ -34,10 +34,15 @@ export type WireDeal = z.infer<typeof wireDeal>;
 const label = z.string().check(z.minLength(1));
 const count = z.int().check(z.nonnegative());
 
+const sizeRows = z.array(z.object({ size: label, count }));
+
 const facets = z.object({
   stores: z.array(z.object({ store: label, name: label, count })),
   brands: z.array(z.object({ brand: label, count })),
-  sizes: z.array(z.object({ size: label, count })),
+  /** Clothing sizes, in the backend's order. */
+  sizes: sizeRows,
+  /** Footwear sizes (UK), in the backend's order. Empty from a backend that predates the split. */
+  shoeSizes: z._default(sizeRows, []),
   discounts: z.array(z.object({ minDiscount: z.int(), count })),
 });
 

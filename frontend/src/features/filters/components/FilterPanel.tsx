@@ -21,6 +21,10 @@ type FilterPanelProps = Pick<FilterBarProps, "values" | "onChange" | "facets"> &
  */
 export function FilterPanel({ values, onChange, facets, inBar }: FilterPanelProps) {
   const stores = storeOptions(facets);
+  // A kind with nothing to choose and nothing chosen (footwear sizes when browsing clothes) has no section.
+  // Until the sizes arrive it stays, so the sidebar does not jump on every load.
+  const hasSizes = (rows: readonly unknown[] | undefined, selected: readonly string[]) =>
+    selected.length > 0 || rows === undefined || rows.length > 0;
   return (
     <>
       <Section title="Sort by">
@@ -66,13 +70,26 @@ export function FilterPanel({ values, onChange, facets, inBar }: FilterPanelProp
           options={brandOptions(facets)}
         />
       </Section>
-      <Section title="Sizes" count={values.sizes.length}>
-        <SizeOptions
-          selected={values.sizes}
-          onChange={(sizes) => onChange({ sizes })}
-          counts={facets?.sizes}
-        />
-      </Section>
+      {hasSizes(facets?.sizes, values.sizes) && (
+        <Section title="Clothing size" count={values.sizes.length}>
+          <SizeOptions
+            label="Clothing sizes"
+            selected={values.sizes}
+            onChange={(sizes) => onChange({ sizes })}
+            rows={facets?.sizes}
+          />
+        </Section>
+      )}
+      {hasSizes(facets?.shoeSizes, values.shoeSizes) && (
+        <Section title="Footwear size" count={values.shoeSizes.length}>
+          <SizeOptions
+            label="Footwear sizes (UK)"
+            selected={values.shoeSizes}
+            onChange={(shoeSizes) => onChange({ shoeSizes })}
+            rows={facets?.shoeSizes}
+          />
+        </Section>
+      )}
     </>
   );
 }

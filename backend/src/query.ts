@@ -1,4 +1,5 @@
-import type { Category, Deal, Gender } from '@/deals';
+import type { Category, Deal, Gender, ListedDeal } from '@/deals';
+import { splitSizeKeys } from '@/sizes';
 
 /** A retailer as the query needs it: the id deals are stamped with, and the name shoppers search by. */
 export interface Store {
@@ -85,7 +86,10 @@ export interface Snapshot {
 export interface Facets {
     stores: { store: string; name: string; count: number }[];
     brands: { brand: string; count: number }[];
+    /** Clothing sizes (accessories included), in filter order. */
     sizes: { size: string; count: number }[];
+    /** Footwear sizes, UK, ascending. */
+    shoeSizes: { size: string; count: number }[];
     discounts: { minDiscount: number; count: number }[];
 }
 
@@ -106,7 +110,7 @@ function comparator(sort: SortId) {
         (a.url < b.url ? -1 : Number(a.url > b.url));
 }
 
-export function buildSnapshot(deals: Deal[], stores: Store[], minDiscount: number): Snapshot {
+export function buildSnapshot(deals: ListedDeal[], stores: Store[], minDiscount: number): Snapshot {
     const storeNames = new Map(stores.map(({ id, name }) => [id, name]));
     const discountSteps: number[] = [];
     for (let step = Math.ceil(minDiscount / 10) * 10; step <= 100; step += 10) {
@@ -114,13 +118,13 @@ export function buildSnapshot(deals: Deal[], stores: Store[], minDiscount: numbe
     }
 
     const rows = deals.map(
-        (deal): Row => ({
+        ({ sizeKeys, ...deal }): Row => ({
             deal,
             text: [deal.name, deal.brand, storeNames.get(deal.store) ?? ''].join('\n').toLowerCase(),
             values: {
                 store: [deal.store],
                 brand: [deal.brand],
-                size: deal.sizes ?? [],
+                size: sizeKeys,
                 minDiscount: discountSteps.filter((step) => deal.discount >= step).map(String),
             },
         }),
@@ -134,7 +138,7 @@ export function buildSnapshot(deals: Deal[], stores: Store[], minDiscount: numbe
     };
 
     return {
-        deals,
+        deals: rows.map((row) => row.deal),
         stores,
         discountSteps,
         // 0 when there are no deals, so the field is always a number.
@@ -154,7 +158,8 @@ const DIMENSIONS: Record<Dimension, (row: Row, query: DealQuery) => boolean> = {
     q: ({ text }, { words }) => words.every((word) => text.includes(word)),
     store: ({ deal }, { stores }) => anyOf(stores, deal.store),
     brand: ({ deal }, { brands }) => anyOf(brands, deal.brand),
-    size: ({ deal }, { sizes }) => sizes.length === 0 || (deal.sizes?.some((size) => sizes.includes(size)) ?? false),
+    // The one size dimension, clothing and footwear together: a deal matches if it has any of the sizes.
+    size: ({ values }, { sizes }) => sizes.length === 0 || values.size.some((key) => sizes.includes(key)),
     minDiscount: ({ deal }, { minDiscount }) => deal.discount >= minDiscount,
 };
 const DIMENSION_LIST = Object.entries(DIMENSIONS) as [Dimension, (typeof DIMENSIONS)[Dimension]][];
@@ -240,6 +245,7 @@ export function queryDeals(snapshot: Snapshot, query: DealQuery): DealPage {
 
     const last = items.at(-1);
     const count = (facet: Facet, value: string | number) => counts?.[facet].get(String(value)) ?? 0;
+    const sizes = splitSizeKeys(counts?.size.keys() ?? []);
     return {
         items,
         total,
@@ -248,7 +254,8 @@ export function queryDeals(snapshot: Snapshot, query: DealQuery): DealPage {
         facets: counts && {
             stores: snapshot.stores.map(({ id, name }) => ({ store: id, name, count: count('store', id) })),
             brands: ranked(counts.brand).map(([brand, count]) => ({ brand, count })),
-            sizes: ranked(counts.size).map(([size, count]) => ({ size, count })),
+            sizes: sizes.clothing.map((size) => ({ size, count: count('size', size) })),
+            shoeSizes: sizes.footwear.map((size) => ({ size, count: count('size', size) })),
             discounts: snapshot.discountSteps.map((step) => ({ minDiscount: step, count: count('minDiscount', step) })),
         },
     };

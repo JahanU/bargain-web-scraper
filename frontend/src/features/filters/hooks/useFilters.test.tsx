@@ -18,6 +18,7 @@ test("reads a legacy link on mount", () => {
     search: "nike",
     discount: 30,
     sizes: ["S", "M", "L"],
+    shoeSizes: [],
     brands: [],
     stores: [],
     sort: "price-low-to-high",
@@ -47,14 +48,14 @@ test("setting the current sort again keeps it (no toggle-to-clear any more)", as
   expect(result.current[0].sort).toBe("price-low-to-high");
 });
 
-test("sizes are added and removed independently and written in canonical order", async () => {
+test("sizes are added and removed independently and written in sorted order", async () => {
   const { result, lastUrl } = setup("?sizes=M,L");
 
   await act(() => result.current[1].set({ sizes: ["M", "L", "S"] }));
-  expect(lastUrl()?.queryString).toBe("?sizes=S,M,L");
+  expect(lastUrl()?.queryString).toBe("?sizes=L,M,S");
 
   await act(() => result.current[1].set({ sizes: ["L", "S"] }));
-  expect(lastUrl()?.queryString).toBe("?sizes=S,L");
+  expect(lastUrl()?.queryString).toBe("?sizes=L,S");
   expect(result.current[0].sizes).toEqual(["L", "S"]);
 });
 
@@ -84,7 +85,7 @@ test("clearing search to empty removes it from the URL", async () => {
 
 test("clearAll resets every filter but keeps the sort, gender and category", async () => {
   const { result, lastUrl } = setup(
-    "?search=nike&discount=50&sizes=M&brands=Nike&stores=jd&sort=price-high-to-low&gender=Female&category=Shoes",
+    "?search=nike&discount=50&sizes=M&shoeSizes=8&brands=Nike&stores=jd&sort=price-high-to-low&gender=Female&category=Shoes",
   );
 
   await act(() => result.current[1].clearAll());
@@ -94,6 +95,7 @@ test("clearAll resets every filter but keeps the sort, gender and category", asy
     search: "",
     discount: 30,
     sizes: [],
+    shoeSizes: [],
     brands: [],
     stores: [],
     sort: "price-high-to-low",

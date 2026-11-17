@@ -11,7 +11,13 @@ describe('DealStore', () => {
             const store = new DealStore();
             expect(store.deals(0)).toEqual([]);
 
-            expect(store.accept('jd', complete(range(3)))).toEqual({ status: 'ok', products: 3, added: 3, removed: 0 });
+            expect(store.accept('jd', complete(range(3)))).toEqual({
+                status: 'ok',
+                products: 3,
+                added: 3,
+                removed: 0,
+                unrecognisedSizes: {},
+            });
             expect(ids(store)).toEqual(['0', '1', '2']);
         });
 
@@ -20,7 +26,7 @@ describe('DealStore', () => {
             store.accept('jd', complete(range(4)));
 
             const result = store.accept('jd', complete([product('0'), product('1'), product('2', { inStock: false })]));
-            expect(result).toEqual({ status: 'ok', products: 2, added: 0, removed: 2 });
+            expect(result).toEqual({ status: 'ok', products: 2, added: 0, removed: 2, unrecognisedSizes: {} });
             expect(ids(store)).toEqual(['0', '1']);
         });
 
@@ -56,7 +62,7 @@ describe('DealStore', () => {
                 complete: false,
             });
 
-            expect(result).toEqual({ status: 'incomplete', products: 4, added: 1, removed: 1 });
+            expect(result).toEqual({ status: 'incomplete', products: 4, added: 1, removed: 1, unrecognisedSizes: {} });
             expect(ids(store)).toEqual(['0', '2', '3', 'new']);
         });
 
@@ -145,6 +151,7 @@ describe('DealStore', () => {
                 url: 'https://example.com/b',
                 imageUrl: undefined,
                 sizes: ['8', '9'],
+                sizeKeys: ['8', '9'],
                 timestamp: 1234,
                 gender: 'Male',
                 brand: 'Nike',
@@ -152,6 +159,36 @@ describe('DealStore', () => {
                 store: 'jd',
             });
             expect(byId.a).toMatchObject({ imageUrl: 'https://img/a', sizes: undefined });
+        });
+    });
+
+    describe("R5: every store's size labels become ours", () => {
+        const sized = (id: string, sizes: string[], overrides = {}) => product(id, { sizes, ...overrides });
+
+        it('prints one label per size and matches a range on every size it covers', () => {
+            const store = new DealStore();
+            store.accept(
+                'end',
+                complete([
+                    sized('shoe', ['UK 9', 'EU 42', '8']),
+                    sized('tee', ['Medium', 'S/M', 'OneSize'], { category: 'Clothes' }),
+                    sized('cap', ['One Size'], { category: 'Accessories' }),
+                ]),
+            );
+
+            const byId = Object.fromEntries(store.deals(0).map((deal) => [deal.url.split('/').pop(), deal]));
+            expect(byId.shoe).toMatchObject({ sizes: ['8', '9'], sizeKeys: ['8', '9'] });
+            expect(byId.tee).toMatchObject({ sizes: ['S/M', 'M', 'One Size'], sizeKeys: ['S', 'M'] });
+            expect(byId.cap).toMatchObject({ sizes: ['One Size'], sizeKeys: [] });
+        });
+
+        it('keeps a label it does not recognise on the card, and reports how many products carry it', () => {
+            const store = new DealStore();
+            const caps = ['a', 'b'].map((id) => sized(id, ['7 1/4', 'M'], { category: 'Accessories' }));
+            const result = store.accept('end', complete([...caps, sized('gone', ['N'], { inStock: false })]));
+
+            expect(result.unrecognisedSizes).toEqual({ '7 1/4': 2 });
+            expect(store.deals(0)[0]).toMatchObject({ sizes: ['7 1/4', 'M'], sizeKeys: ['M'] });
         });
     });
 });

@@ -84,7 +84,7 @@ describe('JD products', () => {
     const productsFor = async (hits: ReturnType<typeof hit>[]) =>
         (await fakeJD({ algolia: serveHits(hits) }).jd.fetchListing()).products;
 
-    it('maps a hit to a product, closing truncated size labels', async () => {
+    it('maps a hit to a product, with the size labels as JD wrote them', async () => {
         expect(await productsFor([hit()])).toEqual([
             {
                 externalId: '19686180',
@@ -94,7 +94,7 @@ describe('JD products', () => {
                 gender: 'Male',
                 brand: 'Nike',
                 category: 'Shoes',
-                sizes: ['7', '6 (EU 39)', '6 (24.5cm)'],
+                sizes: ['7', '6 (EU 39', '6 (24.5cm)'],
                 wasPricePence: 13500,
                 nowPricePence: 5499,
                 discount: 60,

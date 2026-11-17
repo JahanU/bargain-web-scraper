@@ -1,11 +1,5 @@
 import { createParser, throttle } from "nuqs";
-import {
-  type CategoryScope,
-  compareSizes,
-  DEFAULT_DISCOUNT,
-  type Gender,
-  type SortId,
-} from "@/features/deals";
+import { type CategoryScope, DEFAULT_DISCOUNT, type Gender, type SortId } from "@/features/deals";
 import { defineFilter, type FilterChip, type FilterDefinition } from "./types";
 
 // The extension point: a new filter is one entry here plus its control.
@@ -16,7 +10,7 @@ const sameList = (a: readonly string[], b: readonly string[]) =>
   a.length === b.length && a.every((item, index) => item === b[index]);
 
 /** A comma-separated list, written in canonical order so a selection always makes the same link. */
-const listParser = (compare?: (a: string, b: string) => number) =>
+const listParser = (keep: (item: string) => boolean = Boolean) =>
   createParser({
     parse: (value) => {
       const items = [
@@ -24,17 +18,20 @@ const listParser = (compare?: (a: string, b: string) => number) =>
           value
             .split(",")
             .map((item) => item.trim())
-            .filter(Boolean),
+            .filter(keep),
         ),
       ];
       return items.length > 0 ? items : null;
     },
-    serialize: (items: string[]) => [...items].sort(compare).join(","),
+    serialize: (items: string[]) => [...items].sort().join(","),
     eq: sameList,
   }).withDefault([]);
 
 const listChips = (items: string[]) =>
   items.map((item) => ({ label: item, next: items.filter((other) => other !== item) }));
+
+/** How a footwear size reads outside its own section, where "8" alone could be a dress. */
+export const shoeSizeLabel = (size: string) => `Shoe UK ${size}`;
 
 export const filterRegistry = {
   search: defineFilter({
@@ -62,10 +59,20 @@ export const filterRegistry = {
     chips: (value) => [{ label: `≥${value}%`, next: DEFAULT_DISCOUNT }],
   }),
 
+  /** Clothing sizes. The key predates the split, so old `?sizes=` links still mean clothing. */
   sizes: defineFilter<string[]>({
-    parser: listParser(compareSizes),
+    // No clothing size is a bare number: one in an old link was a shoe size, and is dropped.
+    parser: listParser((item) => item !== "" && !/^\d+(\.5)?$/.test(item)),
     isActive: (sizes) => sizes.length > 0,
     chips: listChips,
+  }),
+
+  /** Footwear sizes, UK. */
+  shoeSizes: defineFilter<string[]>({
+    parser: listParser(),
+    isActive: (sizes) => sizes.length > 0,
+    chips: (sizes) =>
+      listChips(sizes).map((chip) => ({ ...chip, label: shoeSizeLabel(chip.label) })),
   }),
 
   brands: defineFilter<string[]>({

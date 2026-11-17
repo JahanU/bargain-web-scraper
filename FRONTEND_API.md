@@ -47,7 +47,7 @@ All are optional. Different parameters combine with AND. A parameter marked repe
 | `category` | `Shoes`, `Clothes` or `Accessories` | Only deals with exactly that `category`. |
 | `store` (repeatable) | A store id from `facets.stores`, e.g. `jd` | Only deals from that store. An id the backend does not scrape is a `400`. |
 | `brand` (repeatable) | A brand exactly as `deal.brand` and `facets.brands` give it (case-sensitive) | Only deals of that brand. A brand no current deal has is not an error, it matches nothing. |
-| `size` (repeatable) | A size exactly as `deal.sizes` and `facets.sizes` give it | Only deals that have that size in stock. A size no deal has matches nothing. |
+| `size` (repeatable) | A row's `size` exactly as `facets.sizes` or `facets.shoeSizes` gives it | Only deals that have that size in stock. Clothing and footwear sizes go in the same parameter, and a deal matching any of them is included. A size no deal has matches nothing. |
 | `q` | Free text, 1 to 64 characters after trimming | Split on whitespace into words. A deal matches when **every** word appears, in any case and as part of a longer word, in its name, its brand or its store's name. `q=nike air` finds "Nike Air Max 90", and `q=jd fleece` finds fleeces sold by JD Sports. |
 | `minDiscount` | Whole number `0` to `100` | Only deals with `discount` at or above it. The backend's own floor (`MIN_DISCOUNT`, 30 by default) always applies as well, so a value below the floor changes nothing. |
 | `sort` | `discount-high-to-low` (default), `discount-low-to-high`, `price-low-to-high`, `price-high-to-low` | The order of `items`. See [Sorting](#sorting). |
@@ -95,8 +95,10 @@ export interface Facets {
     stores: { store: string; name: string; count: number }[];
     /** Brands with at least one deal: most deals first, then by name. */
     brands: { brand: string; count: number }[];
-    /** Sizes with at least one deal: most deals first, then by label. */
+    /** Clothing and accessory sizes with at least one deal, in the order to show them. */
     sizes: { size: string; count: number }[];
+    /** Footwear sizes (UK) with at least one deal, smallest first. */
+    shoeSizes: { size: string; count: number }[];
     /** One row per multiple of 10, from the first one at or above the backend's floor up to 100. */
     discounts: { minDiscount: number; count: number }[];
 }
@@ -114,7 +116,7 @@ export interface Deal {
     url: string;
     /** Product image. The key is absent if the store had none. */
     imageUrl?: string;
-    /** Sizes in stock, e.g. ["7", "8", "9"]. The key is absent if unknown. */
+    /** Sizes in stock as the card prints them, in order, e.g. ["7", "8", "9"] or ["S/M", "L"]. The key is absent if unknown. */
     sizes?: string[];
     /** When the backend first saw this product in the sale, in ms since epoch (see caveats). */
     timestamp: number;
@@ -155,7 +157,8 @@ Example, `GET /v2/deals?gender=Male&category=Shoes&limit=1`:
   "facets": {
     "stores": [{ "store": "jd", "name": "JD Sports", "count": 272 }],
     "brands": [{ "brand": "adidas", "count": 109 }, { "brand": "Fila", "count": 33 }],
-    "sizes": [{ "size": "8", "count": 207 }, { "size": "10", "count": 198 }],
+    "sizes": [{ "size": "M", "count": 41 }, { "size": "UK 8", "count": 12 }, { "size": "W30", "count": 9 }],
+    "shoeSizes": [{ "size": "8", "count": 207 }, { "size": "8.5", "count": 175 }, { "size": "10", "count": 198 }],
     "discounts": [{ "minDiscount": 30, "count": 272 }, { "minDiscount": 40, "count": 101 }]
   }
 }
@@ -168,7 +171,7 @@ Notes on the data:
 | Field | What to know |
 |---|---|
 | Prices | Numbers in pounds (never strings like `"£54.99"`). Format with `new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP' })`. |
-| `sizes` / `imageUrl` | Optional: the key is missing rather than `null` or `[]`. Show "N/A" or a placeholder. A deal without `sizes` never matches a `size` filter. |
+| `sizes` / `imageUrl` | Optional: the key is missing rather than `null` or `[]`. Show "N/A" or a placeholder. A deal without `sizes` never matches a `size` filter. Show the labels as given and in the order given: they are for the card, not for the `size` parameter (see Sizes). |
 | `trackingSince` | Deals whose `timestamp` is later than this were first seen after the backend's first scrape, so they are new. It is `0` while the backend serves no deals at all. |
 | Sold-out items | Removed by the backend within about 5 minutes. Everything served was in stock at the last scrape. |
 
@@ -193,12 +196,23 @@ The rule, exactly: a row's `count` equals the `total` of the same request with t
 |---|---|
 | `brands`: `{ "brand": "Nike", "count": 41 }` | `brand=Nike` as the only `brand` |
 | `stores`: `{ "store": "jd", "count": 123 }` | `store=jd` as the only `store` |
-| `sizes`: `{ "size": "9", "count": 18 }` | `size=9` as the only `size` |
+| `sizes` and `shoeSizes`: `{ "size": "9", "count": 18 }` | `size=9` as the only `size` |
 | `discounts`: `{ "minDiscount": 40, "count": 101 }` | `minDiscount=40` |
 
 `gender`, `category` and `q` have no facet. They always narrow every facet.
 
-`stores` always lists every store the backend scrapes, even at a count of 0, so the store filter never loses an option. `brands` and `sizes` list only values with a count above 0, so a selected brand or size can be absent from its facet when the other filters exclude it. Keep showing the user's selection in that case.
+`stores` always lists every store the backend scrapes, even at a count of 0, so the store filter never loses an option. `brands`, `sizes` and `shoeSizes` list only values with a count above 0, so a selected brand or size can be absent from its facet when the other filters exclude it. Keep showing the user's selection in that case.
+
+#### Sizes
+
+Every store's labels are rewritten to one spelling per size, so END.'s `UK 9`, `EU 43` and JD's `9` are the same row. The backend decides which list a size belongs to and the order of each list. Render the rows as received.
+
+- `shoeSizes` rows are UK shoe sizes written as a bare number (`8`, `8.5`). EU and US shoe labels are converted with one fixed table.
+- `sizes` rows are never a bare number: letters (`XS`, `M`), then women's UK (`UK 8`), waist in inches (`W30`), `IT 48`, `EU 36`, `FR 38`, `US 4`. Accessories are in this list.
+- A deal sold in a range prints the range as one label (`S/M`, `UK 6.5-8`, `W30 L32`) and matches every size the range covers, so `size=7` finds socks labelled `UK 6.5-8`. A shoe-size range on an accessory (socks) counts as footwear; a range on clothing is left as written and has no filter row.
+- `One Size`, and a label the backend does not recognise (`7 1/4`), are on the card but in neither list.
+
+Send a row from either list as `size=<row.size>`. Both lists are one filter, so each row's count is the total with that row as the only `size`.
 
 `facets` is left out of responses to a request with `cursor`. The counts do not depend on the page, so reuse the ones from the first page.
 

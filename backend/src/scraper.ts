@@ -14,6 +14,9 @@ export interface RetailerRun {
 
 const log = createLogger('scraper');
 
+/** The unrecognised size labels already warned about, per retailer, so a scrape reports only new ones. */
+const warned = new Map<string, Set<string>>();
+
 /** The first retry after a failure. It doubles each time, up to the normal interval. */
 export const FIRST_RETRY_MS = 15_000;
 
@@ -36,7 +39,19 @@ export async function scrapeRetailer(retailer: Retailer, store: DealStore): Prom
     }
 
     const ms = Date.now() - started;
-    const result = store.accept(retailer.id, listing);
+    const { unrecognisedSizes, ...result } = store.accept(retailer.id, listing);
+    const known = warned.get(retailer.id) ?? new Set<string>();
+    warned.set(retailer.id, known);
+    const unknown = Object.entries(unrecognisedSizes)
+        .filter(([label]) => !known.has(label))
+        .sort((a, b) => b[1] - a[1]);
+    if (unknown.length > 0) {
+        const labels = unknown.map(([label, products]) => `${label}×${products}`).join(', ');
+        log.warn(`⚠ ${retailer.id}: ${unknown.length} new size labels not recognised`, { labels });
+        for (const [label] of unknown) {
+            known.add(label);
+        }
+    }
     const summary = { ...result, took: duration(ms) };
     if (result.status === 'ok') {
         log.info(`✓ ${retailer.id} scraped`, summary);

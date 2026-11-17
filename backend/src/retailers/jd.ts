@@ -116,8 +116,7 @@ function parseHit(hit: Hit): Product | undefined {
         gender: women && categories.includes('Men') ? UNISEX : women ? 'Female' : 'Male',
         brand,
         category,
-        // JD cuts some labels short, e.g. "6 (EU 39" next to "6 (EU 40": close the bracket.
-        sizes: hit.size.map((size) => (size.includes('(') && !size.includes(')') ? `${size})` : size)),
+        sizes: hit.size,
         wasPricePence: Math.round(hit.wasPrice * 100),
         nowPricePence: Math.round(hit.price * 100),
         discount: Number.parseInt(hit.discountPct, 10),

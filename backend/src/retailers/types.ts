@@ -9,6 +9,7 @@ export interface Product {
     gender: Gender;
     brand: string;
     category: Category;
+    /** The size labels exactly as the retailer wrote them. The store normalises them. */
     sizes: string[];
     wasPricePence: number;
     nowPricePence: number;

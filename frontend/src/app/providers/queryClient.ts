@@ -26,7 +26,7 @@ export const persistOptions = {
   persister: createSyncStoragePersister({ storage: browserStorage(), key: "bargain-deals" }),
   maxAge: 24 * 60 * 60_000,
   // Bump when the cached shape changes, so old snapshots are discarded.
-  buster: "3",
+  buster: "4",
   dehydrateOptions: {
     shouldDehydrateQuery: (query: Query) =>
       defaultShouldDehydrateQuery(query) && isUnfilteredQuery(String(query.queryKey[2])),
