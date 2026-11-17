@@ -1,5 +1,7 @@
+import { Check } from "lucide-react";
 import { useState } from "react";
 import { ToggleGroup } from "@/shared/ui";
+import { SearchField } from "./SearchField";
 import { facetCount } from "./toolbarLabel";
 
 const TOP_OPTIONS = 10;
@@ -15,6 +17,8 @@ type ChipFacetProps = {
    * arrive. `label` is shown when the value is an id.
    */
   options: readonly { value: string; label?: string; count: number }[] | undefined;
+  /** One row per option, with a search box once there are more than ten. */
+  list?: boolean;
 };
 
 /**
@@ -22,22 +26,37 @@ type ChipFacetProps = {
  * all". OR within the facet. A selected value with no deals still shows (at 0) so it can be
  * turned off; without counts only the selected values show.
  */
-export function ChipFacetOptions({ noun, selected, onChange, options }: ChipFacetProps) {
+export function ChipFacetOptions({ noun, selected, onChange, options, list }: ChipFacetProps) {
   const [expanded, setExpanded] = useState(false);
+  const [query, setQuery] = useState("");
   const all = [
     ...(options ?? []),
     ...selected
       .filter((value) => !options?.some((option) => option.value === value))
       .map((value) => ({ value, label: undefined, count: 0 })),
   ];
-  const shown = expanded
-    ? all
-    : all.filter(({ value }, index) => index < TOP_OPTIONS || selected.includes(value));
+  const searchable = list && all.length > TOP_OPTIONS;
+  const needle = searchable ? query.trim().toLowerCase() : "";
+  // A search looks through every option, not just the top ten.
+  const shown = needle
+    ? all.filter(({ value, label = value }) => label.toLowerCase().includes(needle))
+    : expanded
+      ? all
+      : all.filter(({ value }, index) => index < TOP_OPTIONS || selected.includes(value));
 
   return (
     <div className="space-y-3">
+      {searchable && (
+        <SearchField
+          value={query}
+          onChange={setQuery}
+          label={`Search ${noun}s`}
+          placeholder={`Search ${noun}s`}
+        />
+      )}
       {shown.length > 0 && (
         <ToggleGroup
+          list={list}
           label={plural(noun)}
           items={shown.map(({ value, label = value, count }) =>
             options
@@ -47,6 +66,13 @@ export function ChipFacetOptions({ noun, selected, onChange, options }: ChipFace
                   label: (
                     <>
                       {label} <span className={facetCount}>{count}</span>
+                      {list && (
+                        <Check
+                          size={16}
+                          aria-hidden
+                          className="ml-auto opacity-0 in-data-pressed:opacity-100"
+                        />
+                      )}
                     </>
                   ),
                 }
@@ -60,8 +86,12 @@ export function ChipFacetOptions({ noun, selected, onChange, options }: ChipFace
         <p className="text-sm text-text-muted">The {noun} list isn’t available yet.</p>
       ) : all.length === 0 ? (
         <p className="text-sm text-text-muted">No {noun}s for these deals.</p>
+      ) : shown.length === 0 ? (
+        <p className="text-sm text-text-muted">
+          No {noun}s match “{query.trim()}”.
+        </p>
       ) : null}
-      {all.length > TOP_OPTIONS && (
+      {all.length > TOP_OPTIONS && !needle && (
         <button
           type="button"
           aria-expanded={expanded}

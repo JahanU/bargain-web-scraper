@@ -433,6 +433,22 @@ test("more than ten brands: the top ten plus the selected, and Show all keeps fo
   expect(showAll).toHaveFocus();
 });
 
+test("searching brands looks through all of them, not just the top ten", async () => {
+  const counts = Array.from({ length: 12 }, (_, index) => ({
+    brand: `Brand ${index + 1}`,
+    count: 20 - index,
+  }));
+  serve(undefined, { brands: counts });
+  await setup();
+  const popup = openBrands();
+
+  await userEvent.type(await popup.findByRole("searchbox", { name: "Search brands" }), "brand 11");
+
+  expect(popup.getByRole("button", { name: "Brand 11, 10 deals" })).toBeInTheDocument();
+  expect(popup.queryByRole("button", { name: "Brand 1, 20 deals" })).not.toBeInTheDocument();
+  expect(popup.queryByRole("button", { name: /^Show / })).not.toBeInTheDocument();
+});
+
 test("ten brands or fewer: no Show all button", async () => {
   await setup();
   const popup = openBrands();
