@@ -41,8 +41,8 @@ const facets = z.object({
   brands: z.array(z.object({ brand: label, count })),
   /** Clothing sizes, in the backend's order. */
   sizes: sizeRows,
-  /** Footwear sizes (UK), in the backend's order. */
-  shoeSizes: sizeRows,
+  /** Footwear sizes (UK), in the backend's order. Empty from a backend that predates the split. */
+  shoeSizes: z._default(sizeRows, []),
   discounts: z.array(z.object({ minDiscount: z.int(), count })),
 });
 

@@ -5,8 +5,8 @@ export interface Sizes {
     /**
      * What the card prints, one per retailer label: a canonical label (`M`, `8.5`, `UK 8`, `W30`,
      * `IT 48`), a range as one label (`S/M`, `6.5-8`, `W30 L32`), `One Size`, or an unrecognised
-     * label as the retailer wrote it, trimmed. In key order; labels with no key come last, in the
-     * retailer's order.
+     * label as the retailer wrote it, trimmed. In key order (`One Size` last), or in the retailer's
+     * order when any label is unrecognised.
      */
     labels: string[];
     /** What the filter matches and the facets count: ranges expanded. Canonical order. */
@@ -27,7 +27,7 @@ const LONG: Record<string, string> = { small: 'S', medium: 'M', large: 'L' };
 
 /** M = 0, S = -1, XS = -2, L = 1, XL = 2 …; undefined if the text is not a letter size. */
 function letterRank(text: string): number | undefined {
-    const short = /^(?:(\d)X|(X{0,6}))([SML])$/i.exec(text);
+    const short = /^(?:([1-6])X|(X{0,6}))([SML])$/i.exec(text);
     const long = /^(X{0,3})[- ]?(small|medium|large)$/i.exec(text);
     let xs: number;
     let base: string | undefined;
@@ -85,6 +85,7 @@ const EU_TO_UK: Record<string, number> = {
     38: 5,
     38.5: 5.5,
     39: 6,
+    39.5: 6,
     40: 6.5,
     40.5: 7,
     41: 7,
@@ -92,9 +93,11 @@ const EU_TO_UK: Record<string, number> = {
     42: 8,
     42.5: 8.5,
     43: 9,
+    43.5: 9,
     44: 9.5,
     44.5: 10,
     45: 10.5,
+    45.5: 10.5,
     46: 11,
     46.5: 11.5,
     47: 12,
@@ -122,7 +125,8 @@ function footwear(system: ShoeSystem, from: number, to: number, gender: Gender):
     for (let size = lo; size <= hi; size += 0.5) {
         keys.push(String(size));
     }
-    return { label: lo === hi ? String(lo) : `${lo}-${hi}`, keys };
+    // A range says UK so it reads as shoe sizes on a sock's card, and reads back the same in any category.
+    return { label: lo === hi ? String(lo) : `UK ${lo}-${hi}`, keys };
 }
 
 // In the order the filter shows them, after the letters.
@@ -131,7 +135,8 @@ const NUMBER = String.raw`(\d{1,2}(?:\.5)?)`;
 const PREFIXED = new RegExp(`^(UK|EUR|EU|US|IT|FR)\\s*${NUMBER}(?:\\s*-\\s*(?:\\1\\s*)?${NUMBER})?$`, 'i');
 const BARE = new RegExp(`^${NUMBER}(?:\\s*-\\s*${NUMBER})?\\s*(UK)?$`, 'i');
 const WAIST = /^(\d{2})\s*(?:"+|inch waist)$/i;
-const WAIST_LEG = /^(\d{2})\s*(?:"+|inch waist)?\s*(?:x|\s)\s*(\d{2})\s*(?:"+|inch leg)?$/i;
+// An "x" or an inch mark has to say it is a waist: "10 12" alone could be two dress sizes.
+const WAIST_LEG = /^(\d{2})\s*(?:(?:"+|inch waist)?\s*x|(?:"+|inch waist)\s)\s*(\d{2})\s*(?:"+|inch leg)?$/i;
 // Our own waist labels, so a label we wrote reads back as the same size.
 const WAIST_OURS = /^W(\d{2})(?: L(\d{2}))?$/;
 const ONE_SIZE = /^(?:one ?size|1 size|on size|os|o\/s)$/i;
@@ -206,8 +211,14 @@ function parse(label: string, { category, gender }: Context): Parsed | undefined
     }
     const from = Number(bare[1]);
     const isRange = bare[2] !== undefined;
-    if (category === 'Shoes' || isRange) {
+    if (category === 'Shoes') {
         return footwear(from >= 35 ? 'EU' : 'UK', from, Number(bare[2] ?? from), gender);
+    }
+    if (isRange) {
+        // A sock's shoe sizes only where it says UK or is an accessory: "8-10" on clothing is a dress, "36-40" a belt.
+        return bare[3] || (category === 'Accessories' && from < 35)
+            ? footwear('UK', from, Number(bare[2]), gender)
+            : undefined;
     }
     if (category !== 'Clothes' || bare[3] || !Number.isInteger(from)) {
         return undefined;
@@ -277,7 +288,11 @@ export function normaliseSizes(labels: readonly string[], product: Context): Siz
             keys.add(key);
         }
     }
-    const inOrder = [...firstKeys].sort(([, a], [, b]) => (a && b ? compareKeys(a, b) : Number(!a) - Number(!b)));
+    // With a label we cannot place, the retailer's own order is the only one that keeps its sizes together.
+    const inOrder =
+        unrecognised.size > 0
+            ? [...firstKeys]
+            : [...firstKeys].sort(([, a], [, b]) => (a && b ? compareKeys(a, b) : Number(!a) - Number(!b)));
     return {
         labels: inOrder.map(([label]) => label),
         keys: [...keys].sort(compareKeys),

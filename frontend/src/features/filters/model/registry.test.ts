@@ -91,6 +91,8 @@ test("sizes: trimmed, deduplicated, empty segments dropped", () => {
   expect(load("?sizes=M,M,L").sizes).toEqual(["M", "L"]);
   expect(load("?sizes=S,,L").sizes).toEqual(["S", "L"]);
   expect(load("?sizes=,,").sizes).toEqual([]);
+  // An old link's shoe size: no clothing size is a bare number, so it is dropped.
+  expect(load("?sizes=M,9,8.5,UK+8").sizes).toEqual(["M", "UK 8"]);
 });
 
 test("sizes are written in sorted order, so a selection always makes the same link", () => {

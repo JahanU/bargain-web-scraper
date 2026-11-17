@@ -10,7 +10,7 @@ const sameList = (a: readonly string[], b: readonly string[]) =>
   a.length === b.length && a.every((item, index) => item === b[index]);
 
 /** A comma-separated list, written in canonical order so a selection always makes the same link. */
-const listParser = () =>
+const listParser = (keep: (item: string) => boolean = Boolean) =>
   createParser({
     parse: (value) => {
       const items = [
@@ -18,7 +18,7 @@ const listParser = () =>
           value
             .split(",")
             .map((item) => item.trim())
-            .filter(Boolean),
+            .filter(keep),
         ),
       ];
       return items.length > 0 ? items : null;
@@ -61,7 +61,8 @@ export const filterRegistry = {
 
   /** Clothing sizes. The key predates the split, so old `?sizes=` links still mean clothing. */
   sizes: defineFilter<string[]>({
-    parser: listParser(),
+    // No clothing size is a bare number: one in an old link was a shoe size, and is dropped.
+    parser: listParser((item) => item !== "" && !/^\d+(\.5)?$/.test(item)),
     isActive: (sizes) => sizes.length > 0,
     chips: listChips,
   }),

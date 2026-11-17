@@ -42,15 +42,17 @@ describe('scrapeRetailer', () => {
         const caps = ['a', 'b'].map((id) => product(id, { category: 'Accessories', sizes: ['N', '7 1/4'] }));
         const listing = complete([product('c', { category: 'Accessories', sizes: ['7 1/4', 'M'] }), ...caps]);
 
-        const run = await scrapeRetailer(
-            { id: 'end', name: 'END.', fetchListing: async () => listing },
-            new DealStore(),
-        );
+        const end = { id: 'end', name: 'END.', fetchListing: async () => listing };
+        const run = await scrapeRetailer(end, new DealStore());
 
         const lines = logged.mock.calls.flat().join('\n');
-        expect(lines).toContain('end: 2 size labels not recognised');
+        expect(lines).toContain('end: 2 new size labels not recognised');
         expect(lines).toContain('7 1/4×3, N×2');
         expect(run).not.toHaveProperty('unrecognisedSizes');
+
+        logged.mockClear();
+        await scrapeRetailer(end, new DealStore());
+        expect(logged.mock.calls.flat().join('\n')).not.toContain('not recognised');
     });
 
     it('times the fetch', async () => {

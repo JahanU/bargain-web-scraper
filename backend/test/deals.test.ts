@@ -188,7 +188,7 @@ describe('DealStore', () => {
             const result = store.accept('end', complete([...caps, sized('gone', ['N'], { inStock: false })]));
 
             expect(result.unrecognisedSizes).toEqual({ '7 1/4': 2 });
-            expect(store.deals(0)[0]).toMatchObject({ sizes: ['M', '7 1/4'], sizeKeys: ['M'] });
+            expect(store.deals(0)[0]).toMatchObject({ sizes: ['7 1/4', 'M'], sizeKeys: ['M'] });
         });
     });
 });

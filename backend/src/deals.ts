@@ -86,7 +86,8 @@ export class DealStore {
         for (const id of listed.keys()) {
             next.delete(id);
         }
-        const unrecognisedSizes: Record<string, number> = {};
+        // No prototype: a retailer's label is the key, and "constructor" is a label like any other.
+        const unrecognisedSizes: Record<string, number> = Object.create(null);
         for (const product of inStock) {
             const firstSeenAt = previous.get(product.externalId)?.firstSeenAt ?? now;
             const sizes = normaliseSizes(product.sizes, product);

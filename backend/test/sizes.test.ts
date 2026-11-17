@@ -64,9 +64,9 @@ describe('normaliseSizes', () => {
         ['US 9', shoes, '8', ['8']],
         ['US5.5', shoes, '4.5', ['4.5']],
         ['US 9', { category: 'Shoes', gender: 'Female' }, '7', ['7']],
-        ['UK 7- UK 7.5', shoes, '7-7.5', ['7', '7.5']],
-        ['EU 35-36', shoes, '2.5-3.5', ['2.5', '3', '3.5']],
-        ['EU 41-43', mens, '7-9', ['7', '7.5', '8', '8.5', '9']],
+        ['UK 7- UK 7.5', shoes, 'UK 7-7.5', ['7', '7.5']],
+        ['EU 35-36', shoes, 'UK 2.5-3.5', ['2.5', '3', '3.5']],
+        ['EU 41-43', mens, 'UK 7-9', ['7', '7.5', '8', '8.5', '9']],
 
         ['UK 8', womens, 'UK 8', ['UK 8']],
         ['IT 50', mens, 'IT 50', ['IT 50']],
@@ -82,9 +82,11 @@ describe('normaliseSizes', () => {
         ['9', shoes, '9', ['9']],
         ['9.5', shoes, '9.5', ['9.5']],
         ['41', shoes, '7', ['7']],
-        ['6.5-8', accessory, '6.5-8', ['6.5', '7', '7.5', '8']],
-        ['6-9UK', accessory, '6-9', ['6', '6.5', '7', '7.5', '8', '8.5', '9']],
-        ['39-42', mens, '6-8', ['6', '6.5', '7', '7.5', '8']],
+        ['6.5-8', accessory, 'UK 6.5-8', ['6.5', '7', '7.5', '8']],
+        ['6-9UK', accessory, 'UK 6-9', ['6', '6.5', '7', '7.5', '8', '8.5', '9']],
+        ['6-9UK', mens, 'UK 6-9', ['6', '6.5', '7', '7.5', '8', '8.5', '9']],
+        ['EU 43.5', shoes, '9', ['9']],
+        ['6XL', mens, 'XXXXXXL', ['XXXXXXL']],
 
         ['8', womens, 'UK 8', ['UK 8']],
         ['30', mens, 'W30', ['W30']],
@@ -111,6 +113,11 @@ describe('normaliseSizes', () => {
         ['EU 36.5', womens],
         ['EU 51', shoes],
         ['5-14', accessory],
+        ['39-42', mens],
+        ['8-10', womens],
+        ['36-40', accessory],
+        ['10 12', womens],
+        ['9XL', mens],
     ])('keeps %p on %o as written, with no key', (raw, product) => {
         expect(normaliseSizes([raw], product)).toEqual({ labels: [raw], keys: [], unrecognised: [raw] });
     });
@@ -125,15 +132,9 @@ describe('normaliseSizes', () => {
         expect(normaliseSizes(['N', ' N'], accessory)).toEqual({ labels: ['N'], keys: [], unrecognised: ['N'] });
     });
 
-    it('orders the labels by size, with the ones it cannot place last as the retailer listed them', () => {
-        expect(normaliseSizes(['XL', 'Socks', 'One Size', 'S', 'M/L', 'Bras'], mens).labels).toEqual([
-            'S',
-            'M/L',
-            'XL',
-            'Socks',
-            'One Size',
-            'Bras',
-        ]);
+    it("orders the labels by size, or leaves the retailer's order when it cannot place one", () => {
+        expect(normaliseSizes(['XL', 'One Size', 'S', 'M/L'], mens).labels).toEqual(['S', 'M/L', 'XL', 'One Size']);
+        expect(normaliseSizes(['40', '42', '44'], mens).labels).toEqual(['40', '42', 'IT 44']);
         expect(normaliseSizes(['10', '8.5', '8', '055'], shoes).labels).toEqual(['5.5', '8', '8.5', '10']);
     });
 });
@@ -191,7 +192,7 @@ describe('over every label the stores send', () => {
             [
                 ...['0', '1', '2', '3', '4', '5', '5.5', '6', '6.5', '7', '7.5', '8', '8.5', '9', '9.5', '10', '10.5'],
                 ...['11', '11.5', '12', '20', '39', '41', '42', '44', '46', '48', '50', '54', '56', '58', '60'],
-                ...['7 1/2', '7 1/4', '7 1/8', '7 3/8', '7 5/8', '12.5K - 1', '6-'],
+                ...['7 1/2', '7 1/4', '7 1/8', '7 3/8', '7 5/8', '12.5K - 1', '6-', '39-42'],
                 ...['18cm', '19cm', '60cm', '85cm', '90cm', '100cm', '22"', '34"', '36"', '40"', '0.59L', '0.89L'],
                 ...['H', 'J', 'N', 'P', 'R', 'U', 'Bras', 'Socks'],
                 ...['Left S', 'Left M', 'Left M/L', 'Left L', 'Left XL', 'Left 2XL'],
@@ -238,7 +239,7 @@ describe('over every label the stores send', () => {
             ({ product, keys }) => product.category !== 'Shoes' && keys.some((key) => bareNumber.test(key)),
         );
         expect(
-            offShelf.filter(({ labels }) => !/^[\d.]+-[\d.]+$/.test(labels[0]!)).map(({ labels }) => labels),
+            offShelf.filter(({ labels }) => !/^UK [\d.]+-[\d.]+$/.test(labels[0]!)).map(({ labels }) => labels),
         ).toEqual([]);
     });
 });

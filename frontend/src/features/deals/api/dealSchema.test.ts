@@ -28,6 +28,11 @@ test("a valid first page passes through unchanged", () => {
   expect(parsePage(body)).toEqual(body);
 });
 
+test("facets from a backend that predates shoeSizes parse, with no footwear sizes", () => {
+  const { shoeSizes: _, ...old } = FACETS;
+  expect(parsePage(page([makeDeal()], { facets: old })).facets?.shoeSizes).toEqual([]);
+});
+
 test("a later page has no facets, and an empty page is fine", () => {
   expect(parsePage(page([]))).toEqual(page([]));
 });
