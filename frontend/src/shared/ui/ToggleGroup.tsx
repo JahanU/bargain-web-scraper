@@ -40,8 +40,9 @@ export function ToggleGroup({
           className={(state) =>
             list
               ? cn(
-                  "flex h-11 w-full cursor-pointer items-center gap-2 text-left text-sm transition-colors duration-fast sm:h-9",
-                  state.pressed ? "font-semibold text-text" : "text-text-muted hover:text-text",
+                  // Full-strength text: the count inside is at 70%, which fails contrast on muted.
+                  "flex h-11 w-full cursor-pointer items-center gap-2 text-left text-sm hover:underline sm:h-9",
+                  state.pressed && "font-semibold",
                 )
               : cn(
                   chip({ tone: state.pressed ? "selected" : "neutral", interactive: true }),
