@@ -12,9 +12,10 @@ interface Hit {
 
 /**
  * An Algolia holding `hits` that pages no deeper than `cap` hits into one query. With `filters`
- * off it ignores numeric filters, like an index that can't filter on the attribute.
+ * off it ignores numeric filters, like an index that can't filter on the attribute. With
+ * `estimate` it reports that count instead of the real one, and says it is an estimate.
  */
-function fakeAlgolia(hits: Hit[], { cap = 5000, filters = true } = {}) {
+function fakeAlgolia(hits: Hit[], { cap = 5000, filters = true, estimate = undefined as number | undefined } = {}) {
     const searches: { page: number; numericFilters?: string[] }[] = [];
     spyOn(globalThis, 'fetch').mockImplementation((async (_url: string, init?: RequestInit) => {
         const body = JSON.parse(String(init?.body));
@@ -26,10 +27,12 @@ function fakeAlgolia(hits: Hit[], { cap = 5000, filters = true } = {}) {
             }),
         );
         const reachable = matching.slice(0, cap);
+        const nbHits = estimate ?? matching.length;
         return Response.json({
             hits: reachable.slice(body.page * 1000, (body.page + 1) * 1000),
-            nbHits: matching.length,
-            nbPages: Math.ceil(reachable.length / 1000),
+            nbHits,
+            nbPages: Math.ceil(Math.min(nbHits, cap) / 1000),
+            exhaustiveNbHits: estimate === undefined,
         });
     }) as typeof fetch);
     return searches;
@@ -78,6 +81,29 @@ describe('searchAll', () => {
         expect(complete).toBe(false);
         // The capped pages, then page 0 of each half: no further cuts.
         expect(searches).toHaveLength(7);
+    });
+
+    it('is complete when an estimated count runs past the real end', async () => {
+        // As END.'s index answers: about 35,000 "hits", fewer in truth.
+        fakeAlgolia(
+            priced(3400, (i) => i),
+            { cap: 100_000, estimate: 4100 },
+        );
+        const { hits, complete } = await searchAll<Hit>(config, {}, log, 'sale');
+        expect(hits).toHaveLength(3400);
+        expect(complete).toBe(true);
+    });
+
+    it('is incomplete when an estimated count falls short of the real end', async () => {
+        const searches = fakeAlgolia(
+            priced(3400, (i) => i),
+            { cap: 100_000, estimate: 2000 },
+        );
+        const { hits, complete } = await searchAll<Hit>(config, {}, log, 'sale', 'price');
+        expect(hits).toHaveLength(2000);
+        expect(complete).toBe(false);
+        // Estimates can't confirm a split, so none is tried.
+        expect(searches).toHaveLength(2);
     });
 
     it('does not split without an attribute to split by', async () => {

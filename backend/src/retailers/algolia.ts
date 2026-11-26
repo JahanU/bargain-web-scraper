@@ -11,6 +11,8 @@ interface SearchPage<Hit> {
     hits: Hit[];
     nbHits: number;
     nbPages: number;
+    /** False when `nbHits` is an estimate. */
+    exhaustiveNbHits?: boolean;
 }
 
 // Algolia's per-request maximum.
@@ -30,7 +32,7 @@ const NARROWEST_RANGE = 0.01;
  * Every hit of one query against a shop's Algolia index. Page 0 says how many pages there are;
  * the rest are fetched in parallel. Algolia only pages so deep into one query, so a query holding
  * more than that is read as ranges of the numeric attribute `splitBy` (a price), each small enough
- * to page through.
+ * to page through (only where the index counts its hits exactly, or the halves can't be checked).
  * `complete` is false when some hits still could not be reached.
  */
 export async function searchAll<Hit>(
@@ -76,13 +78,19 @@ export async function searchAll<Hit>(
     /** The hits of one range, given its page 0. A range Algolia won't page through is read as two halves. */
     async function readRange(first: SearchPage<Hit>, range?: Range): Promise<{ hits: Hit[]; complete: boolean }> {
         const rest = await Promise.all(Array.from({ length: first.nbPages - 1 }, (_, i) => searchPage(i + 1, range)));
-        const hits = [first, ...rest].flatMap((page) => page.hits);
-        if (hits.length >= first.nbHits) {
+        const pages = [first, ...rest];
+        const hits = pages.flatMap((page) => page.hits);
+
+        // A big index only estimates its count, so there is nothing exact to compare with. There,
+        // a last page that isn't full shows we reached the end.
+        const estimated = first.exhaustiveNbHits === false;
+        const reachedEnd = estimated ? (pages.at(-1)?.hits.length ?? 0) < HITS_PER_PAGE : hits.length >= first.nbHits;
+        if (reachedEnd) {
             return { hits, complete: true };
         }
 
         const { min, max } = range ?? { min: 0, max: Number.POSITIVE_INFINITY };
-        if (!splitBy || max - min <= NARROWEST_RANGE) {
+        if (!splitBy || estimated || max - min <= NARROWEST_RANGE) {
             return { hits, complete: false };
         }
 
