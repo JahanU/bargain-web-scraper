@@ -28,11 +28,17 @@ interface Range {
 const FIRST_CUT = 64;
 const NARROWEST_RANGE = 0.01;
 
+// How the two halves' counts may compare with the whole's for the split to be trusted. They match
+// exactly on a still index, and roughly when stock moved in between or the counts are estimates.
+// Far fewer means the index can't filter on the attribute; about double means it ignored the filter.
+const MIN_SPLIT_SHARE = 0.9;
+const MAX_SPLIT_SHARE = 1.5;
+
 /**
  * Every hit of one query against a shop's Algolia index. Page 0 says how many pages there are;
  * the rest are fetched in parallel. Algolia only pages so deep into one query, so a query holding
  * more than that is read as ranges of the numeric attribute `splitBy` (a price), each small enough
- * to page through (only where the index counts its hits exactly, or the halves can't be checked).
+ * to page through, as long as the two halves of a range hold about what the range does.
  * `complete` is false when some hits still could not be reached.
  */
 export async function searchAll<Hit>(
@@ -81,32 +87,38 @@ export async function searchAll<Hit>(
         const pages = [first, ...rest];
         const hits = pages.flatMap((page) => page.hits);
 
+        // Algolia reports fewer pages than the count needs when it caps how deep a query is paged.
+        const capped = first.nbPages * HITS_PER_PAGE < first.nbHits;
         // A big index only estimates its count, so there is nothing exact to compare with. There,
-        // a last page that isn't full shows we reached the end.
-        const estimated = first.exhaustiveNbHits === false;
-        const reachedEnd = estimated ? (pages.at(-1)?.hits.length ?? 0) < HITS_PER_PAGE : hits.length >= first.nbHits;
+        // a last page that isn't full shows we reached the end, unless the cap is what cut it short.
+        const reachedEnd =
+            first.exhaustiveNbHits === false
+                ? !capped && (pages.at(-1)?.hits.length ?? 0) < HITS_PER_PAGE
+                : hits.length >= first.nbHits;
         if (reachedEnd) {
             return { hits, complete: true };
         }
 
         const { min, max } = range ?? { min: 0, max: Number.POSITIVE_INFINITY };
-        if (!splitBy || estimated || max - min <= NARROWEST_RANGE) {
+        if (!splitBy || max - min <= NARROWEST_RANGE) {
             return { hits, complete: false };
         }
 
         const middle = Number.isFinite(max) ? (min + max) / 2 : Math.max(min * 2, FIRST_CUT);
-        const halves = [
+        const [lowerRange, upperRange] = [
             { min, max: middle },
             { min: middle, max },
         ];
-        const firsts = await Promise.all(halves.map((half) => searchPage(0, half)));
-        // Halves that don't add up to the whole mean the index can't filter on this attribute:
-        // keep what the capped pages gave us.
-        if (firsts.reduce((sum, page) => sum + page.nbHits, 0) !== first.nbHits) {
+        const [lowerFirst, upperFirst] = await Promise.all([searchPage(0, lowerRange), searchPage(0, upperRange)]);
+        const share = (lowerFirst.nbHits + upperFirst.nbHits) / first.nbHits;
+        if (share < MIN_SPLIT_SHARE || share > MAX_SPLIT_SHARE) {
+            // Keep what the capped pages gave us.
             return { hits, complete: false };
         }
-        const read = await Promise.all(halves.map((half, i) => readRange(firsts[i] as SearchPage<Hit>, half)));
-        return { hits: read.flatMap((half) => half.hits), complete: read.every((half) => half.complete) };
+        // One half after the other, so a deep split doesn't send every range's pages at once.
+        const lower = await readRange(lowerFirst, lowerRange);
+        const upper = await readRange(upperFirst, upperRange);
+        return { hits: [...lower.hits, ...upper.hits], complete: lower.complete && upper.complete };
     }
 
     const first = await searchPage(0);

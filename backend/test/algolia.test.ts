@@ -13,21 +13,30 @@ interface Hit {
 /**
  * An Algolia holding `hits` that pages no deeper than `cap` hits into one query. With `filters`
  * off it ignores numeric filters, like an index that can't filter on the attribute. With
- * `estimate` it reports that count instead of the real one, and says it is an estimate.
+ * `estimate` it reports that count for the real one, and says it is an estimate. With `sellsOne`
+ * a product sells out after the first search.
  */
-function fakeAlgolia(hits: Hit[], { cap = 5000, filters = true, estimate = undefined as number | undefined } = {}) {
+function fakeAlgolia(
+    hits: Hit[],
+    options: { cap?: number; filters?: boolean; estimate?: (real: number) => number; sellsOne?: boolean } = {},
+) {
+    const { cap = 5000, filters = true, estimate, sellsOne = false } = options;
+    const held = [...hits];
     const searches: { page: number; numericFilters?: string[] }[] = [];
     spyOn(globalThis, 'fetch').mockImplementation((async (_url: string, init?: RequestInit) => {
         const body = JSON.parse(String(init?.body));
         searches.push(body);
-        const matching = hits.filter((hit) =>
+        const matching = held.filter((hit) =>
             (filters ? (body.numericFilters ?? []) : []).every((filter: string) => {
                 const [, operator, value] = filter.match(/^price(>=|<)(.+)$/) ?? [];
                 return operator === '>=' ? hit.price >= Number(value) : hit.price < Number(value);
             }),
         );
         const reachable = matching.slice(0, cap);
-        const nbHits = estimate ?? matching.length;
+        const nbHits = estimate?.(matching.length) ?? matching.length;
+        if (sellsOne && searches.length === 1) {
+            held.pop();
+        }
         return Response.json({
             hits: reachable.slice(body.page * 1000, (body.page + 1) * 1000),
             nbHits,
@@ -87,7 +96,7 @@ describe('searchAll', () => {
         // As END.'s index answers: about 35,000 "hits", fewer in truth.
         fakeAlgolia(
             priced(3400, (i) => i),
-            { cap: 100_000, estimate: 4100 },
+            { cap: 100_000, estimate: () => 4100 },
         );
         const { hits, complete } = await searchAll<Hit>(config, {}, log, 'sale');
         expect(hits).toHaveLength(3400);
@@ -97,13 +106,56 @@ describe('searchAll', () => {
     it('is incomplete when an estimated count falls short of the real end', async () => {
         const searches = fakeAlgolia(
             priced(3400, (i) => i),
-            { cap: 100_000, estimate: 2000 },
+            { cap: 100_000, estimate: () => 2000 },
         );
         const { hits, complete } = await searchAll<Hit>(config, {}, log, 'sale', 'price');
         expect(hits).toHaveLength(2000);
         expect(complete).toBe(false);
-        // Estimates can't confirm a split, so none is tried.
-        expect(searches).toHaveLength(2);
+        // The two pages, then page 0 of each half, which this index answers with the same estimate.
+        expect(searches).toHaveLength(4);
+    });
+
+    it('is incomplete when the paging cap, not the end, cut an estimated listing short', async () => {
+        fakeAlgolia(
+            priced(6000, (i) => i),
+            { cap: 4500, estimate: (real) => real },
+        );
+        const { hits, complete } = await searchAll<Hit>(config, {}, log, 'sale');
+        expect(hits).toHaveLength(4500);
+        expect(complete).toBe(false);
+    });
+
+    it('reads an estimated query past the cap in price ranges', async () => {
+        fakeAlgolia(
+            priced(12_000, (i) => i / 10),
+            { estimate: (real) => Math.ceil(real * 1.1) },
+        );
+        const { hits, complete } = await searchAll<Hit>(config, {}, log, 'sale', 'price');
+        expect(complete).toBe(true);
+        expect(new Set(hits.map((hit) => hit.objectID)).size).toBe(12_000);
+        expect(hits).toHaveLength(12_000);
+    });
+
+    it('still splits when a product sells out between the searches', async () => {
+        fakeAlgolia(
+            priced(6000, (i) => i),
+            { sellsOne: true },
+        );
+        const { hits, complete } = await searchAll<Hit>(config, {}, log, 'sale', 'price');
+        expect(hits).toHaveLength(5999);
+        expect(complete).toBe(true);
+    });
+
+    it('reads the halves of a split one after the other', async () => {
+        const searches = fakeAlgolia(priced(6000, (i) => (i % 2 ? 10 : 100)));
+        await searchAll<Hit>(config, {}, log, 'sale', 'price');
+        // After the 5 capped pages and page 0 of each half: the rest of the lower half, then the upper.
+        expect(searches.slice(7).map((search) => search.numericFilters)).toEqual([
+            ['price>=0', 'price<64'],
+            ['price>=0', 'price<64'],
+            ['price>=64'],
+            ['price>=64'],
+        ]);
     });
 
     it('does not split without an attribute to split by', async () => {
