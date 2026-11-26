@@ -66,7 +66,7 @@ export function createEndRetailer({ minDiscount }: { minDiscount: number }): Ret
             distinct: false,
             attributesToRetrieve: ATTRIBUTES,
         };
-        const { hits, complete } = await searchAll<Hit>(config, query, log, 'sale');
+        const { hits, complete } = await searchAll<Hit>(config, query, log, 'sale', 'market_pricing_gbp.price');
 
         const sizesOf = Map.groupBy(hits, (hit) => hit.id);
         const products = [...sizesOf.values()].map(parseProduct).filter((product) => product !== undefined);
