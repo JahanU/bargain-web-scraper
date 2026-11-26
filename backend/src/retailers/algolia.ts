@@ -16,14 +16,37 @@ interface SearchPage<Hit> {
 // Algolia's per-request maximum.
 const HITS_PER_PAGE = 1000;
 
+/** Values of the `splitBy` attribute from `min` up to, but not including, `max`. */
+interface Range {
+    min: number;
+    max: number;
+}
+
+// The first place an open-ended range is cut, and the width below which a range is not cut again.
+const FIRST_CUT = 64;
+const NARROWEST_RANGE = 0.01;
+
 /**
  * Every hit of one query against a shop's Algolia index. Page 0 says how many pages there are;
- * the rest are fetched in parallel. `complete` is false when Algolia held some hits back.
+ * the rest are fetched in parallel. Algolia only pages so deep into one query, so a query holding
+ * more than that is read as ranges of the numeric attribute `splitBy` (a price), each small enough
+ * to page through.
+ * `complete` is false when some hits still could not be reached.
  */
-export async function searchAll<Hit>(config: SearchConfig, query: object, log: Logger, label: string) {
+export async function searchAll<Hit>(
+    config: SearchConfig,
+    query: object,
+    log: Logger,
+    label: string,
+    splitBy?: string,
+) {
     const { applicationId, searchApiKey, indexName } = config;
 
-    async function searchPage(page: number) {
+    async function searchPage(page: number, range?: Range) {
+        const numericFilters = range && [
+            `${splitBy}>=${range.min}`,
+            ...(Number.isFinite(range.max) ? [`${splitBy}<${range.max}`] : []),
+        ];
         const started = performance.now();
         const response = await request(
             'Algolia search',
@@ -33,6 +56,7 @@ export async function searchAll<Hit>(config: SearchConfig, query: object, log: L
                 headers: { 'x-algolia-application-id': applicationId, 'x-algolia-api-key': searchApiKey },
                 body: JSON.stringify({
                     ...query,
+                    numericFilters,
                     hitsPerPage: HITS_PER_PAGE,
                     page,
                     // Without these, Algolia adds match highlighting to every hit: 2.5MB a page instead of 320KB.
@@ -49,13 +73,39 @@ export async function searchAll<Hit>(config: SearchConfig, query: object, log: L
         return body;
     }
 
-    const first = await searchPage(0);
-    const rest = await Promise.all(Array.from({ length: first.nbPages - 1 }, (_, i) => searchPage(i + 1)));
-    const hits = [first, ...rest].flatMap((page) => page.hits);
+    /** The hits of one range, given its page 0. A range Algolia won't page through is read as two halves. */
+    async function readRange(first: SearchPage<Hit>, range?: Range): Promise<{ hits: Hit[]; complete: boolean }> {
+        const rest = await Promise.all(Array.from({ length: first.nbPages - 1 }, (_, i) => searchPage(i + 1, range)));
+        const hits = [first, ...rest].flatMap((page) => page.hits);
+        if (hits.length >= first.nbHits) {
+            return { hits, complete: true };
+        }
 
-    // Algolia caps how deep pagination goes. Keep what we got, but say it is not everything,
-    // so the products it held back aren't treated as gone.
-    const complete = hits.length >= first.nbHits;
+        const { min, max } = range ?? { min: 0, max: Number.POSITIVE_INFINITY };
+        if (!splitBy || max - min <= NARROWEST_RANGE) {
+            return { hits, complete: false };
+        }
+
+        const middle = Number.isFinite(max) ? (min + max) / 2 : Math.max(min * 2, FIRST_CUT);
+        const halves = [
+            { min, max: middle },
+            { min: middle, max },
+        ];
+        const firsts = await Promise.all(halves.map((half) => searchPage(0, half)));
+        // Halves that don't add up to the whole mean the index can't filter on this attribute:
+        // keep what the capped pages gave us.
+        if (firsts.reduce((sum, page) => sum + page.nbHits, 0) !== first.nbHits) {
+            return { hits, complete: false };
+        }
+        const read = await Promise.all(halves.map((half, i) => readRange(firsts[i] as SearchPage<Hit>, half)));
+        return { hits: read.flatMap((half) => half.hits), complete: read.every((half) => half.complete) };
+    }
+
+    const first = await searchPage(0);
+    const { hits, complete } = await readRange(first);
+
+    // Keep what we got, but say it is not everything, so the products Algolia held back aren't
+    // treated as gone.
     if (!complete) {
         log.warn('⚠ listing truncated by Algolia: missing products will not be removed this run', {
             query: label,
