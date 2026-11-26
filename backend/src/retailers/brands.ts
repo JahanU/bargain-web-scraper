@@ -3,7 +3,7 @@
 export const BRANDS = [
     'Polo Ralph Lauren', 'BOSS', 'HUGO', 'Lacoste', 'EA7', 'Jordan', 'Nike', 'On Running', 'HOKA', 'Salomon',
     'The North Face', 'New Balance', 'adidas', 'ASICS', 'UGG', 'Tommy Hilfiger', 'Tommy Jeans', 'Calvin Klein',
-    'Fred Perry', 'Birkenstock', 'Dr Martens', 'Timberland', 'True Religion',
+    'Fred Perry', 'Birkenstock', 'Dr Martens', 'Timberland',
     'Napapijri', 'Berghaus', 'Columbia', "Levi's", 'Converse', 'Vans', 'Under Armour', 'PUMA', 'Saucony',
     'Reebok', 'Castore', 'Montirex', 'Trailberg', 'Crocs', 'Stanley 1913', 'New Era', 'Champion', 'Dickies',
     'Juicy Couture', 'Mizuno',
