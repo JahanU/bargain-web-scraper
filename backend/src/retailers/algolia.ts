@@ -11,19 +11,50 @@ interface SearchPage<Hit> {
     hits: Hit[];
     nbHits: number;
     nbPages: number;
+    /** False when `nbHits` is an estimate. */
+    exhaustiveNbHits?: boolean;
 }
 
 // Algolia's per-request maximum.
 const HITS_PER_PAGE = 1000;
 
+/** Values of the `splitBy` attribute from `min` up to, but not including, `max`. */
+interface Range {
+    min: number;
+    max: number;
+}
+
+// The first place an open-ended range is cut, and the width below which a range is not cut again.
+const FIRST_CUT = 64;
+const NARROWEST_RANGE = 0.01;
+
+// How the two halves' counts may compare with the whole's for the split to be trusted. They match
+// exactly on a still index, and roughly when stock moved in between or the counts are estimates.
+// Far fewer means the index can't filter on the attribute; about double means it ignored the filter.
+const MIN_SPLIT_SHARE = 0.9;
+const MAX_SPLIT_SHARE = 1.5;
+
 /**
  * Every hit of one query against a shop's Algolia index. Page 0 says how many pages there are;
- * the rest are fetched in parallel. `complete` is false when Algolia held some hits back.
+ * the rest are fetched in parallel. Algolia only pages so deep into one query, so a query holding
+ * more than that is read as ranges of the numeric attribute `splitBy` (a price), each small enough
+ * to page through, as long as the two halves of a range hold about what the range does.
+ * `complete` is false when some hits still could not be reached.
  */
-export async function searchAll<Hit>(config: SearchConfig, query: object, log: Logger, label: string) {
+export async function searchAll<Hit>(
+    config: SearchConfig,
+    query: object,
+    log: Logger,
+    label: string,
+    splitBy?: string,
+) {
     const { applicationId, searchApiKey, indexName } = config;
 
-    async function searchPage(page: number) {
+    async function searchPage(page: number, range?: Range) {
+        const numericFilters = range && [
+            `${splitBy}>=${range.min}`,
+            ...(Number.isFinite(range.max) ? [`${splitBy}<${range.max}`] : []),
+        ];
         const started = performance.now();
         const response = await request(
             'Algolia search',
@@ -33,6 +64,7 @@ export async function searchAll<Hit>(config: SearchConfig, query: object, log: L
                 headers: { 'x-algolia-application-id': applicationId, 'x-algolia-api-key': searchApiKey },
                 body: JSON.stringify({
                     ...query,
+                    numericFilters,
                     hitsPerPage: HITS_PER_PAGE,
                     page,
                     // Without these, Algolia adds match highlighting to every hit: 2.5MB a page instead of 320KB.
@@ -49,13 +81,51 @@ export async function searchAll<Hit>(config: SearchConfig, query: object, log: L
         return body;
     }
 
-    const first = await searchPage(0);
-    const rest = await Promise.all(Array.from({ length: first.nbPages - 1 }, (_, i) => searchPage(i + 1)));
-    const hits = [first, ...rest].flatMap((page) => page.hits);
+    /** The hits of one range, given its page 0. A range Algolia won't page through is read as two halves. */
+    async function readRange(first: SearchPage<Hit>, range?: Range): Promise<{ hits: Hit[]; complete: boolean }> {
+        const rest = await Promise.all(Array.from({ length: first.nbPages - 1 }, (_, i) => searchPage(i + 1, range)));
+        const pages = [first, ...rest];
+        const hits = pages.flatMap((page) => page.hits);
 
-    // Algolia caps how deep pagination goes. Keep what we got, but say it is not everything,
-    // so the products it held back aren't treated as gone.
-    const complete = hits.length >= first.nbHits;
+        // Algolia reports fewer pages than the count needs when it caps how deep a query is paged.
+        const capped = first.nbPages * HITS_PER_PAGE < first.nbHits;
+        // A big index only estimates its count, so there is nothing exact to compare with. There,
+        // a last page that isn't full shows we reached the end, unless the cap is what cut it short.
+        const reachedEnd =
+            first.exhaustiveNbHits === false
+                ? !capped && (pages.at(-1)?.hits.length ?? 0) < HITS_PER_PAGE
+                : hits.length >= first.nbHits;
+        if (reachedEnd) {
+            return { hits, complete: true };
+        }
+
+        const { min, max } = range ?? { min: 0, max: Number.POSITIVE_INFINITY };
+        if (!splitBy || max - min <= NARROWEST_RANGE) {
+            return { hits, complete: false };
+        }
+
+        const middle = Number.isFinite(max) ? (min + max) / 2 : Math.max(min * 2, FIRST_CUT);
+        const [lowerRange, upperRange] = [
+            { min, max: middle },
+            { min: middle, max },
+        ];
+        const [lowerFirst, upperFirst] = await Promise.all([searchPage(0, lowerRange), searchPage(0, upperRange)]);
+        const share = (lowerFirst.nbHits + upperFirst.nbHits) / first.nbHits;
+        if (share < MIN_SPLIT_SHARE || share > MAX_SPLIT_SHARE) {
+            // Keep what the capped pages gave us.
+            return { hits, complete: false };
+        }
+        // One half after the other, so a deep split doesn't send every range's pages at once.
+        const lower = await readRange(lowerFirst, lowerRange);
+        const upper = await readRange(upperFirst, upperRange);
+        return { hits: [...lower.hits, ...upper.hits], complete: lower.complete && upper.complete };
+    }
+
+    const first = await searchPage(0);
+    const { hits, complete } = await readRange(first);
+
+    // Keep what we got, but say it is not everything, so the products Algolia held back aren't
+    // treated as gone.
     if (!complete) {
         log.warn('⚠ listing truncated by Algolia: missing products will not be removed this run', {
             query: label,

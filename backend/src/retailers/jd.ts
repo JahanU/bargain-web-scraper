@@ -15,7 +15,8 @@ const CONFIG_PAGE_URL = `${JD_BASE_URL}/men/sale/`;
 const NEXT_DATA_PATTERN = /<script id="__NEXT_DATA__" type="application\/json">([\s\S]*?)<\/script>/;
 
 // JD's top-level categories we read. Each is its own query: Algolia serves at most 5,000 hits per
-// query, and the men's and women's sales together can pass that.
+// query, and the men's and women's sales together can pass that. A category that passes it alone
+// (Black Friday) is read in price ranges.
 const CATEGORIES = ['Men', 'Women'];
 
 // Only the brands we list. JD matches brand names whatever their case.
@@ -73,7 +74,7 @@ export function createJDRetailer(): Retailer {
             facetFilters: [['onSale:true'], [`hierarchicalCategories.lvl0:${category}`], BRAND_FILTER],
             attributesToRetrieve: ATTRIBUTES,
         };
-        return searchAll<Hit>(current, query, log, category);
+        return searchAll<Hit>(current, query, log, category, 'price');
     }
 
     async function readSale(current: SearchConfig): Promise<Listing> {
