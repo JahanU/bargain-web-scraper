@@ -1,26 +1,28 @@
 import {
   ArrowDown01,
   ArrowDown10,
-  ArrowDownNarrowWide,
   ArrowDownWideNarrow,
   ChevronDown,
+  ClockArrowDown,
+  ClockArrowUp,
 } from "lucide-react";
 import { VisuallyHidden } from "@/shared/ui";
 import { SORTS, type SortId } from "@/features/deals";
 import { cn } from "@/shared/lib/cn";
 import { SORT_LABELS } from "../model/sort";
 
-// The order each sort puts first: bars for discount, digits for price.
+// The order each sort puts first: bars for discount, digits for price, a clock for found.
 const ICONS = {
   "discount-high-to-low": ArrowDownWideNarrow,
-  "discount-low-to-high": ArrowDownNarrowWide,
   "price-low-to-high": ArrowDown01,
   "price-high-to-low": ArrowDown10,
+  "found-new-to-old": ClockArrowDown,
+  "found-old-to-new": ClockArrowUp,
 } satisfies Record<SortId, unknown>;
 
 type SortSelectProps = { value: SortId; onChange: (value: SortId) => void; className?: string };
 
-/** A native select: four options need no custom listbox, and phones get their own picker. */
+/** A native select: five options need no custom listbox, and phones get their own picker. */
 export function SortSelect({ value, onChange, className }: SortSelectProps) {
   const Icon = ICONS[value];
   return (

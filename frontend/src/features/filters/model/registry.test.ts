@@ -53,13 +53,13 @@ test.each([
   ["?stores=footlocker,jd", { stores: ["footlocker", "jd"] }],
   ["?sort=price-high-to-low", { sort: "price-high-to-low" }],
   [
-    "?search=air+max&discount=70&sizes=XL&shoeSizes=9&sort=discount-low-to-high",
+    "?search=air+max&discount=70&sizes=XL&shoeSizes=9&sort=found-new-to-old",
     {
       search: "air max",
       discount: 70,
       sizes: ["XL"],
       shoeSizes: ["9"],
-      sort: "discount-low-to-high",
+      sort: "found-new-to-old",
     },
   ],
 ])("round-trips %s", (url, values) => {
