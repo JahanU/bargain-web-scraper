@@ -7,13 +7,13 @@ export interface Store {
     name: string;
 }
 
-type SortField = 'discount' | 'nowPrice';
+type SortField = 'discount' | 'nowPrice' | 'timestamp';
 type Direction = 1 | -1;
 
 /**
  * Each sort as its two fields in order, 1 for low to high and -1 for high to low. `url` ascending always follows.
- * Keep each pair of opposites together: the snapshot builds each order from the one before it, and of the 24
- * ways to arrange these four, this one sorts fastest (5ms for 9,000 deals, where the slowest takes 9ms).
+ * Keep each pair of opposites together: the snapshot builds each order from the one before it, and a
+ * reversed order is the cheapest to sort from.
  */
 export const SORTS = {
     'discount-high-to-low': [
@@ -30,6 +30,15 @@ export const SORTS = {
     ],
     'price-high-to-low': [
         ['nowPrice', -1],
+        ['discount', -1],
+    ],
+    // Deals found at the same moment, which after a deploy is every deal, read as the default sort does.
+    'found-new-to-old': [
+        ['timestamp', -1],
+        ['discount', -1],
+    ],
+    'found-old-to-new': [
+        ['timestamp', 1],
         ['discount', -1],
     ],
 } as const satisfies Record<string, readonly [[SortField, Direction], [SortField, Direction]]>;
@@ -169,18 +178,23 @@ function ranked(counts: Map<string, number>): [string, number][] {
     return [...counts].sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : 1));
 }
 
-function encodeCursor({ discount, nowPrice, url }: Position): string {
-    return Buffer.from(JSON.stringify([discount, nowPrice, url])).toString('base64url');
+function encodeCursor({ discount, nowPrice, timestamp, url }: Position): string {
+    return Buffer.from(JSON.stringify([discount, nowPrice, timestamp, url])).toString('base64url');
 }
 
 /** The position a cursor holds, or undefined if it is not one of ours. */
 export function decodeCursor(cursor: string): Position | undefined {
     try {
         const key: unknown = JSON.parse(Buffer.from(cursor, 'base64url').toString());
-        if (Array.isArray(key) && key.length === 3) {
-            const [discount, nowPrice, url] = key;
-            if (typeof discount === 'number' && typeof nowPrice === 'number' && typeof url === 'string') {
-                return { discount, nowPrice, url };
+        if (Array.isArray(key) && key.length === 4) {
+            const [discount, nowPrice, timestamp, url] = key;
+            if (
+                typeof discount === 'number' &&
+                typeof nowPrice === 'number' &&
+                typeof timestamp === 'number' &&
+                typeof url === 'string'
+            ) {
+                return { discount, nowPrice, timestamp, url };
             }
         }
     } catch {

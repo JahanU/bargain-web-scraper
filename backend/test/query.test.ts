@@ -147,10 +147,24 @@ describe('GET /v2/deals', () => {
             expect(await ids(`?sort=${sort}`)).toEqual(expected);
         });
 
+        it('orders by when each deal was first seen in both found sorts', async () => {
+            const found = [1000, 3000, 2000].map((timestamp) => make(String(timestamp), 'Deal', { timestamp }));
+            const order = async (sort: string) => idsOf((await page(`?sort=${sort}`, serving(found))).items);
+            expect(await order('found-new-to-old')).toEqual(['3000', '2000', '1000']);
+            expect(await order('found-old-to-new')).toEqual(['1000', '2000', '3000']);
+        });
+
         it('breaks discount ties by the cheaper price in both discount sorts', async () => {
             const tied = [make('dear', 'Dear', { nowPrice: 90 }), make('cheap', 'Cheap', { nowPrice: 10 })];
             for (const sort of ['discount-high-to-low', 'discount-low-to-high']) {
                 expect(idsOf((await page(`?sort=${sort}`, serving(tied))).items)).toEqual(['cheap', 'dear']);
+            }
+        });
+
+        it('breaks found ties by the bigger discount in both found sorts', async () => {
+            const tied = [make('small', 'Small', { discount: 35 }), make('big', 'Big', { discount: 80 })];
+            for (const sort of ['found-new-to-old', 'found-old-to-new']) {
+                expect(idsOf((await page(`?sort=${sort}`, serving(tied))).items)).toEqual(['big', 'small']);
             }
         });
 
@@ -375,8 +389,9 @@ describe('GET /v2/deals', () => {
             ['?cursor=not-a-cursor', 'cursor is not valid'],
             [`?cursor=${cursorOf({ url: 'x' })}`, 'cursor is not valid'],
             [`?cursor=${cursorOf([60, 50])}`, 'cursor is not valid'],
-            [`?cursor=${cursorOf(['60', 50, 'x'])}`, 'cursor is not valid'],
-            [`?cursor=${cursorOf([60, 50, 7])}`, 'cursor is not valid'],
+            [`?cursor=${cursorOf([60, 50, 'x'])}`, 'cursor is not valid'],
+            [`?cursor=${cursorOf(['60', 50, 2000, 'x'])}`, 'cursor is not valid'],
+            [`?cursor=${cursorOf([60, 50, 2000, 7])}`, 'cursor is not valid'],
         ])('rejects %s with a 400, even before the first scrape', async (query, error) => {
             for (const from of [ready, loading]) {
                 const response = get(query, from);
