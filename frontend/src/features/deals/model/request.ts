@@ -3,7 +3,6 @@ import type { CategoryScope, Gender } from "./Deal";
 // The ids already in shared links. The default is the backend's own order.
 export const SORTS = [
   "discount-high-to-low",
-  "discount-low-to-high",
   "price-low-to-high",
   "price-high-to-low",
   "found-new-to-old",

@@ -50,7 +50,7 @@ All are optional. Different parameters combine with AND. A parameter marked repe
 | `size` (repeatable) | A row's `size` exactly as `facets.sizes` or `facets.shoeSizes` gives it | Only deals that have that size in stock. Clothing and footwear sizes go in the same parameter, and a deal matching any of them is included. A size no deal has matches nothing. |
 | `q` | Free text, 1 to 64 characters after trimming | Split on whitespace into words. A deal matches when **every** word appears, in any case and as part of a longer word, in its name, its brand or its store's name. `q=nike air` finds "Nike Air Max 90", and `q=jd fleece` finds fleeces sold by JD Sports. |
 | `minDiscount` | Whole number `0` to `100` | Only deals with `discount` at or above it. The backend's own floor (`MIN_DISCOUNT`, 30 by default) always applies as well, so a value below the floor changes nothing. |
-| `sort` | `discount-high-to-low` (default), `discount-low-to-high`, `price-low-to-high`, `price-high-to-low`, `found-new-to-old`, `found-old-to-new` | The order of `items`. See [Sorting](#sorting). |
+| `sort` | `discount-high-to-low` (default), `price-low-to-high`, `price-high-to-low`, `found-new-to-old`, `found-old-to-new` | The order of `items`. See [Sorting](#sorting). |
 | `limit` | Whole number `1` to `100`, default `60` | The most deals in one page. |
 | `cursor` | The `nextCursor` of a previous response | Continue after that page. See [Paging](#paging). |
 
@@ -180,7 +180,6 @@ Notes on the data:
 | `sort` | Order | Ties |
 |---|---|---|
 | `discount-high-to-low` (default) | Biggest discount first | Cheapest first |
-| `discount-low-to-high` | Smallest discount first | Cheapest first |
 | `price-low-to-high` | Cheapest first | Biggest discount first |
 | `price-high-to-low` | Dearest first | Biggest discount first |
 | `found-new-to-old` | Latest `timestamp` first | Biggest discount first |
@@ -259,7 +258,7 @@ A bad parameter is a `400` with `{ "error": "<message>" }`. The query is validat
 | `400` | `size must not be empty` | An empty or whitespace-only `size` |
 | `400` | `q must be 1 to 64 characters` | `q` is empty, only whitespace, or longer than 64 characters after trimming |
 | `400` | `minDiscount must be a whole number from 0 to 100` | Anything but plain digits in that range |
-| `400` | `sort must be one of discount-high-to-low, discount-low-to-high, price-low-to-high, price-high-to-low, found-new-to-old, found-old-to-new` | Unknown or empty `sort` |
+| `400` | `sort must be one of discount-high-to-low, price-low-to-high, price-high-to-low, found-new-to-old, found-old-to-new` | Unknown or empty `sort` |
 | `400` | `limit must be a whole number from 1 to 100` | Anything but plain digits in that range |
 | `400` | `cursor is not valid` | A `cursor` that is not a `nextCursor` value |
 | `404` | `Not Found` | Wrong path |

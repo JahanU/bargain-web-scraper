@@ -22,8 +22,6 @@ const byUrl = (a: SortKey, b: SortKey) => (a.url < b.url ? -1 : a.url > b.url ? 
 const SORTS: Record<string, (a: SortKey, b: SortKey) => number> = {
   "discount-high-to-low": (a, b) =>
     b.discount - a.discount || a.nowPrice - b.nowPrice || byUrl(a, b),
-  "discount-low-to-high": (a, b) =>
-    a.discount - b.discount || a.nowPrice - b.nowPrice || byUrl(a, b),
   "price-low-to-high": (a, b) => a.nowPrice - b.nowPrice || b.discount - a.discount || byUrl(a, b),
   "price-high-to-low": (a, b) => b.nowPrice - a.nowPrice || b.discount - a.discount || byUrl(a, b),
   "found-new-to-old": (a, b) => b.timestamp - a.timestamp || b.discount - a.discount || byUrl(a, b),

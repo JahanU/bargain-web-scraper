@@ -20,10 +20,6 @@ export const SORTS = {
         ['discount', -1],
         ['nowPrice', 1],
     ],
-    'discount-low-to-high': [
-        ['discount', 1],
-        ['nowPrice', 1],
-    ],
     'price-low-to-high': [
         ['nowPrice', 1],
         ['discount', -1],

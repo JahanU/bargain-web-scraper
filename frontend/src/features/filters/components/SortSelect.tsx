@@ -1,7 +1,6 @@
 import {
   ArrowDown01,
   ArrowDown10,
-  ArrowDownNarrowWide,
   ArrowDownWideNarrow,
   ChevronDown,
   ClockArrowDown,
@@ -15,7 +14,6 @@ import { SORT_LABELS } from "../model/sort";
 // The order each sort puts first: bars for discount, digits for price, a clock for found.
 const ICONS = {
   "discount-high-to-low": ArrowDownWideNarrow,
-  "discount-low-to-high": ArrowDownNarrowWide,
   "price-low-to-high": ArrowDown01,
   "price-high-to-low": ArrowDown10,
   "found-new-to-old": ClockArrowDown,
@@ -24,7 +22,7 @@ const ICONS = {
 
 type SortSelectProps = { value: SortId; onChange: (value: SortId) => void; className?: string };
 
-/** A native select: six options need no custom listbox, and phones get their own picker. */
+/** A native select: five options need no custom listbox, and phones get their own picker. */
 export function SortSelect({ value, onChange, className }: SortSelectProps) {
   const Icon = ICONS[value];
   return (

@@ -140,7 +140,6 @@ describe('GET /v2/deals', () => {
     describe('sorting', () => {
         it.each([
             ['discount-high-to-low', EVERY_ID],
-            ['discount-low-to-high', ['5', '7', '3', '8', '2', '6', '9', '4', '1', '10']],
             ['price-low-to-high', ['8', '7', '2', '6', '9', '4', '1', '10', '3', '5']],
             ['price-high-to-low', ['5', '3', '1', '10', '4', '2', '6', '9', '7', '8']],
         ])('%s breaks ties by the other field, then by url', async (sort, expected) => {
@@ -152,13 +151,6 @@ describe('GET /v2/deals', () => {
             const order = async (sort: string) => idsOf((await page(`?sort=${sort}`, serving(found))).items);
             expect(await order('found-new-to-old')).toEqual(['3000', '2000', '1000']);
             expect(await order('found-old-to-new')).toEqual(['1000', '2000', '3000']);
-        });
-
-        it('breaks discount ties by the cheaper price in both discount sorts', async () => {
-            const tied = [make('dear', 'Dear', { nowPrice: 90 }), make('cheap', 'Cheap', { nowPrice: 10 })];
-            for (const sort of ['discount-high-to-low', 'discount-low-to-high']) {
-                expect(idsOf((await page(`?sort=${sort}`, serving(tied))).items)).toEqual(['cheap', 'dear']);
-            }
         });
 
         it('breaks found ties by the bigger discount in both found sorts', async () => {
