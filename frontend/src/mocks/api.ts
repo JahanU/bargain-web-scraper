@@ -12,7 +12,7 @@ type Row = {
   timestamp: number;
 };
 type Store = { store: string; name: string };
-type SortKey = Pick<Row, "discount" | "nowPrice" | "url">;
+type SortKey = Pick<Row, "discount" | "nowPrice" | "timestamp" | "url">;
 
 const STORES: Store[] = [{ store: "jd", name: "JD Sports" }];
 const DISCOUNT_FLOOR = 30;
@@ -26,6 +26,8 @@ const SORTS: Record<string, (a: SortKey, b: SortKey) => number> = {
     a.discount - b.discount || a.nowPrice - b.nowPrice || byUrl(a, b),
   "price-low-to-high": (a, b) => a.nowPrice - b.nowPrice || b.discount - a.discount || byUrl(a, b),
   "price-high-to-low": (a, b) => b.nowPrice - a.nowPrice || b.discount - a.discount || byUrl(a, b),
+  "found-new-to-old": (a, b) => b.timestamp - a.timestamp || b.discount - a.discount || byUrl(a, b),
+  "found-old-to-new": (a, b) => a.timestamp - b.timestamp || b.discount - a.discount || byUrl(a, b),
 };
 
 const tally = (values: string[]) => {
@@ -117,6 +119,6 @@ export function queryDeals<T extends Row>(
 }
 
 // The cursor is the last deal's sort key, not an offset: the next page is whatever sorts after it.
-const encode = ({ discount, nowPrice, url }: SortKey) =>
-  btoa(JSON.stringify({ discount, nowPrice, url }));
+const encode = ({ discount, nowPrice, timestamp, url }: SortKey) =>
+  btoa(JSON.stringify({ discount, nowPrice, timestamp, url }));
 const decode = (cursor: string) => JSON.parse(atob(cursor)) as SortKey;

@@ -6,6 +6,8 @@ export const SORTS = [
   "discount-low-to-high",
   "price-low-to-high",
   "price-high-to-low",
+  "found-new-to-old",
+  "found-old-to-new",
 ] as const;
 export type SortId = (typeof SORTS)[number];
 export const DEFAULT_SORT: SortId = "discount-high-to-low";
